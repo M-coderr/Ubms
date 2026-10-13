@@ -1,0 +1,28 @@
+[
+  {
+    "jobId": "JOB-2026-0301",
+    "orderId": "ORD-2026-1046",
+    "customerName": "Simran Kaur",
+    "itemName": "Foil Stamped Luxury Packaging Boxes (8 packs / 400 pcs)",
+    "workstation": "Hot Foil Stamping Press #2",
+    "assignedOperator": "Rahul Verma",
+    "stage": "running_line",
+    "priority": "urgent",
+    "startTime": "2026-10-13T09:00:00Z",
+    "targetCompletion": "2026-10-15T16:00:00Z",
+    "qcNotes": "Pantone 871C gold foil tension set to 4.2 bar. Temperature 125°C."
+  },
+  {
+    "jobId": "JOB-2026-0302",
+    "orderId": "ORD-2026-1045",
+    "customerName": "Arjun Mehta",
+    "itemName": "Custom Die-Cut Hang Tags (10 packs / 1000 pcs)",
+    "workstation": "High-Speed Die Punch Station A",
+    "assignedOperator": "Rahul Verma",
+    "stage": "packaged",
+    "priority": "express",
+    "startTime": "2026-10-11T09:00:00Z",
+    "targetCompletion": "2026-10-12T17:00:00Z",
+    "qcNotes": "100% laser eyelet verification completed. Packed in moisture-barrier polybags."
+  }
+]

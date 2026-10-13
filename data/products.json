@@ -1,0 +1,68 @@
+[
+  {
+    "id": "PROD-101",
+    "name": "Custom Die-Cut Hang Tags",
+    "category": "Packaging & Tags",
+    "sku": "TAG-DIECUT-01",
+    "price": 12.50,
+    "unit": "Pack of 100",
+    "stock": 450,
+    "leadDays": 3,
+    "description": "Premium 350 GSM matte laminated tags with custom shape cut and metallic eyelet."
+  },
+  {
+    "id": "PROD-102",
+    "name": "Embossed Woven Labels",
+    "category": "Apparel Labels",
+    "sku": "LBL-WOVEN-02",
+    "price": 28.00,
+    "unit": "Pack of 500",
+    "stock": 200,
+    "leadDays": 5,
+    "description": "High-density damask woven labels with folded edges and soft non-scratch finish."
+  },
+  {
+    "id": "PROD-103",
+    "name": "Foil Stamped Luxury Packaging Boxes",
+    "category": "Boxes & Cartons",
+    "sku": "BOX-FOIL-03",
+    "price": 85.00,
+    "unit": "Pack of 50",
+    "stock": 120,
+    "leadDays": 7,
+    "description": "Rigid gift boxes with metallic gold hot-stamping and custom magnetic closure."
+  },
+  {
+    "id": "PROD-104",
+    "name": "Eco Kraft Paper Carry Bags",
+    "category": "Bags & Pouches",
+    "sku": "BAG-KRAFT-04",
+    "price": 45.00,
+    "unit": "Pack of 100",
+    "stock": 600,
+    "leadDays": 2,
+    "description": "180 GSM natural virgin kraft paper with twisted paper handles and reinforced base."
+  },
+  {
+    "id": "PROD-105",
+    "name": "Thermal Transfer Barcode Stickers",
+    "category": "Barcodes & Stickers",
+    "sku": "STK-BARCODE-05",
+    "price": 18.00,
+    "unit": "Roll of 1000",
+    "stock": 350,
+    "leadDays": 1,
+    "description": "Waterproof synthetic adhesive barcode rolls, compatible with Zebra and TSC printers."
+  },
+  {
+    "id": "PROD-106",
+    "name": "Custom Printed Satin Ribbon Rolls",
+    "category": "Ribbons & Accents",
+    "sku": "RIB-SATIN-06",
+    "price": 32.00,
+    "unit": "Roll (100m)",
+    "stock": 85,
+    "leadDays": 4,
+    "description": "25mm double-face polyester satin ribbon with screen-printed brand logo."
+  }
+]

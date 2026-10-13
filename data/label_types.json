@@ -1,0 +1,14 @@
+[
+  {
+    "id": "TYPE-TAG",
+    "name": "Tag",
+    "materials": ["100 GSM", "200 GSM", "300 GSM"],
+    "defaultRate": 2.50
+  },
+  {
+    "id": "TYPE-PULABEL",
+    "name": "PU Label",
+    "materials": ["1.2", "1.8", "2.2"],
+    "defaultRate": 14.00
+  }
+]

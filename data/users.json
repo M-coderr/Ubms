@@ -1,0 +1,83 @@
+{
+  "team": [
+    {
+      "id": "USR-ADM-01",
+      "name": "Meet Thakkar",
+      "email": "meet@ubms.internal",
+      "role": "admin",
+      "roleLabel": "Business Owner / Super Admin",
+      "department": "Executive Management",
+      "status": "Active",
+      "avatar": "MT",
+      "permissions": ["all"]
+    },
+    {
+      "id": "USR-MGR-02",
+      "name": "Priya Sharma",
+      "email": "priya.s@ubms.internal",
+      "role": "manager",
+      "roleLabel": "Operations Manager",
+      "department": "Operations & Logistics",
+      "status": "Active",
+      "avatar": "PS",
+      "permissions": ["orders_all", "assign_staff", "products_manage", "status_update", "customers_view"]
+    },
+    {
+      "id": "USR-FLF-03",
+      "name": "Rahul Verma",
+      "email": "rahul.v@ubms.internal",
+      "role": "fulfillment",
+      "roleLabel": "Production & Dispatch Lead",
+      "department": "Fulfillment & Warehouse",
+      "status": "Active",
+      "avatar": "RV",
+      "permissions": ["orders_assigned", "status_update", "dispatch_update", "print_packing"]
+    },
+    {
+      "id": "USR-SUP-04",
+      "name": "Ananya Patel",
+      "email": "ananya.p@ubms.internal",
+      "role": "support",
+      "roleLabel": "Customer Support Rep",
+      "department": "Client Relations",
+      "status": "Active",
+      "avatar": "AP",
+      "permissions": ["orders_view", "notes_add", "customers_view"]
+    }
+  ],
+  "customers": [
+    {
+      "id": "CUST-001",
+      "name": "Arjun Mehta",
+      "company": "Urban Stitch Apparel",
+      "email": "arjun@urbanstitch.com",
+      "phone": "+91 98201 44552",
+      "address": "Plot 42, GIDC Apparel Park, Ahmedabad, Gujarat 380022",
+      "avatar": "AM",
+      "totalOrders": 12,
+      "spentTotal": 3480.00
+    },
+    {
+      "id": "CUST-002",
+      "name": "Simran Kaur",
+      "company": "Kaur Luxury Boutiques",
+      "email": "simran@kaurboutiques.in",
+      "phone": "+91 98112 88410",
+      "address": "Shop 14, Khan Market, New Delhi, Delhi 110003",
+      "avatar": "SK",
+      "totalOrders": 8,
+      "spentTotal": 2150.00
+    },
+    {
+      "id": "CUST-003",
+      "name": "Vikram Sethi",
+      "company": "Apex Athletic Wear",
+      "email": "vikram@apexsports.io",
+      "phone": "+91 99400 12398",
+      "address": "88 Industrial Area Phase 2, Bengaluru, Karnataka 560058",
+      "avatar": "VS",
+      "totalOrders": 4,
+      "spentTotal": 1420.00
+    }
+  ]
+}
