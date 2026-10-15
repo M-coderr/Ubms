@@ -224,6 +224,56 @@ function formatDate(isoOrDateStr) {
   }
 }
 
+// Generate customer abbreviation code (e.g. "MG Creation" -> "MGC", "Raymond" -> "RAY")
+function generateCustomerAbbr(companyOrName) {
+  if (!companyOrName) return 'ITM';
+  const clean = companyOrName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'ITM';
+
+  let abbr = '';
+  if (words.length === 1) {
+    abbr = words[0].slice(0, 3).toUpperCase();
+  } else {
+    // If the first word is an uppercase acronym (e.g. "MG", "RK", "SK", "USA")
+    if (words[0].length <= 3 && words[0] === words[0].toUpperCase()) {
+      abbr = words[0] + words.slice(1).map(w => w[0].toUpperCase()).join('');
+    } else {
+      abbr = words.map(w => w[0].toUpperCase()).join('');
+    }
+  }
+
+  abbr = abbr.replace(/[^A-Z0-9]/g, '');
+  if (abbr.length > 4) abbr = abbr.slice(0, 4);
+  if (abbr.length < 2) abbr = (clean.slice(0, 3)).toUpperCase();
+  return abbr || 'ITM';
+}
+
+// Generate unique sequential item code for a customer (e.g. "MGC01", "MGC02")
+function getNextItemCode(abbr, orders = [], stagedItems = []) {
+  if (!abbr) abbr = 'ITM';
+  let maxNum = 0;
+  const regex = new RegExp(`^${abbr}[-_]?(\\d+)$`, 'i');
+
+  const checkItem = (item) => {
+    if (!item) return;
+    const code = item.itemCode || item.name || '';
+    const match = code.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  };
+
+  (orders || []).forEach(o => (o.items || []).forEach(checkItem));
+  (stagedItems || []).forEach(checkItem);
+
+  const nextNum = maxNum + 1;
+  return `${abbr}${String(nextNum).padStart(2, '0')}`;
+}
+
 window.uBMS.STAGES = STAGES;
 window.uBMS.ROLES = ROLES;
 window.uBMS.DataService = DataService;
@@ -231,3 +281,5 @@ window.uBMS.computeCustomerGeneralLedger = computeCustomerGeneralLedger;
 window.uBMS.computeOutstandingLedger = computeOutstandingLedger;
 window.uBMS.formatCurrency = formatCurrency;
 window.uBMS.formatDate = formatDate;
+window.uBMS.generateCustomerAbbr = generateCustomerAbbr;
+window.uBMS.getNextItemCode = getNextItemCode;

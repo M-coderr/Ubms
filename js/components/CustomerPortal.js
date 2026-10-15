@@ -118,6 +118,11 @@ function CustomerPortal({
   const formatCurrency = window.uBMS.formatCurrency;
   const formatDate = window.uBMS.formatDate;
 
+  // Auto-calculated unique Item Code for Customer (e.g. MGC01, MGC02)
+  const customerPartyName = customer?.company || customer?.name || brandName;
+  const customerAbbr = window.uBMS.generateCustomerAbbr(customerPartyName);
+  const currentCustomerItemCode = window.uBMS.getNextItemCode(customerAbbr, orders, orderItems);
+
   // Add Item to Order and CLEAR ALL FIELDS
   const handleAddItemToOrder = (e) => {
     e.preventDefault();
@@ -132,6 +137,8 @@ function CustomerPortal({
 
     const newItem = {
       id: 'ITEM-' + Date.now().toString().slice(-4),
+      itemCode: currentCustomerItemCode,
+      name: currentCustomerItemCode,
       brandName: brandName.trim(),
       type: selectedType,
       material: selectedMaterial,
@@ -193,7 +200,8 @@ function CustomerPortal({
       assignedTo: 'Unassigned',
       items: orderItems.map(i => ({
         id: i.id,
-        name: `${i.brandName} - ${i.type} (${i.material})`,
+        itemCode: i.itemCode || i.name,
+        name: i.itemCode || i.name,
         brandName: i.brandName,
         type: i.type,
         material: i.material,
@@ -286,9 +294,13 @@ function CustomerPortal({
     const plasticValue = editPlasticOption === 'custom' ? `Custom: ${editPlasticCustom.trim()}` : 'Reg.';
     const itemTotal = Number(editQty) * Number(editRate);
 
+    const prevItem = editingOrder.items[0] || {};
+    const existingCode = prevItem.itemCode || prevItem.name || currentCustomerItemCode;
+
     const updatedItem = {
-      id: editingOrder.items[0]?.id || ('ITEM-' + Date.now().toString().slice(-4)),
-      name: `${editBrandName.trim()} - ${editSelectedType} (${editSelectedMaterial})`,
+      id: prevItem.id || ('ITEM-' + Date.now().toString().slice(-4)),
+      itemCode: existingCode,
+      name: existingCode,
       brandName: editBrandName.trim(),
       type: editSelectedType,
       material: editSelectedMaterial,
@@ -435,8 +447,8 @@ function CustomerPortal({
 
             <form onSubmit={handleAddItemToOrder} className="space-y-5 bg-slate-800/40 p-5 rounded-2xl border border-slate-800">
               
-              {/* TIER 1: CORE IDENTIFIERS (3-COLUMNS) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* TIER 1: CORE IDENTIFIERS (4-COLUMNS) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">
                     Brand Name <span className="text-rose-400">*</span>
@@ -449,6 +461,20 @@ function CustomerPortal({
                     onChange={(e) => setBrandName(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
                   />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-300">Item Code</label>
+                    <span className="text-[10px] text-blue-400 font-mono">🔒 Auto-assigned</span>
+                  </div>
+                  <div 
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-blue-400 flex items-center justify-between cursor-not-allowed select-none"
+                    title="Unique Article / Item Code is automatically generated and secured by Admin"
+                  >
+                    <span>{currentCustomerItemCode}</span>
+                    <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Auto</span>
+                  </div>
                 </div>
 
                 <div>
@@ -685,7 +711,12 @@ function CustomerPortal({
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-2.5">
                               <img src={item.image} alt={item.type} className="w-9 h-9 object-cover rounded-lg border border-slate-700" />
-                              <span className="font-mono text-[11px] text-slate-400">#{idx + 1}</span>
+                              <div className="flex flex-col">
+                                <span className="font-mono font-bold text-xs text-blue-400 bg-blue-950/60 border border-blue-800/80 px-1.5 py-0.5 rounded inline-block w-fit">
+                                  {item.itemCode || item.name}
+                                </span>
+                                <span className="font-mono text-[10px] text-slate-500 mt-0.5">#{idx + 1}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 font-bold text-white">{item.brandName}</td>
@@ -825,8 +856,13 @@ function CustomerPortal({
 
                         {/* 3. BRAND AND ITEM SPECS */}
                         <td className="py-4 px-4">
-                          <div className="font-extrabold text-white text-sm">
-                            {firstItem.brandName || order.customerCompany}
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                              {firstItem.itemCode || firstItem.name || 'ITEM'}
+                            </span>
+                            <span className="font-extrabold text-white text-sm">
+                              {firstItem.brandName || order.customerCompany}
+                            </span>
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1.5 items-center">
                             <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold text-[11px]">

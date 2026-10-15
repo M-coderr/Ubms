@@ -122,7 +122,7 @@ function InvoiceModal({ order, onClose }) {
                         <img src={item.image} alt={item.type || 'Item'} className="w-8 h-8 object-cover rounded border border-slate-300" />
                       )}
                       <div>
-                        <span className="font-bold text-slate-900">{item.name}</span>
+                        <span className="font-bold text-slate-900 font-mono tracking-wide">{item.itemCode || item.name}</span>
                         {item.brandName && (
                           <div className="text-[10px] text-slate-500">
                             Brand: <strong>{item.brandName}</strong> &bull; {item.type} ({item.material})

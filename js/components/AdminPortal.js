@@ -42,6 +42,8 @@ function AdminPortal({
   const selectedCust = users.customers.find(c => c.id === adminOrderCustId) || users.customers[0];
 
   const [adminBrandName, setAdminBrandName] = React.useState(selectedCust?.company || '');
+  const [adminItemCode, setAdminItemCode] = React.useState('');
+  const [adminItemCodeManual, setAdminItemCodeManual] = React.useState(false);
   const [adminSelectedType, setAdminSelectedType] = React.useState(availableTypes[0]?.name || 'Tag');
   const adminTypeObj = availableTypes.find(t => t.name === adminSelectedType) || availableTypes[0];
   const [adminSelectedMaterial, setAdminSelectedMaterial] = React.useState(adminTypeObj?.materials[0] || '100 GSM');
@@ -56,6 +58,16 @@ function AdminPortal({
   const [adminOrderItems, setAdminOrderItems] = React.useState([]);
   const [adminOrderDiscount, setAdminOrderDiscount] = React.useState(0);
   const [adminOrderNotes, setAdminOrderNotes] = React.useState('');
+
+  // Auto-generate item code for Admin if not manually modified
+  React.useEffect(() => {
+    if (!adminItemCodeManual) {
+      const party = selectedCust?.company || selectedCust?.name || adminBrandName;
+      const abbr = window.uBMS.generateCustomerAbbr(party);
+      const nextCode = window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
+      setAdminItemCode(nextCode);
+    }
+  }, [adminOrderCustId, adminBrandName, adminOrderItems, orders, adminItemCodeManual]);
 
   // Update material when type changes in Admin Order
   const handleAdminTypeChange = (newType) => {
@@ -85,11 +97,19 @@ function AdminPortal({
     if (adminDoriOption === 'custom' && !adminDoriCustom.trim()) return alert('Please enter the custom Dori specification.');
     if (adminPlasticOption === 'custom' && !adminPlasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
 
+    const party = selectedCust?.company || selectedCust?.name || adminBrandName;
+    const abbr = window.uBMS.generateCustomerAbbr(party);
+    const finalCode = (adminItemCode && adminItemCode.trim())
+      ? adminItemCode.trim().toUpperCase()
+      : window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
+
     const doriValue = adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg.';
     const plasticValue = adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg.';
 
     const newItem = {
       id: 'ITEM-' + Date.now().toString().slice(-4),
+      itemCode: finalCode,
+      name: finalCode,
       brandName: adminBrandName.trim(),
       type: adminSelectedType,
       material: adminSelectedMaterial,
@@ -106,6 +126,7 @@ function AdminPortal({
     // CLEAR ALL FIELDS AFTER ADDING AN ITEM
     setAdminBrandName('');
     setAdminOrderImage('');
+    setAdminItemCodeManual(false);
     const defaultType = availableTypes[0];
     setAdminSelectedType(defaultType?.name || 'Tag');
     setAdminSelectedMaterial(defaultType?.materials[0] || '100 GSM');
@@ -152,7 +173,8 @@ function AdminPortal({
       assignedToId: currentMember.id,
       items: adminOrderItems.map(i => ({
         id: i.id,
-        name: `${i.brandName} - ${i.type} (${i.material})`,
+        itemCode: i.itemCode || i.name,
+        name: i.itemCode || i.name,
         brandName: i.brandName,
         type: i.type,
         material: i.material,
@@ -534,8 +556,8 @@ function AdminPortal({
             {/* Line Item Creation Form */}
             <form onSubmit={handleAdminAddItem} className="space-y-5 bg-slate-800/40 p-5 rounded-2xl border border-slate-800">
               
-              {/* TIER 1: CORE IDENTIFIERS (4-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* TIER 1: CORE IDENTIFIERS (5-COLUMNS) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">Customer Account Party *</label>
                   <select
@@ -562,6 +584,24 @@ function AdminPortal({
                     value={adminBrandName}
                     onChange={(e) => setAdminBrandName(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-300">Item Code *</label>
+                    <span className="text-[10px] text-indigo-400 font-mono">Auto / Admin Edit</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. MGC01"
+                    value={adminItemCode}
+                    onChange={(e) => {
+                      setAdminItemCode(e.target.value.toUpperCase());
+                      setAdminItemCodeManual(true);
+                    }}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-indigo-300 font-mono font-bold focus:outline-none focus:border-indigo-500 uppercase tracking-wider"
                   />
                 </div>
 
@@ -792,7 +832,12 @@ function AdminPortal({
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-2.5">
                               <img src={item.image} alt={item.type} className="w-9 h-9 object-cover rounded-lg border border-slate-700" />
-                              <span className="font-mono text-[11px] text-slate-400">#{idx + 1}</span>
+                              <div className="flex flex-col">
+                                <span className="font-mono font-bold text-xs text-indigo-400 bg-indigo-950/60 border border-indigo-800/80 px-1.5 py-0.5 rounded inline-block w-fit">
+                                  {item.itemCode || item.name}
+                                </span>
+                                <span className="font-mono text-[10px] text-slate-500 mt-0.5">#{idx + 1}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 font-bold text-white">{item.brandName}</td>
@@ -1205,8 +1250,13 @@ function AdminPortal({
 
                           {/* 4. BRAND AND ITEM SPECS */}
                           <td className="py-4 px-4">
-                            <div className="font-extrabold text-white text-sm">
-                              {firstItem.brandName || o.customerCompany}
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                {firstItem.itemCode || firstItem.name || 'ITEM'}
+                              </span>
+                              <span className="font-extrabold text-white text-sm">
+                                {firstItem.brandName || o.customerCompany}
+                              </span>
                             </div>
                             <div className="mt-1 flex flex-wrap gap-1.5 items-center">
                               <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold text-[11px]">
