@@ -110,7 +110,7 @@ function HandleClient($tcpClient, $rootDir, $types) {
         # Generic Dynamic REST API Router for /api/{collection}
         if ($urlPath.StartsWith("/api/")) {
             $endpoint = $urlPath.Substring(5).Trim("/").ToLower()
-            $validCollections = @("orders", "users", "products", "estimates", "invoices", "payments", "production", "payroll", "messages", "label_types")
+            $validCollections = @("orders", "users", "products", "estimates", "invoices", "payments", "production", "payroll", "messages", "label_types", "catalogs", "inventory")
             
             if ($validCollections -contains $endpoint) {
                 $targetFile = [System.IO.Path]::Combine($rootDir, "data", "$endpoint.json")

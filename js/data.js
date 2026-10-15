@@ -38,7 +38,32 @@ const ROLES = {
     badge: 'bg-amber-100 text-amber-800 border-amber-200',
     description: 'Account management, order lookups, customer chat, and client inquiries.',
     permissions: ['orders_view', 'chat_manage', 'customers_view']
+  },
+  printing: {
+    name: 'Printing Press Operator',
+    badge: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    description: 'Mobile operator view: Start printing, record printed sheets & wastage.',
+    permissions: ['printing_operator']
+  },
+  punching: {
+    name: 'Punching & Packing Operator',
+    badge: 'bg-teal-100 text-teal-800 border-teal-200',
+    description: 'Mobile operator view: Start die-punching & packing, log punched count.',
+    permissions: ['punching_operator']
+  },
+  labourer: {
+    name: 'Handwork Artisan (Dori & Plastic)',
+    badge: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    description: 'Mobile handwork view: View assigned batches, start & complete dori/plastic assembly.',
+    permissions: ['handwork_worker']
   }
+};
+
+const HANDWORK_DEFAULTS = {
+  doriRate: 0.20,
+  plasticRate: 0.10,
+  bufferSheetsPerProcess: 20,
+  allowedDeficitMax: 40 // for 1000 order, 960 is minimum allowed (1000 - 40)
 };
 
 // Generic helper to fetch collection with cache
@@ -104,7 +129,13 @@ const DataService = {
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
     { id: 'TYPE-PULABEL', name: 'PU Label', materials: ['1.2', '1.8', '2.2'], defaultRate: 14.00 }
   ]),
-  saveLabelTypes: (data) => saveEntity('label_types', data)
+  saveLabelTypes: (data) => saveEntity('label_types', data),
+
+  fetchCatalogs: () => fetchEntity('catalogs', []),
+  saveCatalogs: (data) => saveEntity('catalogs', data),
+
+  fetchInventory: () => fetchEntity('inventory', []),
+  saveInventory: (data) => saveEntity('inventory', data)
 };
 
 // Financial Calculations & Ledger Engine
@@ -276,6 +307,7 @@ function getNextItemCode(abbr, orders = [], stagedItems = []) {
 
 window.uBMS.STAGES = STAGES;
 window.uBMS.ROLES = ROLES;
+window.uBMS.HANDWORK_DEFAULTS = HANDWORK_DEFAULTS;
 window.uBMS.DataService = DataService;
 window.uBMS.computeCustomerGeneralLedger = computeCustomerGeneralLedger;
 window.uBMS.computeOutstandingLedger = computeOutstandingLedger;

@@ -1,10 +1,10 @@
-[
+﻿[
   {
     "id": "INV-2026-041",
     "orderId": "ORD-2026-1044",
     "customerId": "CUST-001",
-    "customerName": "Arjun Mehta",
-    "customerCompany": "Urban Stitch Apparel",
+    "customerName": "Mohit Samnani",
+    "customerCompany": "MG Creation",
     "issueDate": "2026-10-04T12:00:00Z",
     "dueDate": "2026-10-14T18:00:00Z",
     "items": [
@@ -27,8 +27,8 @@
     "id": "INV-2026-042",
     "orderId": "ORD-2026-1045",
     "customerId": "CUST-001",
-    "customerName": "Arjun Mehta",
-    "customerCompany": "Urban Stitch Apparel",
+    "customerName": "Mohit Samnani",
+    "customerCompany": "MG Creation",
     "issueDate": "2026-10-10T11:00:00Z",
     "dueDate": "2026-10-20T18:00:00Z",
     "items": [
@@ -57,8 +57,8 @@
     "id": "INV-2026-043",
     "orderId": "ORD-2026-1047",
     "customerId": "CUST-003",
-    "customerName": "Vikram Sethi",
-    "customerCompany": "Apex Athletic Wear",
+    "customerName": "Parth Thakkar",
+    "customerCompany": "TagX",
     "issueDate": "2026-10-13T09:00:00Z",
     "dueDate": "2026-10-23T18:00:00Z",
     "items": [

@@ -7,15 +7,22 @@ function CustomerPortal({
   invoices, 
   payments, 
   labelTypes = [], 
+  catalogs = [],
   messages, 
   onSaveOrder, 
   onUpdateOrder,
   onSaveMessage, 
   onOpenInvoice, 
-  defaultTab = 'order_register' 
+  defaultTab = 'dashboard' 
 }) {
   const [activeTab, setActiveTab] = React.useState(defaultTab);
   const [previewArtworkUrl, setPreviewArtworkUrl] = React.useState(null);
+  const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
+
+  // Automatically minimize on non-dashboard tabs, expand on dashboard
+  React.useEffect(() => {
+    setBannerMinimized(activeTab !== 'dashboard');
+  }, [activeTab]);
 
   // Edit Order State (Customer allowed to edit before admin approval)
   const [editingOrder, setEditingOrder] = React.useState(null);
@@ -36,6 +43,79 @@ function CustomerPortal({
     return orders.filter(o => o.customerId === customer.id || o.customerEmail === customer.email);
   }, [orders, customer]);
 
+  // Order Register Filter & Search states
+  const [orderStatusFilter, setOrderStatusFilter] = React.useState('all');
+  const [searchBrandSpecs, setSearchBrandSpecs] = React.useState('');
+  const [searchDoriPlastic, setSearchDoriPlastic] = React.useState('');
+  const [searchQty, setSearchQty] = React.useState('');
+  const [searchRate, setSearchRate] = React.useState('');
+
+  const filteredCustomerOrders = React.useMemo(() => {
+    return customerOrders.filter(order => {
+      // 1. Status Filter
+      if (orderStatusFilter !== 'all') {
+        const s = (order.status || '').toLowerCase();
+        if (orderStatusFilter === 'pending') {
+          if (s !== 'pending' && s !== 'placed') return false;
+        } else if (orderStatusFilter === 'approved') {
+          if (s !== 'approved' && s !== 'confirmed') return false;
+        } else if (s !== orderStatusFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      const items = order.items && order.items.length > 0 ? order.items : [{}];
+
+      // 2. Individual Search: Brand & Item Specs
+      if (searchBrandSpecs.trim()) {
+        const query = searchBrandSpecs.trim().toLowerCase();
+        const matchesSpecs = items.some(item => {
+          const brand = (item.brandName || order.customerCompany || '').toLowerCase();
+          const itemCode = (item.itemCode || item.name || '').toLowerCase();
+          const type = (item.type || '').toLowerCase();
+          const material = (item.material || '').toLowerCase();
+          return brand.includes(query) || itemCode.includes(query) || type.includes(query) || material.includes(query);
+        });
+        if (!matchesSpecs) return false;
+      }
+
+      // 3. Individual Search: Dori & Plastic
+      if (searchDoriPlastic.trim()) {
+        const query = searchDoriPlastic.trim().toLowerCase();
+        const matchesDoriPlastic = items.some(item => {
+          const dori = (item.dori || '').toLowerCase();
+          const plastic = (item.plastic || '').toLowerCase();
+          return dori.includes(query) || plastic.includes(query);
+        });
+        if (!matchesDoriPlastic) return false;
+      }
+
+      // 4. Individual Search: Qty
+      if (searchQty.trim()) {
+        const query = searchQty.trim().replace(/,/g, '').toLowerCase();
+        const matchesQty = items.some(item => {
+          const qStr = String(item.quantity || '');
+          const qFmt = Number(item.quantity || 0).toLocaleString().toLowerCase();
+          return qStr.includes(query) || qFmt.includes(query);
+        });
+        if (!matchesQty) return false;
+      }
+
+      // 5. Individual Search: Rate
+      if (searchRate.trim()) {
+        const query = searchRate.trim().replace(/[₹,\s]/g, '').toLowerCase();
+        const matchesRate = items.some(item => {
+          const rStr = String(item.unitPrice || '');
+          const rFmt = (typeof formatCurrency === 'function' ? formatCurrency(item.unitPrice || 0) : '').toLowerCase();
+          return rStr.includes(query) || rFmt.includes(query);
+        });
+        if (!matchesRate) return false;
+      }
+
+      return true;
+    });
+  }, [customerOrders, orderStatusFilter, searchBrandSpecs, searchDoriPlastic, searchQty, searchRate]);
+
   const customerInvoices = React.useMemo(() => {
     return invoices.filter(i => i.customerId === customer.id);
   }, [invoices, customer]);
@@ -49,32 +129,63 @@ function CustomerPortal({
     return window.uBMS.computeOutstandingLedger(customer.id, customerInvoices);
   }, [customer, customerInvoices]);
 
+  // Customer Dashboard KPI Metrics
+  const customerStats = React.useMemo(() => {
+    const totalOrders = customerOrders.length;
+    const pendingOrders = customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length;
+    const approvedOrders = customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length;
+    const inProdOrders = customerOrders.filter(o => o.status === 'in_production').length;
+    const readyOrders = customerOrders.filter(o => o.status === 'ready_dispatch').length;
+    const shippedOrders = customerOrders.filter(o => o.status === 'shipped').length;
+    const deliveredOrders = customerOrders.filter(o => o.status === 'delivered').length;
+    const activeOrders = inProdOrders + readyOrders + shippedOrders;
+
+    const totalSpend = customerOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const totalOutstanding = outstandingLedger?.totalOutstanding || 0;
+    const unpaidInvoicesCount = (outstandingLedger?.bills || []).length;
+
+    return {
+      totalOrders,
+      pendingOrders,
+      approvedOrders,
+      inProdOrders,
+      readyOrders,
+      shippedOrders,
+      deliveredOrders,
+      activeOrders,
+      totalSpend,
+      totalOutstanding,
+      unpaidInvoicesCount
+    };
+  }, [customerOrders, outstandingLedger]);
+
   // Chat Thread
   const customerThread = React.useMemo(() => {
     const thread = messages.find(m => m.threadId === customer.id);
-    return thread || { threadId: customer.id, customerName: customer.name, accountManager: 'Priya Sharma', messages: [] };
+    return thread || { threadId: customer.id, customerName: customer.name, accountManager: 'Parth', messages: [] };
   }, [messages, customer]);
 
   const [chatInput, setChatInput] = React.useState('');
 
   // ---------------------------------------------------------------------------
-  // Available Types & Materials Catalog
+  // Available Types & Paper Catalogs
   // ---------------------------------------------------------------------------
   const availableTypes = labelTypes.length > 0 ? labelTypes : [
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
     { id: 'TYPE-PULABEL', name: 'PU Label', materials: ['1.2', '1.8', '2.2'], defaultRate: 14.00 }
   ];
 
+  const availableCatalogs = catalogs.length > 0 ? catalogs : [
+    { id: 'CAT-IV350', code: 'Cat #101 - Art Ivory 350', name: 'Art & Ivory Board 350 GSM', gsm: 350, finish: 'Silk Matte Coated', sheetRate: 3.20 },
+    { id: 'CAT-KF280', code: 'Cat #102 - Natural Kraft 280', name: 'Virgin Eco Kraft Paper 280 GSM', gsm: 280, finish: 'Raw Fibrous Texture', sheetRate: 2.40 },
+    { id: 'CAT-SP300', code: 'Cat #103 - Sappi Black 300', name: 'Sappi Velvet Jet Black 300 GSM', gsm: 300, finish: 'Solid Deep Black Matte', sheetRate: 4.50 },
+    { id: 'CAT-TR115', code: 'Cat #104 - Tracing Butter 115', name: 'Translucent Butter Paper 115 GSM', gsm: 115, finish: 'Semi-Transparent Frosted', sheetRate: 1.90 },
+    { id: 'CAT-MT400', code: 'Cat #105 - Metallic Pearl 400', name: 'Champagne Shimmer Board 400 GSM', gsm: 400, finish: 'Subtle Pearl Luster', sheetRate: 5.80 },
+    { id: 'CAT-DUP250', code: 'Cat #106 - Sturdy Duplex 250', name: 'Greyback Duplex Board 250 GSM', gsm: 250, finish: 'Semi-Gloss Single Sided', sheetRate: 1.60 }
+  ];
+
   // ---------------------------------------------------------------------------
   // Tags & Labels Order Creation State
-  // 1. Order Image
-  // 2. Brand Name
-  // 3. Type
-  // 4. Material
-  // 5. Qty
-  // 6. Rate
-  // 7. Dori (Reg. or Custom)
-  // 8. Plastic (Reg. or Custom)
   // ---------------------------------------------------------------------------
   const [orderImage, setOrderImage] = React.useState('');
   const [brandName, setBrandName] = React.useState('');
@@ -82,6 +193,15 @@ function CustomerPortal({
   
   const currentTypeObj = availableTypes.find(t => t.name === selectedType) || availableTypes[0];
   const [selectedMaterial, setSelectedMaterial] = React.useState(currentTypeObj?.materials[0] || '100 GSM');
+  const [selectedCatalogId, setSelectedCatalogId] = React.useState(availableCatalogs[0]?.id || 'CAT-IV350');
+  
+  // Multi-Card Tag composition: A tag can have 2 or 3 separate cards
+  const [isMultiCard, setIsMultiCard] = React.useState(false);
+  const [tagCards, setTagCards] = React.useState([
+    { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
+    { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+  ]);
+
   const [qty, setQty] = React.useState(0);
   const [rate, setRate] = React.useState(0);
 
@@ -99,6 +219,22 @@ function CustomerPortal({
     if (typeObj) {
       setSelectedMaterial(typeObj.materials[0] || '');
     }
+  };
+
+  const handleUpdateCardCatalog = (cardIndex, newCatId) => {
+    setTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, catalogId: newCatId } : c));
+  };
+
+  const handleAddThirdCard = () => {
+    if (tagCards.length >= 3) return;
+    setTagCards(prev => [
+      ...prev,
+      { id: 3, title: 'Card 3 (Story / Overlay Card)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115' }
+    ]);
+  };
+
+  const handleRemoveThirdCard = () => {
+    setTagCards(prev => prev.slice(0, 2));
   };
 
   // Image upload
@@ -132,8 +268,47 @@ function CustomerPortal({
     if (doriOption === 'custom' && !doriCustom.trim()) return alert('Please enter the custom Dori specification.');
     if (plasticOption === 'custom' && !plasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
 
-    const doriValue = doriOption === 'custom' ? `Custom: ${doriCustom.trim()}` : 'Reg.';
-    const plasticValue = plasticOption === 'custom' ? `Custom: ${plasticCustom.trim()}` : 'Reg.';
+    const doriValue = doriOption === 'custom' ? `Custom: ${doriCustom.trim()}` : 'Reg. (₹0.20/pc)';
+    const plasticValue = plasticOption === 'custom' ? `Custom: ${plasticCustom.trim()}` : 'Reg. (₹0.10/pc)';
+
+    let finalMaterial = selectedMaterial;
+    let chosenCards = [];
+    let primaryCatalogId = null;
+    let primaryCatalogCode = null;
+
+    if (selectedType === 'Tag') {
+      if (isMultiCard) {
+        chosenCards = tagCards.map((c, i) => {
+          const cat = availableCatalogs.find(x => x.id === c.catalogId) || availableCatalogs[0];
+          return {
+            cardIndex: i + 1,
+            title: c.title,
+            catalogId: cat.id,
+            catalogCode: cat.code,
+            name: cat.name,
+            gsm: cat.gsm,
+            finish: cat.finish
+          };
+        });
+        finalMaterial = `${tagCards.length}-Card Set: ` + chosenCards.map(c => c.catalogCode.split(' - ')[1] || c.catalogCode).join(' + ');
+        primaryCatalogId = chosenCards[0]?.catalogId;
+        primaryCatalogCode = chosenCards[0]?.catalogCode;
+      } else {
+        const cat = availableCatalogs.find(x => x.id === selectedCatalogId) || availableCatalogs[0];
+        chosenCards = [{
+          cardIndex: 1,
+          title: 'Single Card Tag',
+          catalogId: cat.id,
+          catalogCode: cat.code,
+          name: cat.name,
+          gsm: cat.gsm,
+          finish: cat.finish
+        }];
+        finalMaterial = `${cat.code} (${cat.finish})`;
+        primaryCatalogId = cat.id;
+        primaryCatalogCode = cat.code;
+      }
+    }
 
     const newItem = {
       id: 'ITEM-' + Date.now().toString().slice(-4),
@@ -141,9 +316,15 @@ function CustomerPortal({
       name: currentCustomerItemCode,
       brandName: brandName.trim(),
       type: selectedType,
-      material: selectedMaterial,
+      isMultiCard: selectedType === 'Tag' ? isMultiCard : false,
+      cards: chosenCards,
+      catalogId: primaryCatalogId,
+      catalogCode: primaryCatalogCode,
+      material: finalMaterial,
       dori: doriValue,
+      doriRate: doriOption === 'reg' ? 0.20 : 0.20,
       plastic: plasticValue,
+      plasticRate: plasticOption === 'reg' ? 0.10 : 0.10,
       image: orderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(selectedType),
       quantity: Number(qty),
       unitPrice: Number(rate),
@@ -158,6 +339,12 @@ function CustomerPortal({
     const defaultType = availableTypes[0];
     setSelectedType(defaultType?.name || 'Tag');
     setSelectedMaterial(defaultType?.materials[0] || '100 GSM');
+    setSelectedCatalogId(availableCatalogs[0]?.id || 'CAT-IV350');
+    setIsMultiCard(false);
+    setTagCards([
+      { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
+      { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+    ]);
     setQty(0);
     setRate(0);
     setDoriOption('reg');
@@ -172,6 +359,19 @@ function CustomerPortal({
 
   const handleRemoveOrderItem = (id) => {
     setOrderItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  // Duplicate rejected order into new order draft
+  const handleDuplicateOrder = (rejectedOrder) => {
+    if (!rejectedOrder || !rejectedOrder.items) return;
+    const clonedItems = rejectedOrder.items.map((item, idx) => ({
+      ...item,
+      id: 'ITEM-' + Date.now().toString().slice(-4) + '-' + idx
+    }));
+    setOrderItems(clonedItems);
+    setBrandName(rejectedOrder.items[0]?.brandName || rejectedOrder.customerCompany || '');
+    setOrderNotes(`Re-order following rejected order #${rejectedOrder.id}`);
+    setActiveTab('place_order');
   };
 
   // Calculations (NO TAXES, Subtotal = Grand Total)
@@ -204,9 +404,15 @@ function CustomerPortal({
         name: i.itemCode || i.name,
         brandName: i.brandName,
         type: i.type,
+        isMultiCard: !!i.isMultiCard,
+        cards: i.cards || [],
+        catalogId: i.catalogId || null,
+        catalogCode: i.catalogCode || null,
         material: i.material,
         dori: i.dori,
+        doriRate: i.doriRate || 0.20,
         plastic: i.plastic,
+        plasticRate: i.plasticRate || 0.10,
         image: i.image,
         unitPrice: i.unitPrice,
         quantity: i.quantity,
@@ -362,8 +568,9 @@ function CustomerPortal({
     setChatInput('');
   };
 
-  // 6 Customer Tabs
+  // 7 Customer Tabs
   const customerTabs = [
+    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
     { key: 'place_order', label: 'Place Order', icon: '🛒' },
     { key: 'order_register', label: 'Order Register', icon: '📦' },
     { key: 'invoice_register', label: 'Invoice Register', icon: '📄' },
@@ -375,54 +582,465 @@ function CustomerPortal({
   return (
     <div className="space-y-6">
       
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-blue-800/40">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold mb-2 border border-blue-400/20">
-              <span>🏷️</span>
-              <span>Tags & Labels Client Portal</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {customer.company}
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1">
-              Client: {customer.name} &bull; Acc Manager: <span className="text-indigo-300 font-bold">{customerThread.accountManager}</span>
-            </p>
+      {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
+      {bannerMinimized ? (
+        <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-slate-900 rounded-2xl px-4 py-2.5 text-white shadow-xl border border-blue-900/40 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
+          {/* Navigation Tabs (Sleek row) */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
+            {customerTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                  activeTab === tab.key
+                    ? 'bg-blue-600 text-white shadow-md font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center space-x-3 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-            <div>
-              <span className="text-[10px] text-slate-400 block uppercase font-bold">Outstanding Balance</span>
-              <span className="text-lg font-black text-amber-400">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
-            </div>
+          {/* Right: Balance & quick action & expand toggle */}
+          <div className="flex items-center space-x-2 shrink-0">
+            {outstandingLedger.totalOutstanding > 0 && (
+              <span className="text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-lg font-mono font-bold hidden sm:inline">
+                Due: {formatCurrency(outstandingLedger.totalOutstanding)}
+              </span>
+            )}
+
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-3 py-2 rounded-xl text-xs shadow transition-all ml-2"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow transition-all flex items-center space-x-1"
+              title="Place New Order"
             >
-              + Place Order
+              <span>➕</span>
+              <span className="hidden md:inline">Order</span>
+            </button>
+
+            <button
+              onClick={() => setBannerMinimized(false)}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              title="Expand full customer banner"
+            >
+              <span>▼</span>
+              <span className="text-[11px] hidden sm:inline">Expand</span>
             </button>
           </div>
         </div>
-
-        {/* Modular Navigation Bar (6 Customer Modules) */}
-        <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
-          {customerTabs.map(tab => (
+      ) : (
+        /* Full Hero Banner (on Dashboard or when manually expanded) */
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-blue-800/40 relative animate-fade-in">
+          {/* Minimize Toggle in Top Right */}
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
-                activeTab === tab.key
-                  ? 'bg-white text-slate-900 shadow-md font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              onClick={() => setBannerMinimized(true)}
+              className="bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              title="Minimize header banner to save screen space"
+            >
+              <span>▲</span>
+              <span className="text-[11px]">Minimize</span>
+            </button>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold mb-2 border border-blue-400/20">
+                <span>🏷️</span>
+                <span>Tags &amp; Labels Client Portal</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                {customer.company}
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm mt-1">
+                Client: {customer.name} &bull; Acc Manager: <span className="text-indigo-300 font-bold">{customerThread.accountManager}</span>
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-3 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+              <div>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Outstanding Balance</span>
+                <span className="text-lg font-black text-amber-400">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
+              </div>
+              <button
+                onClick={() => setActiveTab('place_order')}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-3 py-2 rounded-xl text-xs shadow transition-all ml-2"
+              >
+                + Place Order
+              </button>
+            </div>
+          </div>
+
+          {/* Modular Navigation Bar */}
+          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
+            {customerTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                  activeTab === tab.key
+                    ? 'bg-white text-slate-900 shadow-md font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* MODULE 0: CUSTOMER DASHBOARD */}
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Top KPI Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Total Orders */}
+            <div 
+              onClick={() => {
+                setOrderStatusFilter('all');
+                setActiveTab('order_register');
+              }}
+              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  📦
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-3 font-mono">
+                {customerStats.totalOrders}
+              </div>
+              <div className="text-xs text-slate-400 mt-1 flex items-center space-x-1">
+                <span className="text-amber-400 font-semibold">{customerStats.pendingOrders} Pending</span>
+                <span>&bull;</span>
+                <span className="text-emerald-400 font-semibold">{customerStats.deliveredOrders} Delivered</span>
+              </div>
+            </div>
+
+            {/* 2. Total Business Spend */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Order Value</span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+                  💰
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-3 font-mono">
+                {formatCurrency(customerStats.totalSpend)}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Total manufacturing volume booked
+              </div>
+            </div>
+
+            {/* 3. Outstanding Dues */}
+            <div 
+              onClick={() => setActiveTab('outstanding_ledger')}
+              className={`border p-5 rounded-3xl shadow-xl transition-all cursor-pointer group ${
+                customerStats.totalOutstanding > 0 
+                  ? 'bg-amber-950/20 border-amber-500/40 hover:border-amber-400' 
+                  : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50'
               }`}
             >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Outstanding Dues</span>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform ${
+                  customerStats.totalOutstanding > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/10 text-emerald-400'
+                }`}>
+                  ⏳
+                </div>
+              </div>
+              <div className={`text-2xl sm:text-3xl font-extrabold mt-3 font-mono ${
+                customerStats.totalOutstanding > 0 ? 'text-amber-400' : 'text-emerald-400'
+              }`}>
+                {formatCurrency(customerStats.totalOutstanding)}
+              </div>
+              <div className="text-xs mt-1">
+                {customerStats.totalOutstanding > 0 ? (
+                  <span className="text-amber-400 font-semibold">{customerStats.unpaidInvoicesCount} unpaid bill(s) due &rarr;</span>
+                ) : (
+                  <span className="text-emerald-400 font-semibold">Account fully settled ✓</span>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Active in Production / Dispatched */}
+            <div 
+              onClick={() => {
+                setOrderStatusFilter('in_production');
+                setActiveTab('order_register');
+              }}
+              className="bg-slate-900 border border-slate-800 hover:border-sky-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">In Production / Transit</span>
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  ⚙️
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-sky-400 mt-3 font-mono">
+                {customerStats.activeOrders}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                {customerStats.inProdOrders} in machine &bull; {customerStats.shippedOrders} dispatched
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Manufacturing Pipeline Status Tracker */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-2">
+              <div>
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>🏭</span>
+                  <span>Manufacturing Stage Tracker</span>
+                </h3>
+                <p className="text-xs text-slate-400">Click any stage below to jump to the Order Register filtered by that status.</p>
+              </div>
+              <span className="text-xs text-indigo-400 font-mono">
+                {customerOrders.length} Total Orders Tracked
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+              {[
+                { key: 'pending', label: 'Pending Approval', count: customerStats.pendingOrders, icon: '⏳', color: 'amber' },
+                { key: 'approved', label: 'Approved', count: customerStats.approvedOrders, icon: '✓', color: 'emerald' },
+                { key: 'in_production', label: 'In Production', count: customerStats.inProdOrders, icon: '⚙️', color: 'sky' },
+                { key: 'ready_dispatch', label: 'Ready / QC', count: customerStats.readyOrders, icon: '📦', color: 'purple' },
+                { key: 'shipped', label: 'Dispatched', count: customerStats.shippedOrders, icon: '🚚', color: 'orange' },
+                { key: 'delivered', label: 'Delivered', count: customerStats.deliveredOrders, icon: '🎉', color: 'emerald' }
+              ].map(stg => (
+                <div
+                  key={stg.key}
+                  onClick={() => {
+                    setOrderStatusFilter(stg.key);
+                    setActiveTab('order_register');
+                  }}
+                  className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/60 rounded-2xl p-3.5 transition-all cursor-pointer group text-center"
+                >
+                  <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stg.icon}</div>
+                  <div className="text-lg font-bold text-white font-mono">{stg.count}</div>
+                  <div className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{stg.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Grid: Recent Orders (Left) & Quick Actions / Financial Summary (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left 2 Cols: Recent Manufacturing Orders */}
+            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <div>
+                  <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                    <span>📋</span>
+                    <span>Recent Orders</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Latest manufacturing orders submitted by your company.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setOrderStatusFilter('all');
+                    setActiveTab('order_register');
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold hover:underline flex items-center space-x-1"
+                >
+                  <span>View Full Register ({customerOrders.length})</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+
+              {customerOrders.length === 0 ? (
+                <div className="py-12 text-center text-slate-500">
+                  <div className="text-3xl mb-2">🛒</div>
+                  <p className="text-sm font-semibold text-slate-400">No orders placed yet.</p>
+                  <button
+                    onClick={() => setActiveTab('place_order')}
+                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20"
+                  >
+                    + Place Your First Order
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+                      <tr>
+                        <th className="py-3 px-3">Order ID</th>
+                        <th className="py-3 px-3">Artwork</th>
+                        <th className="py-3 px-3">Item / Brand</th>
+                        <th className="py-3 px-3">Qty</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3 text-right">Amt</th>
+                        <th className="py-3 px-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {customerOrders.slice(0, 5).map(order => {
+                        const firstItem = order.items[0] || {};
+                        const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
+
+                        return (
+                          <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3 px-3 font-mono font-bold text-blue-400">
+                              {order.id}
+                              <div className="text-[10px] text-slate-500 font-normal">{formatDate(order.createdAt)}</div>
+                            </td>
+                            <td className="py-3 px-3">
+                              {firstItem.image ? (
+                                <img 
+                                  src={firstItem.image} 
+                                  alt="Artwork" 
+                                  onClick={() => setPreviewArtworkUrl(firstItem.image)}
+                                  className="w-10 h-10 object-cover rounded-xl border border-slate-700 cursor-pointer hover:scale-105 transition-transform" 
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm">
+                                  🏷️
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="font-bold text-white text-xs">{firstItem.brandName || order.customerCompany}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">{firstItem.itemCode || firstItem.type}</div>
+                            </td>
+                            <td className="py-3 px-3 font-mono font-semibold text-white">
+                              {Number(firstItem.quantity || 0).toLocaleString()} pcs
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
+                                order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+                                order.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
+                                order.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
+                                order.status === 'ready_dispatch' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
+                                order.status === 'shipped' ? 'bg-orange-950 text-orange-400 border border-orange-800' :
+                                order.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                                'bg-amber-950 text-amber-300 border border-amber-800'
+                              }`}>
+                                <span>{order.status === 'pending' || order.status === 'placed' ? 'Pending' : order.status.replace(/_/g, ' ')}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                              {formatCurrency(order.total)}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              {isEditable ? (
+                                <button
+                                  onClick={() => handleOpenEditModal(order)}
+                                  className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold shadow transition-all"
+                                >
+                                  Edit
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => onOpenInvoice(order)}
+                                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1 rounded-lg text-[11px] border border-slate-700 transition-colors"
+                                >
+                                  Invoice
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Quick Navigation Hub & Dedicated Support */}
+            <div className="space-y-6">
+              
+              {/* Quick Actions Hub */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>⚡</span>
+                  <span>Quick Shortcuts</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    onClick={() => setActiveTab('place_order')}
+                    className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3.5 rounded-2xl text-left shadow-lg transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🛒</div>
+                    <div className="font-bold text-xs">New Order</div>
+                    <div className="text-[10px] text-blue-200 mt-0.5 leading-tight">Configure tags &amp; labels</div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setOrderStatusFilter('all');
+                      setActiveTab('order_register');
+                    }}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</div>
+                    <div className="font-bold text-xs text-white">Order Register</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Search &amp; edit orders</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('invoice_register')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📄</div>
+                    <div className="font-bold text-xs text-white">Invoices</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('general_ledger')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📑</div>
+                    <div className="font-bold text-xs text-white">Ledger (SOA)</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Statement of account</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Dedicated Support Card */}
+              <div className="bg-gradient-to-br from-indigo-950/80 to-slate-900 border border-indigo-800/40 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-xl text-indigo-300">
+                    👩‍💼
+                  </div>
+                  <div>
+                    <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Account Manager</div>
+                    <div className="font-bold text-white text-sm">{customerThread.accountManager || 'Parth'}</div>
+                    <div className="text-[11px] text-emerald-400 flex items-center space-x-1 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>Active &bull; Factory Support</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Need urgent revisions, custom sample approvals, or dispatch priority? Chat directly with your production account lead.
+                </p>
+
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2"
+                >
+                  <span>💬</span>
+                  <span>Open Dedicated Chat</span>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MODULE 1: PLACE ORDER (TAGS & LABELS SPECIFICATION) */}
       {activeTab === 'place_order' && (
@@ -494,20 +1112,125 @@ function CustomerPortal({
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Material <span className="text-rose-400">*</span>
+                    {selectedType === 'Tag' ? '📖 Paper Catalog' : 'Material'} <span className="text-rose-400">*</span>
                     <span className="text-[10px] text-slate-400 ml-1 font-normal">({selectedType})</span>
                   </label>
-                  <select
-                    value={selectedMaterial}
-                    onChange={(e) => setSelectedMaterial(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                  >
-                    {(currentTypeObj?.materials || []).map((mat, i) => (
-                      <option key={i} value={mat}>{mat}</option>
-                    ))}
-                  </select>
+                  {selectedType === 'Tag' ? (
+                    <select
+                      value={selectedCatalogId}
+                      onChange={(e) => setSelectedCatalogId(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      {availableCatalogs.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.code} ({cat.gsm} GSM - {cat.finish})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={selectedMaterial}
+                      onChange={(e) => setSelectedMaterial(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                    >
+                      {(currentTypeObj?.materials || []).map((mat, i) => (
+                        <option key={i} value={mat}>{mat}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
+
+              {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG */}
+              {selectedType === 'Tag' && (
+                <div className="bg-slate-900/90 border border-indigo-900/60 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
+                        <span>📑</span>
+                        <span>Tag Composition & Paper Cards</span>
+                      </span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Does this tag have a single paper card or multiple cards bound together with Dori & Plastic?
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiCard(false)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                          !isMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📄 Single Card Tag
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiCard(true)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                          isMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📑 Multi-Card Tag Set ({tagCards.length} Cards)
+                      </button>
+                    </div>
+                  </div>
+
+                  {isMultiCard && (
+                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {tagCards.map((card, idx) => (
+                          <div key={card.id} className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-sky-300">
+                                Card #{idx + 1}: {card.title}
+                              </span>
+                              {idx === 2 && (
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveThirdCard}
+                                  className="text-rose-400 hover:text-rose-300 text-xs font-bold"
+                                  title="Remove 3rd Card"
+                                >
+                                  &times; Remove
+                                </button>
+                              )}
+                            </div>
+                            <label className="text-[10px] text-slate-400 block font-semibold">Select Paper Catalog:</label>
+                            <select
+                              value={card.catalogId}
+                              onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            >
+                              {availableCatalogs.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+
+                      {tagCards.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={handleAddThirdCard}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1 mt-2"
+                        >
+                          <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                        </button>
+                      )}
+                      
+                      <div className="text-[11px] text-indigo-300/80 bg-indigo-950/40 border border-indigo-900/50 rounded-xl p-2.5 flex items-center space-x-2">
+                        <span>ℹ️</span>
+                        <span>Each card will receive its own printing & punching job form, and will merge at the Handwork (Dori & Plastic) stage.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* TIER 2: ACCESSORIES & ARTWORK (3-COLUMNS) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -799,9 +1522,47 @@ function CustomerPortal({
                 <h3 className="font-bold text-white text-base">Customer Order Register</h3>
                 <p className="text-xs text-slate-400">Complete registry of manufacturing orders. Orders can be edited until approved by admin.</p>
               </div>
-              <span className="text-xs text-indigo-400 font-mono">
-                {customerOrders.length} Order(s)
-              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Filter option for order status */}
+                <div className="flex items-center space-x-2 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5">
+                  <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Status:</span>
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="bg-transparent text-xs text-white font-semibold outline-none cursor-pointer pr-1"
+                  >
+                    <option value="all" className="bg-slate-900 text-white">All Statuses ({customerOrders.length})</option>
+                    <option value="pending" className="bg-slate-900 text-amber-300">⏳ Pending Approval ({customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
+                    <option value="approved" className="bg-slate-900 text-emerald-400">✓ Approved ({customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
+                    <option value="in_production" className="bg-slate-900 text-sky-400">⚙️ In Production ({customerOrders.filter(o => o.status === 'in_production').length})</option>
+                    <option value="ready_dispatch" className="bg-slate-900 text-purple-400">📦 Ready / QC ({customerOrders.filter(o => o.status === 'ready_dispatch').length})</option>
+                    <option value="shipped" className="bg-slate-900 text-orange-400">🚚 Dispatched ({customerOrders.filter(o => o.status === 'shipped').length})</option>
+                    <option value="delivered" className="bg-slate-900 text-emerald-300">🎉 Delivered ({customerOrders.filter(o => o.status === 'delivered').length})</option>
+                    <option value="rejected" className="bg-slate-900 text-rose-400">✕ Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
+                  </select>
+                </div>
+
+                {(orderStatusFilter !== 'all' || searchBrandSpecs || searchDoriPlastic || searchQty || searchRate) && (
+                  <button
+                    onClick={() => {
+                      setOrderStatusFilter('all');
+                      setSearchBrandSpecs('');
+                      setSearchDoriPlastic('');
+                      setSearchQty('');
+                      setSearchRate('');
+                    }}
+                    className="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all font-medium flex items-center space-x-1"
+                    title="Reset all search and status filters"
+                  >
+                    <span>✕</span>
+                    <span>Clear Filters</span>
+                  </button>
+                )}
+
+                <span className="text-xs text-indigo-400 font-mono bg-indigo-950/60 border border-indigo-800/60 px-3 py-1.5 rounded-xl">
+                  {filteredCustomerOrders.length} of {customerOrders.length} Order(s)
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto mt-4">
@@ -811,27 +1572,153 @@ function CustomerPortal({
                     <th className="py-3 px-4">Order ID</th>
                     <th className="py-3 px-4">Artwork</th>
                     <th className="py-3 px-4">Brand &amp; Item Specs</th>
-                    <th className="py-3 px-4">Dori &amp; Plastic</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Total Amt</th>
-                    <th className="py-3 px-4 text-center">Edit / Actions</th>
+                    <th className="py-3 px-4">Dori Plastic</th>
+                    <th className="py-3 px-4">Qty</th>
+                    <th className="py-3 px-4">Rate</th>
+                    <th className="py-3 px-4 text-right">Amt</th>
+                    <th className="py-3 px-4 text-center">Edit</th>
+                  </tr>
+                  {/* Individual search bar below brand and item spec | dori plastic | qty | rate */}
+                  <tr className="bg-slate-900/95 border-t border-slate-700/60">
+                    <th className="py-2.5 px-4 font-normal"></th>
+                    <th className="py-2.5 px-4 font-normal"></th>
+                    {/* Search: Brand & Item Specs */}
+                    <th className="py-2.5 px-4 font-normal">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchBrandSpecs}
+                          onChange={(e) => setSearchBrandSpecs(e.target.value)}
+                          placeholder="🔍 Search specs..."
+                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                        />
+                        {searchBrandSpecs && (
+                          <button
+                            onClick={() => setSearchBrandSpecs('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            title="Clear"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                    {/* Search: Dori Plastic */}
+                    <th className="py-2.5 px-4 font-normal">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchDoriPlastic}
+                          onChange={(e) => setSearchDoriPlastic(e.target.value)}
+                          placeholder="🔍 Search dori / plastic..."
+                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                        />
+                        {searchDoriPlastic && (
+                          <button
+                            onClick={() => setSearchDoriPlastic('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            title="Clear"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                    {/* Search: Qty */}
+                    <th className="py-2.5 px-4 font-normal">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchQty}
+                          onChange={(e) => setSearchQty(e.target.value)}
+                          placeholder="🔍 Filter qty..."
+                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                        />
+                        {searchQty && (
+                          <button
+                            onClick={() => setSearchQty('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            title="Clear"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                    {/* Search: Rate */}
+                    <th className="py-2.5 px-4 font-normal">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchRate}
+                          onChange={(e) => setSearchRate(e.target.value)}
+                          placeholder="🔍 Filter rate..."
+                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                        />
+                        {searchRate && (
+                          <button
+                            onClick={() => setSearchRate('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            title="Clear"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                    <th className="py-2.5 px-4 font-normal"></th>
+                    <th className="py-2.5 px-4 text-center font-normal">
+                      {(searchBrandSpecs || searchDoriPlastic || searchQty || searchRate) && (
+                        <button
+                          onClick={() => {
+                            setSearchBrandSpecs('');
+                            setSearchDoriPlastic('');
+                            setSearchQty('');
+                            setSearchRate('');
+                          }}
+                          className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold underline"
+                          title="Reset search fields"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {customerOrders.map(order => {
+                  {filteredCustomerOrders.map(order => {
                     const firstItem = order.items[0] || {};
                     const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
 
                     return (
                       <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
                         {/* 1. ORDER ID */}
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-4 align-top">
                           <div className="font-mono font-bold text-blue-400 text-sm">{order.id}</div>
                           <div className="text-[11px] text-slate-500 mt-0.5">{formatDate(order.createdAt)}</div>
+                          <div className="mt-1.5">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
+                              order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 shadow-emerald-900/20' :
+                              order.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
+                              order.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
+                              order.status === 'ready_dispatch' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
+                              order.status === 'shipped' ? 'bg-orange-950 text-orange-400 border border-orange-800' :
+                              order.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                              'bg-amber-950 text-amber-300 border border-amber-800'
+                            }`}>
+                              <span>{order.status === 'approved' || order.status === 'confirmed' ? '✓' : order.status === 'rejected' ? '✕' : '⏳'}</span>
+                              <span>
+                                {order.status === 'pending' || order.status === 'placed' ? 'Pending' :
+                                 order.status === 'approved' || order.status === 'confirmed' ? 'Approved' :
+                                 order.status === 'rejected' ? 'Rejected' :
+                                 (order.status || '').replace(/_/g, ' ')}
+                              </span>
+                            </span>
+                          </div>
                         </td>
 
                         {/* 2. ARTWORK (LARGER SIZE WITH CLICK TO ENLARGE) */}
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-4 align-top">
                           {firstItem.image ? (
                             <div 
                               onClick={() => setPreviewArtworkUrl(firstItem.image)}
@@ -841,21 +1728,21 @@ function CustomerPortal({
                               <img 
                                 src={firstItem.image} 
                                 alt="Artwork" 
-                                className="w-20 h-20 object-cover rounded-2xl border-2 border-slate-700 shadow-md group-hover:border-blue-500 group-hover:scale-105 transition-all" 
+                                className="w-16 h-16 object-cover rounded-2xl border-2 border-slate-700 shadow-md group-hover:border-blue-500 group-hover:scale-105 transition-all" 
                               />
                               <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
                                 🔍 Zoom
                               </div>
                             </div>
                           ) : (
-                            <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg text-slate-500">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg text-slate-500">
                               🏷️
                             </div>
                           )}
                         </td>
 
                         {/* 3. BRAND AND ITEM SPECS */}
-                        <td className="py-4 px-4">
+                        <td className="py-4 px-4 align-top">
                           <div className="flex items-center space-x-2">
                             <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
                               {firstItem.itemCode || firstItem.name || 'ITEM'}
@@ -864,7 +1751,7 @@ function CustomerPortal({
                               {firstItem.brandName || order.customerCompany}
                             </span>
                           </div>
-                          <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                          <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
                             <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold text-[11px]">
                               {firstItem.type || 'Tag'}
                             </span>
@@ -872,13 +1759,38 @@ function CustomerPortal({
                               {firstItem.material || 'Standard'}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-400 mt-1 font-mono">
-                            Qty: <strong className="text-white">{Number(firstItem.quantity || 0).toLocaleString()} pcs</strong> &bull; Rate: <strong className="text-slate-300">{formatCurrency(firstItem.unitPrice || 0)}</strong>
-                          </div>
+
+                          {firstItem.isMultiCard && firstItem.cards && firstItem.cards.length > 0 && (
+                            <div className="mt-2 bg-slate-900/80 border border-indigo-900/50 rounded-xl p-2 space-y-1">
+                              <span className="text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-1.5 py-0.5 rounded inline-block">
+                                📑 {firstItem.cards.length}-Card Set
+                              </span>
+                              <div className="text-[11px] text-slate-400 space-y-0.5">
+                                {firstItem.cards.map((c, ci) => (
+                                  <div key={ci} className="flex items-center space-x-1">
+                                    <span className="text-sky-400 font-semibold">• {c.title}:</span>
+                                    <span className="text-slate-300">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {order.status === 'rejected' && (
+                            <div className="mt-2 bg-rose-950/60 border border-rose-800/80 rounded-xl p-2 text-rose-300 text-xs">
+                              <span className="font-bold text-rose-400">⚠️ Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
+                            </div>
+                          )}
+
+                          {order.items.length > 1 && (
+                            <span className="inline-block mt-1 text-[10px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md border border-slate-700 font-semibold">
+                              + {order.items.length - 1} more item(s)
+                            </span>
+                          )}
                         </td>
 
-                        {/* 4. DORI AND PLASTIC */}
-                        <td className="py-4 px-4 text-xs space-y-1">
+                        {/* 4. DORI PLASTIC */}
+                        <td className="py-4 px-4 align-top text-xs space-y-1">
                           <div className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 text-slate-200">
                             🧵 Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
                           </div>
@@ -887,36 +1799,39 @@ function CustomerPortal({
                           </div>
                         </td>
 
-                        {/* 5. STATUS */}
-                        <td className="py-4 px-4">
-                          <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                            order.status === 'approved' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 shadow-emerald-900/20' :
-                            order.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                            order.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
-                            order.status === 'delivered' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
-                            'bg-amber-950 text-amber-300 border border-amber-800'
-                          }`}>
-                            <span>{order.status === 'approved' ? '✓' : order.status === 'rejected' ? '✕' : '⏳'}</span>
-                            <span>
-                              {order.status === 'pending' || order.status === 'placed' ? 'Pending Approval' :
-                               order.status === 'approved' ? 'Approved' :
-                               order.status === 'rejected' ? 'Rejected' :
-                               order.status.replace('_', ' ')}
-                            </span>
-                          </span>
+                        {/* 5. QTY */}
+                        <td className="py-4 px-4 align-top">
+                          <div className="font-mono font-bold text-white text-sm">
+                            {Number(firstItem.quantity || 0).toLocaleString()}
+                          </div>
+                          <span className="text-[11px] text-slate-400">pcs</span>
                         </td>
 
-                        {/* 6. TOTAL AMT */}
-                        <td className="py-4 px-4 text-right">
-                          <span className="font-extrabold text-emerald-400 text-base font-mono">
+                        {/* 6. RATE */}
+                        <td className="py-4 px-4 align-top font-mono font-semibold text-slate-200 text-sm whitespace-nowrap">
+                          {formatCurrency(firstItem.unitPrice || 0)}
+                        </td>
+
+                        {/* 7. AMT */}
+                        <td className="py-4 px-4 align-top text-right">
+                          <span className="font-extrabold text-emerald-400 text-base font-mono whitespace-nowrap">
                             {formatCurrency(order.total)}
                           </span>
                         </td>
 
-                        {/* 7. EDIT (CUSTOMER GRANTED EDIT UNTIL APPROVED BY ADMIN) */}
-                        <td className="py-4 px-4 text-center">
-                          <div className="flex items-center justify-center space-x-2">
-                            {isEditable ? (
+                        {/* 8. EDIT / RE-ORDER */}
+                        <td className="py-4 px-4 align-top text-center">
+                          <div className="flex flex-col items-center justify-center gap-1.5">
+                            {order.status === 'rejected' ? (
+                              <button
+                                onClick={() => handleDuplicateOrder(order)}
+                                className="w-full bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center justify-center space-x-1"
+                                title="Duplicate order details into a new draft with new order number"
+                              >
+                                <span>🔁</span>
+                                <span>Place New Order</span>
+                              </button>
+                            ) : isEditable ? (
                               <button
                                 onClick={() => handleOpenEditModal(order)}
                                 className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center space-x-1"
@@ -937,16 +1852,38 @@ function CustomerPortal({
 
                             <button
                               onClick={() => onOpenInvoice(order)}
-                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl text-xs border border-slate-700 transition-colors"
+                              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl text-xs border border-slate-700 transition-colors flex items-center justify-center space-x-1"
                               title="View Invoice & Receipt"
                             >
-                              📄
+                              <span>📄</span>
+                              <span>Invoice</span>
                             </button>
                           </div>
                         </td>
                       </tr>
                     );
                   })}
+                  {filteredCustomerOrders.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="py-12 text-center text-slate-400">
+                        <div className="text-3xl mb-2">🔍</div>
+                        <div className="font-semibold text-slate-300">No orders match your filter criteria</div>
+                        <p className="text-xs text-slate-500 mt-1">Try clearing or adjusting the search bars or status filter.</p>
+                        <button
+                          onClick={() => {
+                            setOrderStatusFilter('all');
+                            setSearchBrandSpecs('');
+                            setSearchDoriPlastic('');
+                            setSearchQty('');
+                            setSearchRate('');
+                          }}
+                          className="mt-3 inline-block px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 text-xs rounded-xl border border-slate-700"
+                        >
+                          Clear all filters
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

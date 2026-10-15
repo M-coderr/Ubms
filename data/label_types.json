@@ -1,14 +1,1 @@
-[
-  {
-    "id": "TYPE-TAG",
-    "name": "Tag",
-    "materials": ["100 GSM", "200 GSM", "300 GSM"],
-    "defaultRate": 2.50
-  },
-  {
-    "id": "TYPE-PULABEL",
-    "name": "PU Label",
-    "materials": ["1.2", "1.8", "2.2"],
-    "defaultRate": 14.00
-  }
-]
+﻿[{"id":"TYPE-TAG","name":"Tag","materials":["1. WHITE","2. KHAKHI","3. RED","4. BROWN"],"defaultRate":2.5},{"id":"TYPE-PULABEL","name":"PU Label","materials":["1.2","1.8","2.2"],"defaultRate":14}]

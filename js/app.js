@@ -14,6 +14,8 @@ function App() {
   const [payroll, setPayroll] = React.useState({ staffSummary: [], dailyAttendance: [] });
   const [messages, setMessages] = React.useState([]);
   const [labelTypes, setLabelTypes] = React.useState([]);
+  const [catalogs, setCatalogs] = React.useState([]);
+  const [inventory, setInventory] = React.useState([]);
   const [activePersona, setActivePersona] = React.useState(null);
   const [invoiceOrder, setInvoiceOrder] = React.useState(null);
   const [toasts, setToasts] = React.useState([]);
@@ -40,7 +42,9 @@ function App() {
           loadedProduction,
           loadedPayroll,
           loadedMessages,
-          loadedLabelTypes
+          loadedLabelTypes,
+          loadedCatalogs,
+          loadedInventory
         ] = await Promise.all([
           window.uBMS.DataService.fetchOrders(),
           window.uBMS.DataService.fetchUsers(),
@@ -51,7 +55,9 @@ function App() {
           window.uBMS.DataService.fetchProduction(),
           window.uBMS.DataService.fetchPayroll(),
           window.uBMS.DataService.fetchMessages(),
-          window.uBMS.DataService.fetchLabelTypes()
+          window.uBMS.DataService.fetchLabelTypes(),
+          window.uBMS.DataService.fetchCatalogs(),
+          window.uBMS.DataService.fetchInventory()
         ]);
 
         setOrders(loadedOrders);
@@ -64,6 +70,8 @@ function App() {
         setPayroll(loadedPayroll);
         setMessages(loadedMessages);
         setLabelTypes(loadedLabelTypes);
+        setCatalogs(loadedCatalogs || []);
+        setInventory(loadedInventory || []);
 
         // Default Persona: First Customer
         if (loadedUsers.customers && loadedUsers.customers.length > 0) {
@@ -173,6 +181,20 @@ function App() {
     showToast('Types & Materials catalog updated', 'success');
   };
 
+  // Update Raw Material Inventory
+  const handleUpdateInventory = (updatedInventory) => {
+    setInventory(updatedInventory);
+    window.uBMS.DataService.saveInventory(updatedInventory);
+    showToast('Inventory stock levels updated', 'success');
+  };
+
+  // Update Paper Catalogs Master
+  const handleUpdateCatalogs = (updatedCatalogs) => {
+    setCatalogs(updatedCatalogs);
+    window.uBMS.DataService.saveCatalogs(updatedCatalogs);
+    showToast('Paper catalog master updated', 'success');
+  };
+
   if (loading || !activePersona) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
@@ -228,6 +250,7 @@ function App() {
             payments={payments}
             products={products}
             labelTypes={labelTypes}
+            catalogs={catalogs}
             messages={messages}
             onUpdateOrder={handleUpdateOrder}
             onSaveOrder={handleSaveOrder}
@@ -246,7 +269,11 @@ function App() {
             users={users}
             products={products}
             labelTypes={labelTypes}
+            catalogs={catalogs}
+            inventory={inventory}
             onUpdateLabelTypes={handleUpdateLabelTypes}
+            onUpdateInventory={handleUpdateInventory}
+            onUpdateCatalogs={handleUpdateCatalogs}
             onUpdateOrder={handleUpdateOrder}
             onSaveOrder={handleSaveOrder}
             onSaveInvoice={handleSaveInvoice}

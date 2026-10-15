@@ -11,7 +11,11 @@ function AdminPortal({
   users, 
   products, 
   labelTypes = [],
+  catalogs = [],
+  inventory = [],
   onUpdateLabelTypes,
+  onUpdateInventory,
+  onUpdateCatalogs,
   onUpdateOrder, 
   onSaveOrder, 
   onSaveInvoice, 
@@ -19,7 +23,7 @@ function AdminPortal({
   onUpdateProduction, 
   onUpdatePayroll, 
   onOpenInvoice, 
-  defaultTab = 'all_orders' 
+  defaultTab = 'dashboard' 
 }) {
   const [activeTab, setActiveTab] = React.useState(defaultTab);
   const [viewMode, setViewMode] = React.useState('table'); // 'table' or 'kanban'
@@ -27,15 +31,384 @@ function AdminPortal({
   const [selectedOrderIds, setSelectedOrderIds] = React.useState([]);
   const [previewArtworkUrl, setPreviewArtworkUrl] = React.useState(null);
   const [bulkTargetStatus, setBulkTargetStatus] = React.useState('approved');
+  const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
+
+  // Inventory Management State
+  const [inventoryFilter, setInventoryFilter] = React.useState('all');
+  const [restockItem, setRestockItem] = React.useState(null);
+  const [restockQty, setRestockQty] = React.useState('');
+  const [restockSupplier, setRestockSupplier] = React.useState('');
+
+  const handleRestockSubmit = (e) => {
+    e.preventDefault();
+    if (!restockItem || !restockQty || isNaN(Number(restockQty))) return;
+    const addQty = Number(restockQty);
+    const updated = inventory.map(item => item.id === restockItem.id ? {
+      ...item,
+      currentStock: (item.currentStock || 0) + addQty,
+      supplier: restockSupplier || item.supplier,
+      lastRestocked: new Date().toISOString().split('T')[0]
+    } : item);
+    if (onUpdateInventory) onUpdateInventory(updated);
+    setRestockItem(null);
+    setRestockQty('');
+    setRestockSupplier('');
+  };
+
+  // Automatically minimize on non-dashboard tabs, expand on dashboard
+  React.useEffect(() => {
+    setBannerMinimized(activeTab !== 'dashboard');
+  }, [activeTab]);
 
   const formatCurrency = window.uBMS.formatCurrency;
   const formatDate = window.uBMS.formatDate;
   const STAGES = window.uBMS.STAGES;
 
+  // Admin Executive Dashboard Metrics
+  const adminStats = React.useMemo(() => {
+    const totalOrdersCount = orders.length;
+    const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'placed');
+    const approvedOrders = orders.filter(o => o.status === 'approved' || o.status === 'confirmed');
+    const inProdOrders = orders.filter(o => o.status === 'in_production');
+    const readyOrders = orders.filter(o => o.status === 'ready_dispatch');
+    const shippedOrders = orders.filter(o => o.status === 'shipped');
+    const deliveredOrders = orders.filter(o => o.status === 'delivered');
+
+    const totalOrderRevenue = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const totalInvoiced = invoices.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+    const totalCollected = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const totalOutstanding = invoices.reduce((sum, i) => sum + (Number(i.balanceDue) || 0), 0);
+    const totalClientsCount = (users?.customers || []).length;
+    const activeStaffCount = (payroll?.staffSummary || []).length;
+
+    return {
+      totalOrdersCount,
+      pendingOrders,
+      pendingCount: pendingOrders.length,
+      approvedOrdersCount: approvedOrders.length,
+      inProdOrdersCount: inProdOrders.length,
+      readyOrdersCount: readyOrders.length,
+      shippedOrdersCount: shippedOrders.length,
+      deliveredOrdersCount: deliveredOrders.length,
+      totalOrderRevenue,
+      totalInvoiced,
+      totalCollected,
+      totalOutstanding,
+      totalClientsCount,
+      activeStaffCount
+    };
+  }, [orders, invoices, payments, users, payroll]);
+
   const availableTypes = labelTypes.length > 0 ? labelTypes : [
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
     { id: 'TYPE-PULABEL', name: 'PU Label', materials: ['1.2', '1.8', '2.2'], defaultRate: 14.00 }
   ];
+
+  const availableCatalogs = catalogs.length > 0 ? catalogs : [
+    { id: 'CAT-IV350', code: 'Cat #101 - Art Ivory 350', name: 'Art & Ivory Board 350 GSM', gsm: 350, finish: 'Silk Matte Coated', sheetRate: 3.20 },
+    { id: 'CAT-KF280', code: 'Cat #102 - Natural Kraft 280', name: 'Virgin Eco Kraft Paper 280 GSM', gsm: 280, finish: 'Raw Fibrous Texture', sheetRate: 2.40 },
+    { id: 'CAT-SP300', code: 'Cat #103 - Sappi Black 300', name: 'Sappi Velvet Jet Black 300 GSM', gsm: 300, finish: 'Solid Deep Black Matte', sheetRate: 4.50 },
+    { id: 'CAT-TR115', code: 'Cat #104 - Tracing Butter 115', name: 'Translucent Butter Paper 115 GSM', gsm: 115, finish: 'Semi-Transparent Frosted', sheetRate: 1.90 },
+    { id: 'CAT-MT400', code: 'Cat #105 - Metallic Pearl 400', name: 'Champagne Shimmer Board 400 GSM', gsm: 400, finish: 'Subtle Pearl Luster', sheetRate: 5.80 },
+    { id: 'CAT-DUP250', code: 'Cat #106 - Sturdy Duplex 250', name: 'Greyback Duplex Board 250 GSM', gsm: 250, finish: 'Semi-Gloss Single Sided', sheetRate: 1.60 }
+  ];
+
+  // Paper Catalog Management State & Handlers
+  const [catalogSubTab, setCatalogSubTab] = React.useState('catalogs'); // 'catalogs' or 'types'
+  const [editingCatalog, setEditingCatalog] = React.useState(null);
+  const [showCatalogModal, setShowCatalogModal] = React.useState(false);
+  const [catCode, setCatCode] = React.useState('');
+  const [catName, setCatName] = React.useState('');
+  const [catGsm, setCatGsm] = React.useState(350);
+  const [catFinish, setCatFinish] = React.useState('Silk Matte Coated');
+  const [catRate, setCatRate] = React.useState(3.20);
+  const [catRec, setCatRec] = React.useState('');
+  const [catStock, setCatStock] = React.useState(10000);
+
+  const handleOpenAddCatalog = () => {
+    setEditingCatalog(null);
+    setCatCode(`Cat #${100 + availableCatalogs.length + 1} - `);
+    setCatName('');
+    setCatGsm(350);
+    setCatFinish('Silk Matte Coated');
+    setCatRate(3.50);
+    setCatRec('Hangtags & Luxury Cards');
+    setCatStock(10000);
+    setShowCatalogModal(true);
+  };
+
+  const handleOpenEditCatalog = (cat) => {
+    setEditingCatalog(cat);
+    setCatCode(cat.code || '');
+    setCatName(cat.name || '');
+    setCatGsm(cat.gsm || 300);
+    setCatFinish(cat.finish || '');
+    setCatRate(cat.sheetRate || 3.00);
+    setCatRec(cat.recommendedFor || '');
+    setCatStock(cat.stockSheets || 5000);
+    setShowCatalogModal(true);
+  };
+
+  const handleSaveCatalogSubmit = (e) => {
+    e.preventDefault();
+    if (!catCode.trim() || !catName.trim()) return alert('Please enter Catalog Code and Name');
+
+    let updatedCatalogs = [];
+    let savedCatId = '';
+
+    if (editingCatalog) {
+      savedCatId = editingCatalog.id;
+      updatedCatalogs = availableCatalogs.map(c => c.id === editingCatalog.id ? {
+        ...c,
+        code: catCode.trim(),
+        name: catName.trim(),
+        gsm: Number(catGsm) || 300,
+        finish: catFinish.trim(),
+        sheetRate: Number(catRate) || 1.0,
+        recommendedFor: catRec.trim(),
+        stockSheets: Number(catStock) || 0
+      } : c);
+    } else {
+      savedCatId = 'CAT-' + (catCode.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() || Date.now().toString().slice(-4));
+      const newCat = {
+        id: savedCatId,
+        code: catCode.trim(),
+        name: catName.trim(),
+        gsm: Number(catGsm) || 300,
+        finish: catFinish.trim(),
+        sheetRate: Number(catRate) || 1.0,
+        recommendedFor: catRec.trim(),
+        stockSheets: Number(catStock) || 0
+      };
+      updatedCatalogs = [...availableCatalogs, newCat];
+    }
+
+    if (onUpdateCatalogs) onUpdateCatalogs(updatedCatalogs);
+
+    // Also synchronize with Inventory
+    if (onUpdateInventory && inventory) {
+      const existingInv = inventory.find(i => i.catalogId === savedCatId || i.code === catCode.trim());
+      if (existingInv) {
+        const updatedInv = inventory.map(i => i.id === existingInv.id ? {
+          ...i,
+          name: catName.trim(),
+          code: catCode.trim(),
+          unitCost: Number(catRate) || 1.0,
+          currentStock: Number(catStock) || i.currentStock
+        } : i);
+        onUpdateInventory(updatedInv);
+      } else {
+        const newInvItem = {
+          id: 'INV-PPR-' + (inventory.length + 1).toString().padStart(2, '0'),
+          category: 'paper',
+          catalogId: savedCatId,
+          name: catName.trim(),
+          code: catCode.trim(),
+          unit: 'Sheets',
+          unitCost: Number(catRate) || 1.0,
+          currentStock: Number(catStock) || 5000,
+          reorderLevel: 1500,
+          location: 'Aisle P-Rack ' + (inventory.length + 1),
+          supplier: 'Direct Mill Order',
+          lastRestocked: new Date().toISOString().split('T')[0]
+        };
+        onUpdateInventory([...inventory, newInvItem]);
+      }
+    }
+
+    setShowCatalogModal(false);
+  };
+
+  const handleDeleteCatalog = (catId) => {
+    if (availableCatalogs.length <= 1) {
+      return alert('At least one paper catalog must remain active in the system.');
+    }
+    if (confirm('Are you sure you want to delete this paper catalog?')) {
+      const updated = availableCatalogs.filter(c => c.id !== catId);
+      if (onUpdateCatalogs) onUpdateCatalogs(updated);
+    }
+  };
+
+  // Move to Production (with Sheet Qty Allocation & Bulk Support)
+  const [prodModalOrders, setProdModalOrders] = React.useState(null); // array of orders
+  const [prodSheetAllocations, setProdSheetAllocations] = React.useState({}); // key: `${orderId}_${itemIdx}_${cardIdx}` -> { ups, sheets, orderPieces }
+
+  const handleOpenMoveToProduction = (orderOrOrders) => {
+    const list = Array.isArray(orderOrOrders) ? orderOrOrders : [orderOrOrders];
+    if (list.length === 0) return alert('No orders selected for production.');
+
+    // Initialize allocations
+    const initialAlloc = {};
+    list.forEach(ord => {
+      (ord.items || []).forEach((item, itemIdx) => {
+        const pcs = Number(item.quantity) || 1000;
+        const defaultUps = 10;
+        const defaultSheets = Math.ceil(pcs / defaultUps);
+
+        if (item.isMultiCard && item.cards && item.cards.length > 0) {
+          item.cards.forEach((card, cardIdx) => {
+            const key = `${ord.id}_${itemIdx}_${cardIdx}`;
+            initialAlloc[key] = {
+              ups: defaultUps,
+              sheets: defaultSheets,
+              orderPieces: pcs,
+              cardTitle: card.title || `Card #${cardIdx + 1}`,
+              catalogCode: card.catalogCode || item.material || 'Standard Catalog'
+            };
+          });
+        } else {
+          const key = `${ord.id}_${itemIdx}_0`;
+          initialAlloc[key] = {
+            ups: defaultUps,
+            sheets: defaultSheets,
+            orderPieces: pcs,
+            cardTitle: item.name || item.itemCode || 'Single Card Tag',
+            catalogCode: item.catalogCode || item.material || 'Standard Catalog'
+          };
+        }
+      });
+    });
+
+    setProdSheetAllocations(initialAlloc);
+    setProdModalOrders(list);
+  };
+
+  const handleUpdateSheetAlloc = (key, field, value) => {
+    setProdSheetAllocations(prev => {
+      const current = prev[key] || { ups: 10, sheets: 100, orderPieces: 1000 };
+      if (field === 'ups') {
+        const newUps = Math.max(1, Number(value) || 1);
+        const newSheets = Math.ceil(current.orderPieces / newUps);
+        return {
+          ...prev,
+          [key]: { ...current, ups: newUps, sheets: newSheets }
+        };
+      }
+      if (field === 'sheets') {
+        const newSheets = Math.max(1, Number(value) || 1);
+        return {
+          ...prev,
+          [key]: { ...current, sheets: newSheets }
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleConfirmMoveToProduction = () => {
+    if (!prodModalOrders || prodModalOrders.length === 0) return;
+    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    let createdJobs = [];
+
+    prodModalOrders.forEach(order => {
+      // 1. Update Order Status to in_production
+      const updatedOrder = {
+        ...order,
+        status: 'in_production',
+        timeline: [
+          ...(order.timeline || []),
+          {
+            stage: 'in_production',
+            title: 'Production Job Form Created',
+            description: `Production job cards created by ${currentMember.name}. Scheduled for printing.`,
+            timestamp: formattedDate,
+            author: currentMember.name
+          }
+        ]
+      };
+      onUpdateOrder(updatedOrder);
+
+      // 2. Generate Production Job Forms
+      (order.items || []).forEach((item, itemIdx) => {
+        const pcs = Number(item.quantity) || 1000;
+        const isMulti = !!item.isMultiCard;
+        const cardsList = isMulti && item.cards && item.cards.length > 0 ? item.cards : [
+          {
+            cardIndex: 1,
+            title: item.name || item.itemCode || 'Single Card Tag',
+            catalogCode: item.catalogCode || item.material || 'Standard Catalog',
+            gsm: 300,
+            finish: 'Matte'
+          }
+        ];
+
+        // Overall sheet calculation
+        let mainSheets = 100;
+        const enrichedCards = cardsList.map((c, ci) => {
+          const alloc = prodSheetAllocations[`${order.id}_${itemIdx}_${ci}`] || { sheets: Math.ceil(pcs / 10), ups: 10 };
+          if (alloc.sheets > mainSheets) mainSheets = alloc.sheets;
+          return {
+            ...c,
+            ups: alloc.ups,
+            allocatedSheets: alloc.sheets
+          };
+        });
+
+        // The target sheets entered by user
+        const targetSheets = mainSheets;
+        const buffer = 40; // 20 sheets printing + 20 sheets punching
+        const issued = targetSheets + buffer;
+        const floor = Math.max(1, targetSheets - 40);
+
+        createdJobs.push({
+          jobId: `JOB-${Date.now().toString().slice(-4)}-${itemIdx + 1}`,
+          orderId: order.id,
+          customerName: order.customerName,
+          customerCompany: order.customerCompany || order.customerName,
+          itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
+          type: item.type || 'Tag',
+          isMultiCard: isMulti,
+          cards: enrichedCards,
+          targetQty: pcs, // Tag pieces ordered by customer
+          targetSheets: targetSheets, // Net required paper sheets
+          bufferSheets: buffer, // +40 sheets (+20 print, +20 punch)
+          issuedSheets: issued, // targetSheets + 40
+          minimumAllowedFloor: floor, // tolerance floor
+          currentStage: 'printing', // strictly first visible ONLY to printing team!
+          priority: order.priority || 'standard',
+          printing: {
+            status: 'pending',
+            operatorName: 'Kanu',
+            startTime: null,
+            completedTime: null,
+            goodSheetsPrinted: null,
+            wasteSheets: null
+          },
+          punching: {
+            status: 'locked',
+            operatorName: 'Shivakant',
+            startTime: null,
+            completedTime: null,
+            goodSheetsPunched: null,
+            wasteSheets: null
+          },
+          handwork: {
+            status: 'locked',
+            doriType: item.dori || 'Reg. Cotton Dori',
+            doriRate: item.doriRate || 0.20,
+            plasticType: item.plastic || 'Reg. Plastic Lock',
+            plasticRate: item.plasticRate || 0.10,
+            totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+            assignedLabourerId: null,
+            assignedLabourerName: null,
+            startTime: null,
+            completedTime: null,
+            completedPieces: null,
+            earnedPayout: null
+          },
+          godown: {
+            status: 'pending'
+          }
+        });
+      });
+    });
+
+    onUpdateProduction([...createdJobs, ...production]);
+    setProdModalOrders(null);
+    setProdSheetAllocations({});
+    setSelectedOrderIds([]);
+    setActiveTab('production');
+  };
 
   // --- MODULE 1: PLACE ORDER (ON-BEHALF) STATE ---
   const [adminOrderCustId, setAdminOrderCustId] = React.useState(users.customers[0]?.id || '');
@@ -47,6 +420,15 @@ function AdminPortal({
   const [adminSelectedType, setAdminSelectedType] = React.useState(availableTypes[0]?.name || 'Tag');
   const adminTypeObj = availableTypes.find(t => t.name === adminSelectedType) || availableTypes[0];
   const [adminSelectedMaterial, setAdminSelectedMaterial] = React.useState(adminTypeObj?.materials[0] || '100 GSM');
+  const [adminSelectedCatalogId, setAdminSelectedCatalogId] = React.useState(availableCatalogs[0]?.id || 'CAT-IV350');
+  
+  // Admin Multi-Card Tag composition
+  const [adminIsMultiCard, setAdminIsMultiCard] = React.useState(false);
+  const [adminTagCards, setAdminTagCards] = React.useState([
+    { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
+    { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+  ]);
+
   const [adminQty, setAdminQty] = React.useState(0);
   const [adminRate, setAdminRate] = React.useState(0);
   const [adminOrderImage, setAdminOrderImage] = React.useState('');
@@ -54,6 +436,12 @@ function AdminPortal({
   const [adminDoriCustom, setAdminDoriCustom] = React.useState('');
   const [adminPlasticOption, setAdminPlasticOption] = React.useState('reg'); // 'reg' or 'custom'
   const [adminPlasticCustom, setAdminPlasticCustom] = React.useState('');
+
+  // Rejection Modal & Shortage Alert States
+  const [rejectionModalOrder, setRejectionModalOrder] = React.useState(null);
+  const [rejectionReasonChoice, setRejectionReasonChoice] = React.useState('Paper Catalog temporarily out of stock');
+  const [rejectionReasonCustom, setRejectionReasonCustom] = React.useState('');
+  const [shortageAlertJob, setShortageAlertJob] = React.useState(null);
 
   const [adminOrderItems, setAdminOrderItems] = React.useState([]);
   const [adminOrderDiscount, setAdminOrderDiscount] = React.useState(0);
@@ -103,8 +491,47 @@ function AdminPortal({
       ? adminItemCode.trim().toUpperCase()
       : window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
 
-    const doriValue = adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg.';
-    const plasticValue = adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg.';
+    const doriValue = adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg. (₹0.20/pc)';
+    const plasticValue = adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg. (₹0.10/pc)';
+
+    let finalMaterial = adminSelectedMaterial;
+    let chosenCards = [];
+    let primaryCatalogId = null;
+    let primaryCatalogCode = null;
+
+    if (adminSelectedType === 'Tag') {
+      if (adminIsMultiCard) {
+        chosenCards = adminTagCards.map((c, i) => {
+          const cat = availableCatalogs.find(x => x.id === c.catalogId) || availableCatalogs[0];
+          return {
+            cardIndex: i + 1,
+            title: c.title,
+            catalogId: cat.id,
+            catalogCode: cat.code,
+            name: cat.name,
+            gsm: cat.gsm,
+            finish: cat.finish
+          };
+        });
+        finalMaterial = `${adminTagCards.length}-Card Set: ` + chosenCards.map(c => c.catalogCode.split(' - ')[1] || c.catalogCode).join(' + ');
+        primaryCatalogId = chosenCards[0]?.catalogId;
+        primaryCatalogCode = chosenCards[0]?.catalogCode;
+      } else {
+        const cat = availableCatalogs.find(x => x.id === adminSelectedCatalogId) || availableCatalogs[0];
+        chosenCards = [{
+          cardIndex: 1,
+          title: 'Single Card Tag',
+          catalogId: cat.id,
+          catalogCode: cat.code,
+          name: cat.name,
+          gsm: cat.gsm,
+          finish: cat.finish
+        }];
+        finalMaterial = `${cat.code} (${cat.finish})`;
+        primaryCatalogId = cat.id;
+        primaryCatalogCode = cat.code;
+      }
+    }
 
     const newItem = {
       id: 'ITEM-' + Date.now().toString().slice(-4),
@@ -112,9 +539,15 @@ function AdminPortal({
       name: finalCode,
       brandName: adminBrandName.trim(),
       type: adminSelectedType,
-      material: adminSelectedMaterial,
+      isMultiCard: adminSelectedType === 'Tag' ? adminIsMultiCard : false,
+      cards: chosenCards,
+      catalogId: primaryCatalogId,
+      catalogCode: primaryCatalogCode,
+      material: finalMaterial,
       dori: doriValue,
+      doriRate: adminDoriOption === 'reg' ? 0.20 : 0.20,
       plastic: plasticValue,
+      plasticRate: adminPlasticOption === 'reg' ? 0.10 : 0.10,
       image: adminOrderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(adminSelectedType),
       quantity: Number(adminQty),
       unitPrice: Number(adminRate),
@@ -130,6 +563,12 @@ function AdminPortal({
     const defaultType = availableTypes[0];
     setAdminSelectedType(defaultType?.name || 'Tag');
     setAdminSelectedMaterial(defaultType?.materials[0] || '100 GSM');
+    setAdminSelectedCatalogId(availableCatalogs[0]?.id || 'CAT-IV350');
+    setAdminIsMultiCard(false);
+    setAdminTagCards([
+      { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
+      { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+    ]);
     setAdminQty(0);
     setAdminRate(0);
     setAdminDoriOption('reg');
@@ -177,9 +616,15 @@ function AdminPortal({
         name: i.itemCode || i.name,
         brandName: i.brandName,
         type: i.type,
+        isMultiCard: !!i.isMultiCard,
+        cards: i.cards || [],
+        catalogId: i.catalogId || null,
+        catalogCode: i.catalogCode || null,
         material: i.material,
         dori: i.dori,
+        doriRate: i.doriRate || 0.20,
         plastic: i.plastic,
+        plasticRate: i.plasticRate || 0.10,
         image: i.image,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
@@ -363,15 +808,374 @@ function AdminPortal({
     alert(`Payment of ${formatCurrency(amt)} recorded under Receipt ${payId}!`);
   };
 
-  // --- MODULE 7: PRODUCTION FLOW ADVANCEMENT ---
-  const handleAdvanceProductionStage = (job, nextStage) => {
-    const updated = production.map(j => {
-      if (j.jobId === job.jobId) {
-        return { ...j, stage: nextStage };
+  // --- MODULE 7: SHOP-FLOOR PRODUCTION PIPELINE HANDLERS ---
+  const [productionFilterStage, setProductionFilterStage] = React.useState('all');
+  const [sheetInputs, setSheetInputs] = React.useState({}); // { [jobId]: { printed: '', waste: '', punched: '', pieces: '', doriRate: 0.20, plasticRate: 0.10, labourerId: '' } }
+  const [dispatchModalOrder, setDispatchModalOrder] = React.useState(null);
+  const [dispatchCarrier, setDispatchCarrier] = React.useState('Bluedart Express');
+  const [dispatchTrackingNo, setDispatchTrackingNo] = React.useState('');
+
+  const getSheetInput = (jobId, field, defaultValue = '') => {
+    return sheetInputs[jobId]?.[field] !== undefined ? sheetInputs[jobId][field] : defaultValue;
+  };
+
+  const setSheetInput = (jobId, field, value) => {
+    setSheetInputs(prev => ({
+      ...prev,
+      [jobId]: {
+        ...(prev[jobId] || {}),
+        [field]: value
       }
-      return j;
-    });
+    }));
+  };
+
+  // 1. Printing Handlers
+  const handleStartPrinting = (job) => {
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      printing: {
+        ...(j.printing || {}),
+        status: 'in_progress',
+        operatorName: currentMember.name,
+        startTime: new Date().toISOString()
+      }
+    } : j);
     onUpdateProduction(updated);
+  };
+
+  const handleCompletePrinting = (job) => {
+    const rawPrinted = getSheetInput(job.jobId, 'printed');
+    const printedCount = Number(rawPrinted);
+    if (!rawPrinted || isNaN(printedCount) || printedCount <= 0) {
+      return alert('Mandatory: Please write down the exact number of sheets printed before proceeding.');
+    }
+
+    const rawWaste = getSheetInput(job.jobId, 'waste');
+    const wasteCount = Number(rawWaste) || Math.max(0, (job.issuedSheets || 1040) - printedCount);
+
+    // Spoilage / Threshold Check (e.g. < 960 for 1000 order)
+    const floor = job.minimumAllowedFloor || 960;
+    if (printedCount < floor) {
+      setShortageAlertJob({
+        job,
+        printedSheets: printedCount,
+        wasteSheets: wasteCount
+      });
+      return;
+    }
+
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      currentStage: 'punching', // forwards form to Punching & Packing team!
+      printing: {
+        ...(j.printing || {}),
+        status: 'completed',
+        completedTime: new Date().toISOString(),
+        goodSheetsPrinted: printedCount,
+        wasteSheets: wasteCount
+      },
+      punching: {
+        ...(j.punching || {}),
+        status: 'pending' // now visible & ready for punching team!
+      }
+    } : j);
+    onUpdateProduction(updated);
+
+    // Auto-deplete paper sheets from inventory
+    if (onUpdateInventory && inventory && inventory.length > 0) {
+      const sheetsToDeduct = (printedCount + wasteCount) || job.issuedSheets || 1040;
+      const targetCatId = job.catalogId || (job.subCards && job.subCards[0]?.catalogId);
+      const updatedInv = inventory.map(item => {
+        if (item.category === 'paper' && (item.catalogId === targetCatId || (targetCatId && item.id.includes(targetCatId)))) {
+          return {
+            ...item,
+            currentStock: Math.max(0, (item.currentStock || 0) - sheetsToDeduct),
+            lastDeductedDate: new Date().toISOString().split('T')[0],
+            lastDeductedJob: job.jobId
+          };
+        }
+        return item;
+      });
+      onUpdateInventory(updatedInv);
+    }
+  };
+
+  const handleResolveShortageAlert = (decision) => {
+    if (!shortageAlertJob) return;
+    const { job, printedSheets, wasteSheets } = shortageAlertJob;
+    if (decision === 'accept_short') {
+      const updated = production.map(j => j.jobId === job.jobId ? {
+        ...j,
+        currentStage: 'punching',
+        printing: {
+          ...(j.printing || {}),
+          status: 'completed',
+          completedTime: new Date().toISOString(),
+          goodSheetsPrinted: printedSheets,
+          wasteSheets: wasteSheets,
+          shortageApproved: true
+        },
+        punching: {
+          ...(j.punching || {}),
+          status: 'pending'
+        }
+      } : j);
+      onUpdateProduction(updated);
+
+      // Auto-deplete paper sheets from inventory
+      if (onUpdateInventory && inventory && inventory.length > 0) {
+        const sheetsToDeduct = (printedSheets + wasteSheets) || job.issuedSheets || 1040;
+        const targetCatId = job.catalogId || (job.subCards && job.subCards[0]?.catalogId);
+        const updatedInv = inventory.map(item => {
+          if (item.category === 'paper' && (item.catalogId === targetCatId || (targetCatId && item.id.includes(targetCatId)))) {
+            return {
+              ...item,
+              currentStock: Math.max(0, (item.currentStock || 0) - sheetsToDeduct),
+              lastDeductedDate: new Date().toISOString().split('T')[0],
+              lastDeductedJob: job.jobId
+            };
+          }
+          return item;
+        });
+        onUpdateInventory(updatedInv);
+      }
+
+      setShortageAlertJob(null);
+    } else {
+      alert(`Reprint ticket created for missing ${((job.minimumAllowedFloor || 960) - printedSheets)} sheets.`);
+      setShortageAlertJob(null);
+    }
+  };
+
+  // 2. Punching & Packing Handlers
+  const handleStartPunching = (job) => {
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      punching: {
+        ...(j.punching || {}),
+        status: 'in_progress',
+        operatorName: currentMember.name,
+        startTime: new Date().toISOString()
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  const handleCompletePunching = (job) => {
+    const rawPunched = getSheetInput(job.jobId, 'punched');
+    const punchedCount = Number(rawPunched);
+    if (!rawPunched || isNaN(punchedCount) || punchedCount <= 0) {
+      return alert('Mandatory: Please write down the number of sheets punched before proceeding.');
+    }
+
+    const rawWaste = getSheetInput(job.jobId, 'punchWaste');
+    const wasteCount = Number(rawWaste) || 0;
+
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      currentStage: 'handwork', // moves to Handwork process (dori & plastic)!
+      punching: {
+        ...(j.punching || {}),
+        status: 'completed',
+        completedTime: new Date().toISOString(),
+        goodSheetsPunched: punchedCount,
+        wasteSheets: wasteCount
+      },
+      handwork: {
+        ...(j.handwork || {}),
+        status: 'pending'
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  // 3. Handwork (Dori & Plastic) Handlers
+  const handleAssignHandwork = (job) => {
+    const labourerId = getSheetInput(job.jobId, 'labourerId');
+    const labourer = users.team.find(u => u.id === labourerId);
+    if (!labourer) return alert('Please select a labourer to assign this handwork job.');
+
+    const dRate = Number(getSheetInput(job.jobId, 'doriRate', job.handwork?.doriRate || 0.20));
+    const pRate = Number(getSheetInput(job.jobId, 'plasticRate', job.handwork?.plasticRate || 0.10));
+    const totRate = dRate + pRate;
+
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      handwork: {
+        ...(j.handwork || {}),
+        assignedLabourerId: labourer.id,
+        assignedLabourerName: labourer.name,
+        doriRate: dRate,
+        plasticRate: pRate,
+        totalRatePerTag: totRate
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  const handleStartHandwork = (job) => {
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      handwork: {
+        ...(j.handwork || {}),
+        status: 'in_progress',
+        startTime: new Date().toISOString()
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  const handleCompleteHandwork = (job) => {
+    const rawPieces = getSheetInput(job.jobId, 'handworkPieces', job.punching?.goodSheetsPunched || job.targetQty || 1000);
+    const pieces = Number(rawPieces) || 1000;
+    const rate = Number(job.handwork?.totalRatePerTag) || 0.30;
+    const earnedPayout = pieces * rate;
+
+    // 1. Update Job Stage to Godown
+    const updatedProd = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      currentStage: 'godown',
+      handwork: {
+        ...(j.handwork || {}),
+        status: 'completed',
+        completedTime: new Date().toISOString(),
+        completedPieces: pieces,
+        earnedPayout: earnedPayout
+      },
+      godown: {
+        status: 'ready_dispatch',
+        receivedTime: new Date().toISOString(),
+        verifiedCount: pieces,
+        location: 'Bay 01 - Finished Goods'
+      }
+    } : j);
+    onUpdateProduction(updatedProd);
+
+    // 2. Update Order to ready_dispatch
+    const parentOrder = orders.find(o => o.id === job.orderId);
+    if (parentOrder) {
+      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const updatedOrder = {
+        ...parentOrder,
+        status: 'ready_dispatch',
+        timeline: [
+          ...(parentOrder.timeline || []),
+          {
+            stage: 'ready_dispatch',
+            title: 'Dori & Plastic Handwork Completed',
+            description: `${pieces} tags completed by ${job.handwork?.assignedLabourerName || 'Artisan'}. Moved to godown ready for dispatch.`,
+            timestamp: formattedDate,
+            author: job.handwork?.assignedLabourerName || currentMember.name
+          }
+        ]
+      };
+      onUpdateOrder(updatedOrder);
+    }
+
+    // 3. Auto-Credit Labourer in Payroll
+    if (job.handwork?.assignedLabourerId) {
+      const workerId = job.handwork.assignedLabourerId;
+      const workerName = job.handwork.assignedLabourerName;
+      const today = new Date().toISOString().split('T')[0];
+      const newLedgerItem = {
+        date: today,
+        jobId: job.jobId,
+        orderId: job.orderId,
+        staffId: workerId,
+        name: workerName,
+        piecesCompleted: pieces,
+        ratePerTag: rate,
+        earnedAmount: earnedPayout,
+        status: 'Earned'
+      };
+
+      const existingStaff = (payroll.staffSummary || []).find(s => s.staffId === workerId);
+      let updatedSummary = payroll.staffSummary || [];
+      if (existingStaff) {
+        updatedSummary = updatedSummary.map(s => s.staffId === workerId ? {
+          ...s,
+          netPayable: (s.netPayable || 0) + earnedPayout,
+          bonus: (s.bonus || 0) + earnedPayout
+        } : s);
+      } else {
+        updatedSummary = [
+          ...updatedSummary,
+          {
+            staffId: workerId,
+            name: workerName,
+            role: 'Handwork Artisan (Dori & Plastic)',
+            department: 'Handwork Assembly',
+            monthlySalary: 0,
+            workingDays: 26,
+            presentDays: 26,
+            netPayable: earnedPayout,
+            status: 'Processing'
+          }
+        ];
+      }
+
+      onUpdatePayroll({
+        ...payroll,
+        staffSummary: updatedSummary,
+        pieceRateLedger: [newLedgerItem, ...(payroll.pieceRateLedger || [])]
+      });
+    }
+
+    // Auto-deplete dori cords and plastic locks from inventory
+    if (onUpdateInventory && inventory && inventory.length > 0) {
+      const updatedInv = inventory.map(item => {
+        if (item.category === 'dori') {
+          return {
+            ...item,
+            currentStock: Math.max(0, (item.currentStock || 0) - pieces),
+            lastDeductedDate: new Date().toISOString().split('T')[0],
+            lastDeductedJob: job.jobId
+          };
+        }
+        if (item.category === 'plastic') {
+          return {
+            ...item,
+            currentStock: Math.max(0, (item.currentStock || 0) - pieces),
+            lastDeductedDate: new Date().toISOString().split('T')[0],
+            lastDeductedJob: job.jobId
+          };
+        }
+        return item;
+      });
+      onUpdateInventory(updatedInv);
+    }
+  };
+
+  // 4. Godown Dispatch Handler
+  const handleDispatchOrderSubmit = (e) => {
+    e.preventDefault();
+    if (!dispatchModalOrder) return;
+    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const finalTracking = dispatchTrackingNo.trim() || ('TRK-' + Math.floor(100000 + Math.random() * 900000));
+
+    const updated = {
+      ...dispatchModalOrder,
+      status: 'shipped',
+      tracking: {
+        carrier: dispatchCarrier,
+        trackingNumber: finalTracking,
+        status: 'Dispatched from Factory Godown',
+        lastUpdate: formattedDate
+      },
+      timeline: [
+        ...(dispatchModalOrder.timeline || []),
+        {
+          stage: 'shipped',
+          title: 'Order Dispatched from Factory Godown',
+          description: `Dispatched via ${dispatchCarrier} (Tracking: ${finalTracking}) following invoice & billing verification.`,
+          timestamp: formattedDate,
+          author: currentMember.name
+        }
+      ]
+    };
+    onUpdateOrder(updated);
+    setDispatchModalOrder(null);
+    setDispatchTrackingNo('');
   };
 
   // --- MODULE 8: ATTENDANCE TOGGLE ---
@@ -419,25 +1223,41 @@ function AdminPortal({
     onUpdateOrder(updated);
   };
 
-  const handleRejectOrder = (order) => {
-    const reason = prompt('Please enter reason for rejection (optional):', 'Artwork or specification clarification needed');
-    if (reason === null) return;
+  const handleOpenRejectModal = (order) => {
+    setRejectionModalOrder(order);
+    setRejectionReasonChoice('Paper Catalog temporarily out of stock');
+    setRejectionReasonCustom('');
+  };
+
+  const handleConfirmRejection = () => {
+    if (!rejectionModalOrder) return;
+    const finalReason = rejectionReasonChoice === 'Other' 
+      ? (rejectionReasonCustom.trim() || 'Specification revision required') 
+      : rejectionReasonChoice;
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const updated = {
-      ...order,
+      ...rejectionModalOrder,
       status: 'rejected',
+      rejectionReason: finalReason,
       timeline: [
-        ...(order.timeline || []),
+        ...(rejectionModalOrder.timeline || []),
         {
           stage: 'rejected',
           title: 'Order Rejected by Admin',
-          description: `Rejected by ${currentMember.name}: ${reason}`,
+          description: `Rejected by ${currentMember.name}: ${finalReason}`,
           timestamp: formattedDate,
           author: currentMember.name
         }
       ]
     };
     onUpdateOrder(updated);
+    setRejectionModalOrder(null);
+    setRejectionReasonCustom('');
+  };
+
+  // Forward order to the Sheet Quantity Allocation & Production Modal
+  const handleMoveToProduction = (order) => {
+    handleOpenMoveToProduction(order);
   };
 
   const handleBulkStatusChange = (newStatus) => {
@@ -469,74 +1289,534 @@ function AdminPortal({
     setSelectedOrderIds([]);
   };
 
-  // 9 Admin Navigation Tabs
+  // 11 Admin Navigation Tabs
   const adminTabs = [
+    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
     { key: 'place_order', label: 'Place Order', icon: '🛒' },
     { key: 'all_orders', label: 'View All Orders', icon: '📦' },
+    { key: 'production', label: 'Production Flow', icon: '⚙️' },
+    { key: 'inventory', label: 'Raw Materials & Stock', icon: '🏭' },
+    { key: 'payroll', label: 'Attendance & Payroll', icon: '👥' },
     { key: 'create_invoice', label: 'Create Invoice', icon: '🧾' },
     { key: 'all_invoices', label: 'View All Invoices', icon: '📑' },
     { key: 'ledgers', label: 'Ledgers Hub', icon: '⚖️' },
     { key: 'payments', label: 'Payment Entries', icon: '💵' },
-    { key: 'production', label: 'Production Flow', icon: '⚙️' },
-    { key: 'payroll', label: 'Attendance & Payroll', icon: '👥' },
-    { key: 'label_config', label: 'Types & Materials', icon: '🏷️' }
+    { key: 'label_config', label: 'Paper Catalogs & Types', icon: '📄' }
   ];
 
   return (
     <div className="space-y-6">
       
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-900/40">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-2 border border-indigo-400/20">
-              <span>🛡️</span>
-              <span>Tags & Labels Operations Console</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Enterprise Operations Control
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1">
-              Logged in: <strong className="text-white">{currentMember.name}</strong> ({currentMember.roleLabel || currentMember.role}) &bull; Department: {currentMember.department}
-            </p>
+      {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
+      {bannerMinimized ? (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 rounded-2xl px-4 py-2.5 text-white shadow-xl border border-indigo-900/40 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
+          {/* Navigation Tabs (Sleek row) */}
+          <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
+            {adminTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                  activeTab === tab.key
+                    ? 'bg-indigo-600 text-white shadow-md font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center space-x-2">
+          {/* Right: Quick actions & expand toggle */}
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow transition-all flex items-center space-x-1"
+              title="Book Order"
             >
               <span>➕</span>
-              <span>Book Order</span>
+              <span className="hidden md:inline">Order</span>
             </button>
+
             <button
-              onClick={() => setActiveTab('label_config')}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1 border border-slate-700"
+              onClick={() => setBannerMinimized(false)}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              title="Expand full operations banner"
             >
-              <span>🏷️</span>
-              <span>Manage Types</span>
+              <span>▼</span>
+              <span className="text-[11px] hidden sm:inline">Expand</span>
             </button>
           </div>
         </div>
-
-        {/* Modular Navigation Bar */}
-        <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
-          {adminTabs.map(tab => (
+      ) : (
+        /* Full Hero Banner (on Dashboard or when manually expanded) */
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-900/40 relative animate-fade-in">
+          {/* Minimize Toggle in Top Right */}
+          <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
-                activeTab === tab.key
-                  ? 'bg-white text-slate-900 shadow-md font-bold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
-              }`}
+              onClick={() => setBannerMinimized(true)}
+              className="bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              title="Minimize header banner to save screen space"
             >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span>▲</span>
+              <span className="text-[11px]">Minimize</span>
             </button>
-          ))}
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-2 border border-indigo-400/20">
+                <span>🛡️</span>
+                <span>Tags &amp; Labels Operations Console</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Enterprise Operations Control
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm mt-1">
+                Logged in: <strong className="text-white">{currentMember.name}</strong> ({currentMember.roleLabel || currentMember.role}) &bull; Department: {currentMember.department}
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setActiveTab('place_order')}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1"
+              >
+                <span>➕</span>
+                <span>Book Order</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('label_config')}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1 border border-slate-700"
+              >
+                <span>🏷️</span>
+                <span>Manage Types</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Modular Navigation Bar */}
+          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
+            {adminTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                  activeTab === tab.key
+                    ? 'bg-white text-slate-900 shadow-md font-bold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* MODULE 0: ADMIN EXECUTIVE DASHBOARD */}
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* 4 Executive KPI Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Total Orders */}
+            <div 
+              onClick={() => setActiveTab('all_orders')}
+              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</span>
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  📦
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-3 font-mono">
+                {adminStats.totalOrdersCount}
+              </div>
+              <div className="text-xs mt-1 flex items-center space-x-1">
+                {adminStats.pendingCount > 0 ? (
+                  <span className="text-amber-400 font-bold animate-pulse">⚠️ {adminStats.pendingCount} Pending Approval</span>
+                ) : (
+                  <span className="text-emerald-400 font-semibold">All Orders Approved ✓</span>
+                )}
+                <span className="text-slate-500">&bull;</span>
+                <span className="text-slate-400">{adminStats.deliveredOrdersCount} Delivered</span>
+              </div>
+            </div>
+
+            {/* 2. Total Invoiced Volume */}
+            <div 
+              onClick={() => setActiveTab('all_invoices')}
+              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Invoiced</span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  🧾
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-blue-400 mt-3 font-mono">
+                {formatCurrency(adminStats.totalInvoiced)}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Gross billed value across {invoices.length} invoice(s)
+              </div>
+            </div>
+
+            {/* 3. Total Collections / Cash Inflow */}
+            <div 
+              onClick={() => setActiveTab('payments')}
+              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Payments Collected</span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  💵
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-3 font-mono">
+                {formatCurrency(adminStats.totalCollected)}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Realized revenue from {payments.length} payment voucher(s)
+              </div>
+            </div>
+
+            {/* 4. Total Accounts Receivable / Outstanding */}
+            <div 
+              onClick={() => setActiveTab('ledgers')}
+              className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Receivables</span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                  ⚖️
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 mt-3 font-mono">
+                {formatCurrency(adminStats.totalOutstanding)}
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                Unpaid dues across {adminStats.totalClientsCount} registered client(s)
+              </div>
+            </div>
+          </div>
+
+          {/* Attention Required: Orders Awaiting Admin Approval */}
+          {adminStats.pendingCount > 0 && (
+            <div className="bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 shadow-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-500/30">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl animate-bounce">
+                    ⚠️
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">
+                      Action Required: {adminStats.pendingCount} Order(s) Awaiting Approval
+                    </h3>
+                    <p className="text-xs text-amber-200/80">Review client specifications, artwork, and confirm or reject.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('all_orders')}
+                  className="text-xs text-amber-300 hover:text-white font-bold bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all"
+                >
+                  Manage in Order Register &rarr;
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {adminStats.pendingOrders.slice(0, 3).map(po => {
+                  const firstItem = po.items[0] || {};
+                  return (
+                    <div key={po.id} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-mono font-bold text-blue-400 text-xs">{po.id}</span>
+                          <h4 className="font-extrabold text-white text-sm mt-0.5">{po.customerCompany}</h4>
+                          <p className="text-[11px] text-slate-400">{po.customerName}</p>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-emerald-400">{formatCurrency(po.total)}</span>
+                      </div>
+
+                      <div className="bg-slate-800/80 p-2.5 rounded-xl text-xs space-y-1 text-slate-300">
+                        <div><strong>Item:</strong> {firstItem.itemCode || firstItem.name || 'Custom'} &bull; {firstItem.type || 'Tag'}</div>
+                        <div><strong>Qty:</strong> {Number(firstItem.quantity || 0).toLocaleString()} pcs &bull; <strong>Rate:</strong> {formatCurrency(firstItem.unitPrice || 0)}</div>
+                      </div>
+
+                      <div className="flex items-center space-x-2 pt-1">
+                        <button
+                          onClick={() => handleApproveOrder(po)}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 rounded-xl transition-all shadow-md shadow-emerald-600/20"
+                        >
+                          ✓ Approve
+                        </button>
+                        <button
+                          onClick={() => handleRejectOrder(po)}
+                          className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-1.5 rounded-xl transition-all shadow-md shadow-rose-600/20"
+                        >
+                          ✕ Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Live Operational Pipeline */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-2">
+              <div>
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>🏭</span>
+                  <span>Live Manufacturing &amp; Fulfillment Flow</span>
+                </h3>
+                <p className="text-xs text-slate-400">Order distribution across factory production workstations.</p>
+              </div>
+              <span className="text-xs text-indigo-400 font-mono">
+                {orders.length} Active System Orders
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+              {[
+                { key: 'pending', label: 'Pending Approval', count: adminStats.pendingCount, icon: '⏳', color: 'amber' },
+                { key: 'approved', label: 'Approved & Scheduled', count: adminStats.approvedOrdersCount, icon: '✓', color: 'emerald' },
+                { key: 'in_production', label: 'In Production', count: adminStats.inProdOrdersCount, icon: '⚙️', color: 'sky' },
+                { key: 'ready_dispatch', label: 'QC / Packaging', count: adminStats.readyOrdersCount, icon: '📦', color: 'purple' },
+                { key: 'shipped', label: 'In Transit', count: adminStats.shippedOrdersCount, icon: '🚚', color: 'orange' },
+                { key: 'delivered', label: 'Delivered', count: adminStats.deliveredOrdersCount, icon: '🎉', color: 'emerald' }
+              ].map(stg => (
+                <div
+                  key={stg.key}
+                  onClick={() => setActiveTab('all_orders')}
+                  className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/60 rounded-2xl p-3.5 transition-all cursor-pointer group text-center"
+                >
+                  <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stg.icon}</div>
+                  <div className="text-lg font-bold text-white font-mono">{stg.count}</div>
+                  <div className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{stg.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Grid: Recent Orders (Left 2 cols) & Quick Operations Center (Right 1 col) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Left 2 Cols: Recent Manufacturing Orders */}
+            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <div>
+                  <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                    <span>📋</span>
+                    <span>Recent Orders Across All Clients</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Real-time incoming client orders feed.</p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('all_orders')}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold hover:underline flex items-center space-x-1"
+                >
+                  <span>View Full Register ({orders.length})</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+                    <tr>
+                      <th className="py-3 px-3">Order ID</th>
+                      <th className="py-3 px-3">Client</th>
+                      <th className="py-3 px-3">Artwork</th>
+                      <th className="py-3 px-3">Item / Brand</th>
+                      <th className="py-3 px-3">Qty</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Amt</th>
+                      <th className="py-3 px-3 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {orders.slice(0, 5).map(o => {
+                      const firstItem = o.items[0] || {};
+                      const isApproved = o.status === 'approved';
+
+                      return (
+                        <tr key={o.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-blue-400">
+                            {o.id}
+                            <div className="text-[10px] text-slate-500 font-normal">{formatDate(o.createdAt)}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-white text-xs">{o.customerCompany}</div>
+                            <div className="text-[10px] text-slate-400">{o.customerName}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            {firstItem.image ? (
+                              <img 
+                                src={firstItem.image} 
+                                alt="Artwork" 
+                                onClick={() => setPreviewArtworkUrl(firstItem.image)}
+                                className="w-10 h-10 object-cover rounded-xl border border-slate-700 cursor-pointer hover:scale-105 transition-transform" 
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm">
+                                🏷️
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-white text-xs">{firstItem.brandName || o.customerCompany}</div>
+                            <div className="text-[11px] text-slate-400 font-mono">{firstItem.itemCode || firstItem.type}</div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-semibold text-white">
+                            {Number(firstItem.quantity || 0).toLocaleString()} pcs
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
+                              o.status === 'approved' || o.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
+                              o.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
+                              o.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
+                              o.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                              'bg-amber-950 text-amber-300 border border-amber-800'
+                            }`}>
+                              <span>{o.status === 'pending' || o.status === 'placed' ? 'Pending' : o.status.replace(/_/g, ' ')}</span>
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                            {formatCurrency(o.total)}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            {!isApproved ? (
+                              <button
+                                onClick={() => handleApproveOrder(o)}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold shadow transition-all"
+                              >
+                                Approve
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  const linkedOrder = orders.find(ord => ord.id === o.id) || o;
+                                  onOpenInvoice(linkedOrder);
+                                }}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1 rounded-lg text-[11px] border border-slate-700 transition-colors"
+                              >
+                                Invoice
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Right Col: Operations Console Quick Launch Hub */}
+            <div className="space-y-6">
+              
+              {/* Operations Launchpad */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>⚡</span>
+                  <span>Operations Launchpad</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    onClick={() => setActiveTab('place_order')}
+                    className="bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white p-3.5 rounded-2xl text-left shadow-lg transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🛒</div>
+                    <div className="font-bold text-xs">Book Order</div>
+                    <div className="text-[10px] text-indigo-200 mt-0.5 leading-tight">On-behalf client entry</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('all_orders')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</div>
+                    <div className="font-bold text-xs text-white">Order Register</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Inspect, approve, move</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('create_invoice')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🧾</div>
+                    <div className="font-bold text-xs text-white">New Invoice</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Bill completed orders</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('payments')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">💵</div>
+                    <div className="font-bold text-xs text-white">Record Payment</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Post NEFT / Cash voucher</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('production')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">⚙️</div>
+                    <div className="font-bold text-xs text-white">Production Floor</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Machine cards &amp; flow</div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('payroll')}
+                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                  >
+                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">👥</div>
+                    <div className="font-bold text-xs text-white">Payroll &amp; Staff</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Attendance &amp; wages</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Factory Status Summary */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950/60 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-xl text-indigo-400">
+                    🏭
+                  </div>
+                  <div>
+                    <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Facility Status</div>
+                    <div className="font-bold text-white text-sm">Industrial Apparel Park Hub</div>
+                    <div className="text-[11px] text-emerald-400 flex items-center space-x-1 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>High-Speed Weaving &amp; Die Press Active</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Active Workers</span>
+                    <span className="text-lg font-bold text-white font-mono">{adminStats.activeStaffCount} on Shift</span>
+                  </div>
+                  <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Client Accounts</span>
+                    <span className="text-lg font-bold text-white font-mono">{adminStats.totalClientsCount} Registered</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* MODULE 1: PLACE ORDER (TAGS & LABELS SPECIFICATION) */}
       {activeTab === 'place_order' && (
@@ -620,19 +1900,131 @@ function AdminPortal({
 
                 <div>
                   <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Material * <span className="text-slate-400 font-normal">({adminSelectedType})</span>
+                    {adminSelectedType === 'Tag' ? '📖 Paper Catalog *' : 'Material *'}{' '}
+                    <span className="text-slate-400 font-normal">({adminSelectedType})</span>
                   </label>
-                  <select
-                    value={adminSelectedMaterial}
-                    onChange={(e) => setAdminSelectedMaterial(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  >
-                    {(adminTypeObj?.materials || []).map((m, idx) => (
-                      <option key={idx} value={m}>{m}</option>
-                    ))}
-                  </select>
+                  {adminSelectedType === 'Tag' ? (
+                    <select
+                      value={adminSelectedCatalogId}
+                      onChange={(e) => setAdminSelectedCatalogId(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                    >
+                      {availableCatalogs.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.code} ({cat.gsm} GSM - {cat.finish})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={adminSelectedMaterial}
+                      onChange={(e) => setAdminSelectedMaterial(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    >
+                      {(adminTypeObj?.materials || []).map((m, idx) => (
+                        <option key={idx} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
+
+              {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG FOR ADMIN */}
+              {adminSelectedType === 'Tag' && (
+                <div className="bg-slate-900/90 border border-indigo-900/60 rounded-2xl p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
+                        <span>📑</span>
+                        <span>Tag Composition &amp; Paper Cards</span>
+                      </span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Does this tag have a single paper card or multiple cards bound together with Dori &amp; Plastic?
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setAdminIsMultiCard(false)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                          !adminIsMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📄 Single Card Tag
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdminIsMultiCard(true)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                          adminIsMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📑 Multi-Card Tag Set ({adminTagCards.length} Cards)
+                      </button>
+                    </div>
+                  </div>
+
+                  {adminIsMultiCard && (
+                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {adminTagCards.map((card, idx) => (
+                          <div key={card.id} className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-sky-300">
+                                Card #{idx + 1}: {card.title}
+                              </span>
+                              {idx === 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setAdminTagCards(prev => prev.slice(0, 2))}
+                                  className="text-rose-400 hover:text-rose-300 text-xs font-bold"
+                                  title="Remove 3rd Card"
+                                >
+                                  &times; Remove
+                                </button>
+                              )}
+                            </div>
+                            <label className="text-[10px] text-slate-400 block font-semibold">Select Paper Catalog:</label>
+                            <select
+                              value={card.catalogId}
+                              onChange={(e) => {
+                                const newCatId = e.target.value;
+                                setAdminTagCards(prev => prev.map((c, i) => i === idx ? { ...c, catalogId: newCatId } : c));
+                              }}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            >
+                              {availableCatalogs.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+
+                      {adminTagCards.length < 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setAdminTagCards(prev => [
+                            ...prev,
+                            { id: 3, title: 'Card 3 (Story / Overlay Card)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115' }
+                          ])}
+                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1 mt-2"
+                        >
+                          <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                        </button>
+                      )}
+                      
+                      <div className="text-[11px] text-indigo-300/80 bg-indigo-950/40 border border-indigo-900/50 rounded-xl p-2.5 flex items-center space-x-2">
+                        <span>ℹ️</span>
+                        <span>Each card will receive its own printing &amp; punching job form, and will merge at the Handwork (Dori &amp; Plastic) stage.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* TIER 2: ACCESSORIES & ARTWORK (3-COLUMNS) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -924,149 +2316,277 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 9: TAGS & LABELS CONFIG (ADMIN ACCESS TO ADD TYPES & MATERIALS) */}
+      {/* MODULE 9: PAPER CATALOGS MASTER & TAGS/LABELS CONFIG */}
       {activeTab === 'label_config' && (
         <div className="space-y-6 animate-fade-in">
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Create New Type Form */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-              <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                <span>➕</span>
-                <span>Add New Product Type</span>
-              </h3>
-              <p className="text-xs text-slate-400 mb-2">Create a new manufacturing classification (e.g. Woven Label, Heat Transfer, Satin Tape).</p>
-
-              <form onSubmit={handleCreateNewType} className="space-y-3">
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Type Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Woven Label / Sticker"
-                    value={newTypeName}
-                    onChange={(e) => setNewTypeName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Initial Materials (comma separated) *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Damask 50D, Satin, Taffeta"
-                    value={newTypeMaterials}
-                    onChange={(e) => setNewTypeMaterials(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Default Unit Rate (₹)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={newTypeDefaultRate}
-                    onChange={(e) => setNewTypeDefaultRate(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
-                >
-                  Add Type to Catalog
-                </button>
-              </form>
+          {/* Sub-tab Navigation: Paper Catalogs Master vs Types & Materials */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setCatalogSubTab('catalogs')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                  catalogSubTab === 'catalogs'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>📄</span>
+                <span>Paper Catalogs Master ({availableCatalogs.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCatalogSubTab('types')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                  catalogSubTab === 'types'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>🏷️</span>
+                <span>Product Types &amp; Materials ({availableTypes.length})</span>
+              </button>
             </div>
 
-            {/* Add Material to Existing Type Form */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-              <h3 className="font-bold text-white text-base flex items-center space-x-2">
+            {catalogSubTab === 'catalogs' && (
+              <button
+                type="button"
+                onClick={handleOpenAddCatalog}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all active:scale-95 self-start sm:self-auto"
+              >
                 <span>➕</span>
-                <span>Add Material Thickness / Variant</span>
-              </h3>
-              <p className="text-xs text-slate-400 mb-2">Add a new material or GSM to an existing type (e.g. add 400 GSM to Tag, or 2.5 to PU Label).</p>
+                <span>Add New Paper Catalog</span>
+              </button>
+            )}
+          </div>
 
-              <form onSubmit={handleAddMaterialToType} className="space-y-3">
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">Select Type *</label>
-                  <select
-                    value={addMatTargetType}
-                    onChange={(e) => setAddMatTargetType(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                  >
-                    {availableTypes.map(t => (
-                      <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                  </select>
+          {/* SUB-TAB 1: PAPER CATALOGS MASTER */}
+          {catalogSubTab === 'catalogs' && (
+            <div className="space-y-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+                <div className="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-white text-base flex items-center space-x-2">
+                      <span>📄</span>
+                      <span>Paper Catalogs &amp; Swatches Master</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Physical paper swatch books provided to customers for hangtag selection. Sheet rates and opening stocks automatically feed into the production order forms and inventory.
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-950/80 border border-indigo-800/80 px-3 py-1 rounded-xl">
+                    {availableCatalogs.length} Active Swatches
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs text-slate-300 block mb-1">New Material / Specification Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 400 GSM / 2.5 / Holographic"
-                    value={addMatName}
-                    onChange={(e) => setAddMatName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
-                >
-                  Add Material to {addMatTargetType}
-                </button>
-              </form>
-            </div>
-
-            {/* Active Types & Materials Overview Cards */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-              <h3 className="font-bold text-white text-base mb-1">Active Catalog Matrix</h3>
-              <p className="text-xs text-slate-400 mb-3">{availableTypes.length} configured types available for order booking.</p>
-
-              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                {availableTypes.map(type => (
-                  <div key={type.id} className="bg-slate-800/70 border border-slate-700 rounded-2xl p-3.5 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-sm text-white">{type.name}</span>
-                      <span className="text-[11px] text-emerald-400 font-mono">Rate: ₹{type.defaultRate}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Materials:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {type.materials.map((mat, i) => (
-                          <span
-                            key={i}
-                            className="bg-slate-900 text-slate-200 border border-slate-700 px-2.5 py-0.5 rounded-lg text-[10px] font-mono flex items-center space-x-1"
-                          >
-                            <span>{mat}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveMaterial(type.name, mat)}
-                              className="text-slate-500 hover:text-rose-400 font-bold ml-1"
-                              title="Delete Material"
-                            >
-                              &times;
-                            </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableCatalogs.map(cat => (
+                    <div 
+                      key={cat.id} 
+                      className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-indigo-500/50 transition-all group"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-mono text-xs font-bold text-indigo-400 bg-indigo-950/80 border border-indigo-800/80 px-2 py-0.5 rounded-lg inline-block">
+                              {cat.code}
+                            </span>
+                            <h4 className="font-bold text-white text-sm mt-1.5">{cat.name}</h4>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-900 text-emerald-400 font-mono font-bold text-xs border border-slate-700 shrink-0">
+                            ₹{Number(cat.sheetRate || 0).toFixed(2)} / sheet
                           </span>
-                        ))}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                          <span className="bg-slate-900/90 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-mono">
+                            {cat.gsm} GSM
+                          </span>
+                          <span className="bg-slate-900/90 text-sky-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px]">
+                            {cat.finish}
+                          </span>
+                          {cat.stockSheets !== undefined && (
+                            <span className="bg-slate-900/90 text-indigo-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-mono">
+                              Stock: {Number(cat.stockSheets).toLocaleString()} shts
+                            </span>
+                          )}
+                        </div>
+
+                        {cat.recommendedFor && (
+                          <p className="text-[11px] text-slate-400 mt-2 line-clamp-2 italic">
+                            &ldquo;{cat.recommendedFor}&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-700/60">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditCatalog(cat)}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all flex items-center space-x-1"
+                        >
+                          <span>✏️</span>
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCatalog(cat.id)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition-all flex items-center space-x-1"
+                        >
+                          <span>🗑️</span>
+                          <span>Delete</span>
+                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
+          )}
 
-          </div>
+          {/* SUB-TAB 2: PRODUCT TYPES & MATERIAL THICKNESS */}
+          {catalogSubTab === 'types' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Create New Type Form */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>➕</span>
+                  <span>Add New Product Type</span>
+                </h3>
+                <p className="text-xs text-slate-400 mb-2">Create a new manufacturing classification (e.g. Woven Label, Heat Transfer, Satin Tape).</p>
+
+                <form onSubmit={handleCreateNewType} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Type Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Woven Label / Sticker"
+                      value={newTypeName}
+                      onChange={(e) => setNewTypeName(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Initial Materials (comma separated) *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Damask 50D, Satin, Taffeta"
+                      value={newTypeMaterials}
+                      onChange={(e) => setNewTypeMaterials(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Default Unit Rate (₹)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      value={newTypeDefaultRate}
+                      onChange={(e) => setNewTypeDefaultRate(Number(e.target.value))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
+                  >
+                    Add Type to Catalog
+                  </button>
+                </form>
+              </div>
+
+              {/* Add Material to Existing Type Form */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>➕</span>
+                  <span>Add Material Thickness / Variant</span>
+                </h3>
+                <p className="text-xs text-slate-400 mb-2">Add a new material or GSM to an existing type (e.g. add 400 GSM to Tag, or 2.5 to PU Label).</p>
+
+                <form onSubmit={handleAddMaterialToType} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Select Type *</label>
+                    <select
+                      value={addMatTargetType}
+                      onChange={(e) => setAddMatTargetType(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    >
+                      {availableTypes.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">New Material / Specification Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 400 GSM / 2.5 / Holographic"
+                      value={addMatName}
+                      onChange={(e) => setAddMatName(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
+                  >
+                    Add Material to {addMatTargetType}
+                  </button>
+                </form>
+              </div>
+
+              {/* Active Types & Materials Overview Cards */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+                <h3 className="font-bold text-white text-base mb-1">Active Types Matrix</h3>
+                <p className="text-xs text-slate-400 mb-3">{availableTypes.length} configured types available for order booking.</p>
+
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {availableTypes.map(type => (
+                    <div key={type.id} className="bg-slate-800/70 border border-slate-700 rounded-2xl p-3.5 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-sm text-white">{type.name}</span>
+                        <span className="text-[11px] text-emerald-400 font-mono">Rate: ₹{type.defaultRate}</span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Materials:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {type.materials.map((mat, i) => (
+                            <span
+                              key={i}
+                              className="bg-slate-900 text-slate-200 border border-slate-700 px-2.5 py-0.5 rounded-lg text-[10px] font-mono flex items-center space-x-1"
+                            >
+                              <span>{mat}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMaterial(type.name, mat)}
+                                className="text-slate-500 hover:text-rose-400 font-bold ml-1"
+                                title="Delete Material"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
 
         </div>
       )}
@@ -1096,6 +2616,18 @@ function AdminPortal({
                 >
                   <span>✓</span>
                   <span>Bulk Approve</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedOrdersList = orders.filter(o => selectedOrderIds.includes(o.id));
+                    handleOpenMoveToProduction(selectedOrdersList);
+                  }}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold px-3.5 py-1.5 rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center space-x-1.5 active:scale-95"
+                >
+                  <span>🚀</span>
+                  <span>Bulk Move to Production</span>
                 </button>
 
                 <button
@@ -1338,36 +2870,56 @@ function AdminPortal({
                           {/* 8. APPROVE / REJECT */}
                           <td className="py-4 px-4 text-center">
                             <div className="flex flex-col items-center gap-1.5">
-                              <div className="flex items-center space-x-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleApproveOrder(o)}
-                                  disabled={isApproved}
-                                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
-                                    isApproved 
-                                      ? 'bg-emerald-950/60 text-emerald-500/60 border border-emerald-900 cursor-not-allowed' 
-                                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20 active:scale-95'
-                                  }`}
-                                  title={isApproved ? 'Order already approved' : 'Approve this manufacturing order'}
-                                >
-                                  <span>✓</span>
-                                  <span>Approve</span>
-                                </button>
+                              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                {o.status === 'in_production' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveTab('production')}
+                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-900/20 flex items-center space-x-1"
+                                    title="View this job in production flow"
+                                  >
+                                    <span>⚙️</span>
+                                    <span>In Production &rarr;</span>
+                                  </button>
+                                ) : isApproved ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMoveToProduction(o)}
+                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-900/20 active:scale-95 flex items-center space-x-1"
+                                    title="Create Production Job Form & dispatch to Printing team"
+                                  >
+                                    <span>🚀</span>
+                                    <span>Send to Production</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleApproveOrder(o)}
+                                    disabled={isApproved || isRejected}
+                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20 active:scale-95 flex items-center space-x-1"
+                                    title="Approve this manufacturing order"
+                                  >
+                                    <span>✓</span>
+                                    <span>Approve</span>
+                                  </button>
+                                )}
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleRejectOrder(o)}
-                                  disabled={isRejected}
-                                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
-                                    isRejected 
-                                      ? 'bg-rose-950/60 text-rose-500/60 border border-rose-900 cursor-not-allowed' 
-                                      : 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-900/20 active:scale-95'
-                                  }`}
-                                  title={isRejected ? 'Order already rejected' : 'Reject this order'}
-                                >
-                                  <span>✕</span>
-                                  <span>Reject</span>
-                                </button>
+                                {!isApproved && o.status !== 'in_production' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRejectModal(o)}
+                                    disabled={isRejected}
+                                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
+                                      isRejected 
+                                        ? 'bg-rose-950/60 text-rose-500/60 border border-rose-900 cursor-not-allowed' 
+                                        : 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-900/20 active:scale-95'
+                                    }`}
+                                    title={isRejected ? 'Order already rejected' : 'Reject this order with structured reason'}
+                                  >
+                                    <span>✕</span>
+                                    <span>Reject</span>
+                                  </button>
+                                )}
                               </div>
 
                               <button
@@ -1417,10 +2969,20 @@ function AdminPortal({
                           <div className="flex justify-between items-center pt-1 border-t border-slate-800">
                             <span className="text-[10px] text-slate-400">{o.items[0]?.dori || 'Reg.'}</span>
                             <div className="space-x-1">
-                              {o.status !== 'approved' && (
+                              {o.status === 'approved' && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleOpenMoveToProduction(o)} 
+                                  className="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow"
+                                  title="Allocate sheets & send to production"
+                                >
+                                  🚀 Produce
+                                </button>
+                              )}
+                              {o.status !== 'approved' && o.status !== 'in_production' && (
                                 <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">✓</button>
                               )}
-                              {o.status !== 'rejected' && (
+                              {o.status !== 'rejected' && o.status !== 'in_production' && (
                                 <button onClick={() => handleRejectOrder(o)} className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold">✕</button>
                               )}
                             </div>
@@ -1753,68 +3315,588 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 7: PRODUCTION FLOW MANAGER */}
+      {/* MODULE 7: PRODUCTION FLOW MANAGER (FULL SHOP-FLOOR SEQUENTIAL PIPELINE) */}
       {activeTab === 'production' && (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
+          
+          {/* Header & Role Context Banner */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Shop-Floor Production Flow Manager</h3>
-            <p className="text-xs text-slate-400 mb-4">Job cards, machine workstations, and factory quality stage tracking.</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {production.map(job => (
-                <div key={job.jobId} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-mono font-bold text-xs text-blue-400">{job.jobId}</span>
-                        <h4 className="font-bold text-sm text-white mt-0.5">{job.itemName}</h4>
-                      </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        job.priority === 'urgent' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                        'bg-slate-700 text-slate-300'
-                      }`}>
-                        {job.priority}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 space-y-1.5 text-xs text-slate-300">
-                      <div>🏭 <strong>Workstation:</strong> {job.workstation}</div>
-                      <div>👤 <strong>Operator:</strong> {job.assignedOperator}</div>
-                      <div>📋 <strong>QC Notes:</strong> <span className="text-slate-400 italic">{job.qcNotes}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-700 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block uppercase font-bold">Current Stage</span>
-                      <span className="font-bold text-indigo-300 text-xs uppercase">{job.stage.replace('_', ' ')}</span>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      {job.stage === 'running_line' && (
-                        <button
-                          onClick={() => handleAdvanceProductionStage(job, 'quality_checked')}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow"
-                        >
-                          Pass QC Check &rarr;
-                        </button>
-                      )}
-                      {job.stage === 'quality_checked' && (
-                        <button
-                          onClick={() => handleAdvanceProductionStage(job, 'packaged')}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl shadow"
-                        >
-                          Mark Ready for Dispatch &rarr;
-                        </button>
-                      )}
-                      {job.stage === 'packaged' && (
-                        <span className="text-xs text-emerald-400 font-bold">✓ Ready for Courier</span>
-                      )}
-                    </div>
-                  </div>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xl">🏭</span>
+                  <h3 className="font-extrabold text-white text-base">Shop-Floor Production Flow Manager</h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    Live Pipeline
+                  </span>
                 </div>
-              ))}
+                <p className="text-xs text-slate-400 mt-1">
+                  Sequential flow: <strong>1. Printing Press</strong> &rarr; <strong>2. Punching &amp; Packing</strong> &rarr; <strong>3. Handwork (Dori &amp; Plastic)</strong> &rarr; <strong>4. Godown Dispatch</strong>.
+                </p>
+              </div>
+
+              {/* Persona / Role Badge */}
+              <div className="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
+                <span className="text-xs text-slate-400">Current Operator:</span>
+                <span className="font-bold text-xs text-white flex items-center space-x-1.5">
+                  <span>👤</span>
+                  <span>{currentMember.name}</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800">
+                  {currentMember.role}
+                </span>
+              </div>
             </div>
+
+            {/* Stage Filter Tabs (Executive & Role-based) */}
+            <div className="flex flex-wrap gap-2 pt-4">
+              <button
+                type="button"
+                onClick={() => setProductionFilterStage('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'all' 
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                <span>All Active Jobs</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                  {production.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setProductionFilterStage('printing')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'printing' 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                <span>🖨️ 1. Printing Unit</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                  {production.filter(j => (j.currentStage || 'printing') === 'printing').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setProductionFilterStage('punching')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'punching' 
+                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                <span>🥊 2. Punching &amp; Packing</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                  {production.filter(j => j.currentStage === 'punching').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setProductionFilterStage('handwork')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'handwork' 
+                    ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-600/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                <span>🧵 3. Handwork (Dori &amp; Plastic)</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                  {production.filter(j => j.currentStage === 'handwork').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setProductionFilterStage('godown')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'godown' 
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                }`}
+              >
+                <span>📦 4. Godown / Ready for Dispatch</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                  {production.filter(j => j.currentStage === 'godown' || j.stage === 'packaged').length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sequential Job Cards Stream */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {production
+              .filter(job => {
+                const stage = job.currentStage || (job.stage === 'packaged' ? 'godown' : job.stage === 'quality_checked' ? 'handwork' : 'printing');
+                if (currentMember.role === 'printing') return stage === 'printing';
+                if (currentMember.role === 'punching') return stage === 'punching';
+                if (currentMember.role === 'labourer') {
+                  return stage === 'handwork' && (!job.handwork?.assignedLabourerId || job.handwork?.assignedLabourerId === currentMember.id);
+                }
+                if (productionFilterStage !== 'all') return stage === productionFilterStage;
+                return true;
+              })
+              .map(job => {
+                const stage = job.currentStage || (job.stage === 'packaged' ? 'godown' : job.stage === 'quality_checked' ? 'handwork' : 'printing');
+                const isPrinting = stage === 'printing';
+                const isPunching = stage === 'punching';
+                const isHandwork = stage === 'handwork';
+                const isGodown = stage === 'godown' || job.stage === 'packaged';
+
+                return (
+                  <div 
+                    key={job.jobId} 
+                    className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all"
+                  >
+                    {/* Card Header: Job ID, Priority, Client & Item */}
+                    <div>
+                      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-800">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-xs text-blue-400 bg-blue-950/60 border border-blue-800 px-2 py-0.5 rounded-lg">
+                              {job.jobId}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              Ref: {job.orderId}
+                            </span>
+                          </div>
+                          <h4 className="font-extrabold text-white text-base mt-1">
+                            {job.itemName}
+                          </h4>
+                          <div className="text-xs text-slate-300 mt-0.5 flex items-center space-x-1.5">
+                            <span className="text-slate-400">Client:</span>
+                            <span className="font-bold text-white">{job.customerCompany || job.customerName}</span>
+                          </div>
+                        </div>
+
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                          job.priority === 'urgent' 
+                            ? 'bg-rose-950 text-rose-400 border border-rose-800 shadow-rose-900/20' 
+                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                        }`}>
+                          {job.priority || 'standard'}
+                        </span>
+                      </div>
+
+                      {/* Multi-Card Details & Sheet Metrics */}
+                      <div className="mt-3.5 space-y-2">
+                        {/* Multi-Card or Single-Card breakdown */}
+                        {job.isMultiCard && job.cards && job.cards.length > 0 ? (
+                          <div className="bg-slate-800/80 border border-indigo-950 rounded-2xl p-3">
+                            <span className="text-[10px] uppercase font-bold text-amber-300 block mb-1">
+                              📑 Multi-Card Components ({job.cards.length} Cards in set)
+                            </span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                              {job.cards.map((c, ci) => (
+                                <div key={ci} className="bg-slate-900/70 p-2 rounded-xl border border-slate-700/60">
+                                  <span className="font-bold text-sky-400 block">{c.title}</span>
+                                  <span className="text-slate-300 text-[11px]">{c.catalogCode || c.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between">
+                            <span className="text-slate-400">Paper Catalog:</span>
+                            <span className="font-bold text-slate-200">{job.cards?.[0]?.catalogCode || job.material || 'Standard Catalog'}</span>
+                          </div>
+                        )}
+
+                        {/* Sheet Buffer Metrics Grid */}
+                        <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-center font-mono text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Target</span>
+                            <span className="font-bold text-white text-sm">{(job.targetQty || 1000).toLocaleString()}</span>
+                            <span className="text-[10px] text-slate-400 block font-sans">pcs</span>
+                          </div>
+                          <div className="border-x border-slate-800">
+                            <span className="text-[10px] text-indigo-400 uppercase block font-sans font-semibold">Issued (+40 buf)</span>
+                            <span className="font-bold text-indigo-300 text-sm">{job.issuedSheets || (job.targetQty + 40)}</span>
+                            <span className="text-[10px] text-indigo-400 block font-sans">sheets</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-amber-400 uppercase block font-sans font-semibold">Allowed Floor</span>
+                            <span className="font-bold text-amber-300 text-sm">{job.minimumAllowedFloor || 960}</span>
+                            <span className="text-[10px] text-amber-400 block font-sans">min sheets</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Visual 4-Step Pipeline Bar */}
+                      <div className="mt-4 pt-3 border-t border-slate-800/80">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 mb-1.5">
+                          <span className={isPrinting ? 'text-indigo-400' : job.printing?.status === 'completed' ? 'text-emerald-400' : ''}>
+                            {job.printing?.status === 'completed' ? '✓ ' : ''}1. Print
+                          </span>
+                          <span className={isPunching ? 'text-teal-400' : job.punching?.status === 'completed' ? 'text-emerald-400' : ''}>
+                            {job.punching?.status === 'completed' ? '✓ ' : ''}2. Punch
+                          </span>
+                          <span className={isHandwork ? 'text-yellow-400' : job.handwork?.status === 'completed' ? 'text-emerald-400' : ''}>
+                            {job.handwork?.status === 'completed' ? '✓ ' : ''}3. Handwork
+                          </span>
+                          <span className={isGodown ? 'text-emerald-400' : ''}>
+                            {isGodown ? '✓ ' : ''}4. Godown
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1 h-1.5 rounded-full overflow-hidden bg-slate-800">
+                          <div className={`h-full ${job.printing?.status === 'completed' ? 'bg-emerald-500' : isPrinting ? 'bg-indigo-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                          <div className={`h-full ${job.punching?.status === 'completed' ? 'bg-emerald-500' : isPunching ? 'bg-teal-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                          <div className={`h-full ${job.handwork?.status === 'completed' ? 'bg-emerald-500' : isHandwork ? 'bg-yellow-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                          <div className={`h-full ${isGodown ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stage Specific Interactive Action Panel */}
+                    <div className="mt-2 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+                      
+                      {/* STAGE 1: PRINTING PROCESS */}
+                      {isPrinting && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
+                              <span>🖨️</span>
+                              <span>Printing Press Station ({job.printing?.operatorName || 'Kanu'})</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                              Stage 1 of 4
+                            </span>
+                          </div>
+
+                          {job.printing?.status !== 'in_progress' ? (
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-slate-400">Job queued for offset/screen press.</span>
+                              <button
+                                type="button"
+                                onClick={() => handleStartPrinting(job)}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                              >
+                                <span>▶</span>
+                                <span>Start Printing</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pt-1">
+                              <div className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-900/50 p-2 rounded-xl">
+                                ⚠️ <strong>Mandatory Rule:</strong> Write down the exact number of sheets printed. It must be &ge; 960 sheets to proceed.
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                    Good Sheets Printed <span className="text-rose-400">*</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="e.g. 1010"
+                                    value={getSheetInput(job.jobId, 'printed')}
+                                    onChange={(e) => setSheetInput(job.jobId, 'printed', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                    Waste / Spoilage Sheets
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="e.g. 30"
+                                    value={getSheetInput(job.jobId, 'waste')}
+                                    onChange={(e) => setSheetInput(job.jobId, 'waste', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleCompletePrinting(job)}
+                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                              >
+                                <span>✓</span>
+                                <span>Complete Printing &amp; Forward to Punching</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STAGE 2: PUNCHING & PACKING PROCESS */}
+                      {isPunching && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-teal-300 flex items-center space-x-1.5">
+                              <span>🥊</span>
+                              <span>Punching &amp; Die Press ({job.punching?.operatorName || 'Shivakant'})</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                              Stage 2 of 4
+                            </span>
+                          </div>
+
+                          <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between font-mono">
+                            <span className="text-slate-400">Printed Input Received:</span>
+                            <span className="font-bold text-indigo-300">
+                              {job.printing?.goodSheetsPrinted || 1010} sheets
+                            </span>
+                          </div>
+
+                          {job.punching?.status !== 'in_progress' ? (
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-slate-400">Ready for die-punching &amp; creasing.</span>
+                              <button
+                                type="button"
+                                onClick={() => handleStartPunching(job)}
+                                className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-teal-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                              >
+                                <span>▶</span>
+                                <span>Start Punching</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pt-1">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                    Good Punched Sheets <span className="text-rose-400">*</span>
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="e.g. 995"
+                                    value={getSheetInput(job.jobId, 'punched')}
+                                    onChange={(e) => setSheetInput(job.jobId, 'punched', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-teal-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                    Die Wastage
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    placeholder="e.g. 15"
+                                    value={getSheetInput(job.jobId, 'punchWaste')}
+                                    onChange={(e) => setSheetInput(job.jobId, 'punchWaste', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500"
+                                  />
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleCompletePunching(job)}
+                                className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-teal-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                              >
+                                <span>✓</span>
+                                <span>Complete Punching &amp; Move to Handwork</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STAGE 3: HANDWORK PROCESS (DORI & PLASTIC) */}
+                      {isHandwork && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-yellow-300 flex items-center space-x-1.5">
+                              <span>🧵</span>
+                              <span>Handwork Assembly (Dori &amp; Plastic)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                              Stage 3 of 4
+                            </span>
+                          </div>
+
+                          {/* Rate Card & Specification Summary */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 text-xs font-mono">
+                            <div>
+                              <span className="text-[10px] text-slate-400 block font-sans">Dori Spec</span>
+                              <span className="font-bold text-white">{job.handwork?.doriType || 'Reg.'}</span>
+                              <span className="text-[10px] text-slate-400 block">@ ₹{job.handwork?.doriRate || '0.20'}/pc</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 block font-sans">Plastic Lock</span>
+                              <span className="font-bold text-white">{job.handwork?.plasticType || 'Reg.'}</span>
+                              <span className="text-[10px] text-slate-400 block">@ ₹{job.handwork?.plasticRate || '0.10'}/pc</span>
+                            </div>
+                            <div className="col-span-2 sm:col-span-1 border-t sm:border-t-0 sm:border-l border-slate-800 pt-1 sm:pt-0 sm:pl-2">
+                              <span className="text-[10px] text-yellow-400 block font-sans font-bold">Total Rate</span>
+                              <span className="font-extrabold text-yellow-300 text-sm">
+                                ₹{(job.handwork?.totalRatePerTag || 0.30).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-yellow-400/80 block font-sans">per tag set</span>
+                            </div>
+                          </div>
+
+                          {/* Manager Assignment Controls (If unassigned or admin role) */}
+                          {(!job.handwork?.assignedLabourerId || currentMember.role === 'admin' || currentMember.role === 'manager') && (
+                            <div className="bg-slate-900/80 p-3 rounded-2xl border border-yellow-900/40 space-y-2.5">
+                              <span className="text-[11px] font-bold text-slate-300 block">
+                                👷 Assign Job to Handwork Labourer:
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="sm:col-span-2">
+                                  <select
+                                    value={getSheetInput(job.jobId, 'labourerId', job.handwork?.assignedLabourerId || '')}
+                                    onChange={(e) => setSheetInput(job.jobId, 'labourerId', e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500"
+                                  >
+                                    <option value="">-- Choose Labourer / Artisan --</option>
+                                    {users.team
+                                      .filter(u => u.role === 'labourer')
+                                      .map(l => (
+                                        <option key={l.id} value={l.id}>{l.name} ({l.roleLabel})</option>
+                                      ))
+                                    }
+                                  </select>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAssignHandwork(job)}
+                                  className="bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-bold text-xs py-2 px-3 rounded-xl shadow active:scale-95 transition-all"
+                                >
+                                  Assign Batch
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Labourer Execution Panel */}
+                          {job.handwork?.assignedLabourerId && (
+                            <div className="bg-yellow-950/20 border border-yellow-500/30 p-3 rounded-2xl space-y-3">
+                              <div className="flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="text-slate-400">Assigned Artisan:</span>{' '}
+                                  <strong className="text-yellow-300">{job.handwork.assignedLabourerName}</strong>
+                                </div>
+                                <div className="font-mono text-emerald-400 font-bold">
+                                  Potential Earning: {formatCurrency((job.targetQty || 1000) * (job.handwork.totalRatePerTag || 0.30))}
+                                </div>
+                              </div>
+
+                              {job.handwork?.status !== 'in_progress' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartHandwork(job)}
+                                  className="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-extrabold text-xs py-2.5 rounded-xl shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                >
+                                  <span>▶</span>
+                                  <span>Start Handwork Assembly</span>
+                                </button>
+                              ) : (
+                                <div className="space-y-2 pt-1">
+                                  <div>
+                                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                      Finished Tags Completed (Pcs) <span className="text-rose-400">*</span>
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      placeholder="e.g. 990"
+                                      value={getSheetInput(job.jobId, 'handworkPieces', job.punching?.goodSheetsPunched || job.targetQty || 1000)}
+                                      onChange={(e) => setSheetInput(job.jobId, 'handworkPieces', e.target.value)}
+                                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-yellow-500"
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCompleteHandwork(job)}
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                  >
+                                    <span>✓</span>
+                                    <span>Mark Complete &amp; Move to Godown</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STAGE 4: GODOWN (READY FOR DISPATCH) */}
+                      {isGodown && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1.5">
+                              <span>📦</span>
+                              <span>Godown / Finished Goods Storage</span>
+                            </span>
+                            <span className="text-[10px] text-emerald-300 bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-800">
+                              Ready for Dispatch ✓
+                            </span>
+                          </div>
+
+                          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Warehouse Location:</span>
+                              <span className="font-mono font-bold text-white">{job.godown?.location || 'Rack Bay A-01'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Verified Quantity:</span>
+                              <span className="font-mono font-bold text-emerald-400">
+                                {job.handwork?.completedPieces || job.targetQty || 1000} pcs ready
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400">Handwork Artisan Payout:</span>
+                              <span className="font-mono text-slate-300">
+                                {job.handwork?.assignedLabourerName || 'Artisan'} &bull; {formatCurrency(job.handwork?.earnedPayout || 300)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-1 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const parent = orders.find(o => o.id === job.orderId);
+                                if (parent) onOpenInvoice(parent);
+                              }}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-3 rounded-xl border border-slate-700 transition-all flex items-center space-x-1"
+                            >
+                              <span>📄</span>
+                              <span>Check Invoice</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const parent = orders.find(o => o.id === job.orderId);
+                                if (parent) setDispatchModalOrder(parent);
+                              }}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center space-x-1.5"
+                            >
+                              <span>🚚</span>
+                              <span>Dispatch Order</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                );
+              })}
+
+            {production.length === 0 && (
+              <div className="col-span-2 text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl text-slate-500">
+                <span className="text-4xl block mb-2">📋</span>
+                <p className="text-sm font-semibold text-slate-400">No active production jobs yet.</p>
+                <p className="text-xs text-slate-600 mt-1">Approve an order in &quot;View All Orders&quot; and click &quot;Send to Production&quot; to generate job forms.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1903,6 +3985,263 @@ function AdminPortal({
             </table>
           </div>
 
+          {/* PIECE-RATE HANDWORK (DORI & PLASTIC) PRODUCTION LEDGER */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div>
+                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <span>🧵</span>
+                  <span>Piece-Rate Handwork (Dori & Plastic) Production Ledger</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Daily earnings accrued per completed tag batch by artisans (Standard: ₹0.20 Dori + ₹0.10 Plastic = ₹0.30/tag)
+                </p>
+              </div>
+              <div className="flex items-center space-x-3 text-xs bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700">
+                <span className="text-slate-400">Total Piece Payouts:</span>
+                <span className="font-extrabold text-emerald-400 font-mono">
+                  {formatCurrency((payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.earnedAmount) || 0), 0))}
+                </span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-400">Tags Finished:</span>
+                <span className="font-bold text-white font-mono">
+                  {(payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.piecesCompleted) || 0), 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {(payroll.pieceRateLedger && payroll.pieceRateLedger.length > 0) ? (
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+                    <tr>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Artisan</th>
+                      <th className="py-3 px-4">Job / Order Ref</th>
+                      <th className="py-3 px-4">Pieces Assembled</th>
+                      <th className="py-3 px-4">Rate / Tag</th>
+                      <th className="py-3 px-4 font-mono">Total Earned</th>
+                      <th className="py-3 px-4 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {payroll.pieceRateLedger.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40">
+                        <td className="py-3.5 px-4 font-mono text-slate-400">{item.date}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-white">{item.name}</span>
+                          <span className="block text-[10px] text-slate-500 font-mono">{item.staffId}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-indigo-400">{item.jobId}</span>
+                          <span className="text-slate-500 text-[10px] ml-1.5 font-mono">({item.orderId})</span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-white font-mono">
+                          {Number(item.piecesCompleted || 0).toLocaleString()} tags
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-300 font-mono">
+                          ₹{Number(item.ratePerTag || 0.30).toFixed(2)}
+                        </td>
+                        <td className="py-3.5 px-4 font-extrabold text-emerald-400 font-mono text-sm">
+                          {formatCurrency(item.earnedAmount)}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                            {item.status || 'Earned'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500 text-xs bg-slate-950/40 rounded-2xl border border-dashed border-slate-800 mt-3">
+                No handwork batches completed yet. As soon as Sumit completes a handwork batch in the production tab, piece-rate earnings will post directly here.
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
+
+      {/* MODULE 10: RAW MATERIALS & INVENTORY MANAGEMENT */}
+      {activeTab === 'inventory' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          {/* Top Header & Restock Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-3">
+            <div>
+              <h2 className="text-xl font-extrabold text-white flex items-center space-x-2">
+                <span>🏭</span>
+                <span>Raw Materials &amp; Paper Stock Inventory</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Real-time stock of catalog paper boards, pre-cut dori threads, and plastic locks. Automatically depleted upon machine run completion.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRestockItem(inventory[0] || null);
+                  setRestockQty('');
+                  setRestockSupplier(inventory[0]?.supplier || '');
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all active:scale-95"
+              >
+                <span>➕</span>
+                <span>Inward Stock Receipt / Restock</span>
+              </button>
+            </div>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <div className="flex items-center justify-between text-slate-400 text-xs">
+                <span>Paper Board Stock</span>
+                <span className="text-base">📄</span>
+              </div>
+              <div className="text-xl font-black text-white mt-2 font-mono">
+                {inventory.filter(i => i.category === 'paper').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">Available full-size press sheets</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <div className="flex items-center justify-between text-slate-400 text-xs">
+                <span>Dori Cords &amp; Twine</span>
+                <span className="text-base">🧵</span>
+              </div>
+              <div className="text-xl font-black text-indigo-400 mt-2 font-mono">
+                {inventory.filter(i => i.category === 'dori').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">Waxed cotton &amp; jute cords</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <div className="flex items-center justify-between text-slate-400 text-xs">
+                <span>Plastic Seal Locks</span>
+                <span className="text-base">🔒</span>
+              </div>
+              <div className="text-xl font-black text-teal-400 mt-2 font-mono">
+                {inventory.filter(i => i.category === 'plastic').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">Bullet &amp; square locks</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
+              <div className="flex items-center justify-between text-slate-400 text-xs">
+                <span>Total Inventory Valuation</span>
+                <span className="text-base">💰</span>
+              </div>
+              <div className="text-xl font-black text-emerald-400 mt-2 font-mono">
+                {formatCurrency(inventory.reduce((s, it) => s + ((Number(it.currentStock) || 0) * (Number(it.unitCost) || 0)), 0))}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">Raw material assets on floor</div>
+            </div>
+          </div>
+
+          {/* Category Filter Tabs */}
+          <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+            {[
+              { id: 'all', label: 'All Raw Materials' },
+              { id: 'paper', label: '📄 Catalog Paper Boards' },
+              { id: 'dori', label: '🧵 Dori Threads & Cords' },
+              { id: 'plastic', label: '🔒 Plastic Locks & Fasteners' }
+            ].map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setInventoryFilter(cat.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  inventoryFilter === cat.id
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Stock Table */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+                  <tr>
+                    <th className="py-3 px-4">Material / Item</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Warehouse Bin</th>
+                    <th className="py-3 px-4">Current Stock</th>
+                    <th className="py-3 px-4">Reorder Level</th>
+                    <th className="py-3 px-4 font-mono">Unit Rate</th>
+                    <th className="py-3 px-4 font-mono">Stock Value</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Quick Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {inventory
+                    .filter(item => inventoryFilter === 'all' || item.category === inventoryFilter)
+                    .map(item => {
+                      const isLow = (item.currentStock || 0) <= (item.reorderLevel || 1000);
+                      const isCritical = (item.currentStock || 0) <= (item.reorderLevel || 1000) / 2;
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-800/40">
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-white">{item.name}</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{item.code || item.id}</div>
+                          </td>
+                          <td className="py-3.5 px-4 capitalize text-slate-400">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-semibold border border-slate-700">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-400">{item.location}</td>
+                          <td className="py-3.5 px-4 font-bold text-white font-mono text-sm">
+                            {(item.currentStock || 0).toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">{item.unit}</span>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-400">
+                            {(item.reorderLevel || 0).toLocaleString()} {item.unit}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-300">
+                            ₹{Number(item.unitCost || 0).toFixed(2)}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-emerald-400 font-mono">
+                            {formatCurrency((item.currentStock || 0) * (item.unitCost || 0))}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                              isCritical ? 'bg-rose-950 text-rose-400 border border-rose-800 animate-pulse' :
+                              isLow ? 'bg-amber-950 text-amber-400 border border-amber-800' :
+                              'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            }`}>
+                              {isCritical ? 'Critical Low' : isLow ? 'Reorder Soon' : 'Healthy Stock'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRestockItem(item);
+                                setRestockQty('');
+                                setRestockSupplier(item.supplier || '');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all"
+                            >
+                              + Inward Stock
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -1928,6 +4267,595 @@ function AdminPortal({
               alt="High Resolution Artwork" 
               className="max-h-[70vh] w-auto max-w-full object-contain rounded-2xl mx-auto shadow-lg border border-slate-800" 
             />
+          </div>
+        </div>
+      )}
+
+      {/* REJECTION REASON MODAL */}
+      {rejectionModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">⚠️</span>
+                <h3 className="font-extrabold text-white text-base">Reject Order {rejectionModalOrder.id}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectionModalOrder(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Please specify why this order is being rejected. The customer will see this reason and will receive a <strong>1-Click Duplicate Re-Order</strong> option.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 block">Select Rejection Reason:</label>
+              {[
+                'Paper Catalog temporarily out of stock',
+                'Die-line / artwork file resolution unreadable',
+                'Requested delivery date not feasible',
+                'Custom attachments require quotation revision',
+                'Other'
+              ].map((reason, idx) => (
+                <label 
+                  key={idx} 
+                  className={`flex items-center space-x-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    rejectionReasonChoice === reason 
+                      ? 'bg-rose-950/40 border-rose-500 text-white' 
+                      : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="rejectionReason"
+                    value={reason}
+                    checked={rejectionReasonChoice === reason}
+                    onChange={(e) => setRejectionReasonChoice(e.target.value)}
+                    className="text-rose-600 focus:ring-rose-500"
+                  />
+                  <span>{reason}</span>
+                </label>
+              ))}
+            </div>
+
+            {rejectionReasonChoice === 'Other' && (
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Custom Notes / Clarification:</label>
+                <textarea
+                  rows="2"
+                  placeholder="Specify custom instructions or reason..."
+                  value={rejectionReasonCustom}
+                  onChange={(e) => setRejectionReasonCustom(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
+                ></textarea>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setRejectionModalOrder(null)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejection}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-rose-600/30 active:scale-95 transition-all"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SPOILAGE / SHORTAGE THRESHOLD ALERT MODAL */}
+      {shortageAlertJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-200">
+            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">
+                ⚠️
+              </div>
+              <div>
+                <h3 className="font-extrabold text-white text-base">Production Shortage Alert</h3>
+                <span className="text-xs text-amber-400 font-mono">Job: {shortageAlertJob.job.jobId} (Order: {shortageAlertJob.job.orderId})</span>
+              </div>
+            </div>
+
+            <div className="bg-amber-950/40 border border-amber-900/60 rounded-2xl p-4 space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Order Target:</span>
+                <span className="font-mono font-bold text-white">{(shortageAlertJob.job.targetQty || 1000).toLocaleString()} pcs</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Minimum Allowed Floor:</span>
+                <span className="font-mono font-bold text-amber-300">{shortageAlertJob.job.minimumAllowedFloor || 960} sheets</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Sheets Actually Printed:</span>
+                <span className="font-mono font-black text-rose-400 text-sm">{shortageAlertJob.printedSheets} sheets</span>
+              </div>
+              <div className="flex justify-between items-center border-t border-amber-900/40 pt-1.5">
+                <span className="text-rose-400 font-bold">Deficit Below Floor:</span>
+                <span className="font-mono font-black text-rose-400">
+                  -{(shortageAlertJob.job.minimumAllowedFloor || 960) - shortageAlertJob.printedSheets} sheets
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              The printing operator logged <strong>{shortageAlertJob.printedSheets} sheets</strong>, which falls below your tolerance threshold. Choose an action:
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => handleResolveShortageAlert('reprint')}
+                className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs py-2.5 px-4 rounded-xl border border-amber-500/30"
+              >
+                🔄 Trigger Rush Reprint Batch
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResolveShortageAlert('accept_short')}
+                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-slate-950 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-amber-600/30"
+              >
+                ✓ Accept Short Delivery ({shortageAlertJob.printedSheets} pcs)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GODOWN COURIER DISPATCH MODAL */}
+      {dispatchModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🚚</span>
+                <h3 className="font-extrabold text-white text-base">Dispatch Order {dispatchModalOrder.id}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDispatchModalOrder(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300 space-y-1 bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+              <div><strong>Client:</strong> {dispatchModalOrder.customerCompany || dispatchModalOrder.customerName}</div>
+              <div><strong>Items:</strong> {dispatchModalOrder.items?.length || 1} tag bundle(s)</div>
+              <div><strong>Invoice Status:</strong> <span className="text-emerald-400 font-bold">Verified in Godown</span></div>
+            </div>
+
+            <form onSubmit={handleDispatchOrderSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Logistics / Courier Partner</label>
+                <select
+                  value={dispatchCarrier}
+                  onChange={(e) => setDispatchCarrier(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="Bluedart Express">Bluedart Express</option>
+                  <option value="Delhivery Logistics">Delhivery Logistics</option>
+                  <option value="DTDC Air Courier">DTDC Air Courier</option>
+                  <option value="Local Transporter / Tempo">Local Transporter / Tempo</option>
+                  <option value="Direct Factory Handover">Direct Factory Handover</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Tracking Number / Lorry Receipt (LR) No.</label>
+                <input
+                  type="text"
+                  placeholder="e.g. BLU-982104921 or LR-4412"
+                  value={dispatchTrackingNo}
+                  onChange={(e) => setDispatchTrackingNo(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setDispatchModalOrder(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                >
+                  <span>✓</span>
+                  <span>Confirm Dispatch</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* INVENTORY RESTOCK MODAL */}
+      {restockItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">📥</span>
+                <h3 className="font-extrabold text-white text-base">Inward Raw Material Stock</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRestockItem(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-300 space-y-1 bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+              <div><strong>Material:</strong> {restockItem.name}</div>
+              <div><strong>Item Code:</strong> <span className="font-mono text-indigo-400">{restockItem.code || restockItem.id}</span></div>
+              <div><strong>Current Stock:</strong> {(restockItem.currentStock || 0).toLocaleString()} {restockItem.unit}</div>
+              <div><strong>Unit Cost:</strong> ₹{Number(restockItem.unitCost || 0).toFixed(2)}</div>
+            </div>
+
+            <form onSubmit={handleRestockSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Received Quantity ({restockItem.unit}) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  placeholder={`e.g. 5000 ${restockItem.unit}`}
+                  value={restockQty}
+                  onChange={(e) => setRestockQty(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Supplier / Mill Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Century Pulp & Paper Mills"
+                  value={restockSupplier}
+                  onChange={(e) => setRestockSupplier(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setRestockItem(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                >
+                  <span>✓</span>
+                  <span>Add To Inventory</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PAPER CATALOG ADD / EDIT MODAL */}
+      {showCatalogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">📄</span>
+                <h3 className="font-extrabold text-white text-base">
+                  {editingCatalog ? `Edit Paper Catalog: ${editingCatalog.code}` : 'Add New Paper Catalog Swatch'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCatalogModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCatalogSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Catalog Swatch Code *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cat #107 - Royal Velvet 320"
+                    value={catCode}
+                    onChange={(e) => setCatCode(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Paper / Board Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Royal Velvet Board 320 GSM"
+                    value={catName}
+                    onChange={(e) => setCatName(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">GSM (Weight) *</label>
+                  <input
+                    type="number"
+                    required
+                    min="50"
+                    max="1000"
+                    placeholder="e.g. 350"
+                    value={catGsm}
+                    onChange={(e) => setCatGsm(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Surface Finish *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Silk Matte"
+                    value={catFinish}
+                    onChange={(e) => setCatFinish(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Sheet Rate (₹) *</label>
+                  <input
+                    type="number"
+                    step="0.10"
+                    min="0.10"
+                    required
+                    placeholder="e.g. 3.50"
+                    value={catRate}
+                    onChange={(e) => setCatRate(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Recommended Application</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Luxury Clothing Hangtags"
+                    value={catRec}
+                    onChange={(e) => setCatRec(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Opening Stock (Sheets)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5000"
+                    value={catStock}
+                    onChange={(e) => setCatStock(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowCatalogModal(false)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                >
+                  <span>✓</span>
+                  <span>{editingCatalog ? 'Save Changes' : 'Create Paper Catalog'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MOVE TO PRODUCTION SHEET ALLOCATION MODAL (INDIVIDUAL & BULK) */}
+      {prodModalOrders && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🚀</span>
+                <div>
+                  <h3 className="font-extrabold text-white text-base">
+                    Send to Production &bull; Sheet Allocation ({prodModalOrders.length} Order{prodModalOrders.length > 1 ? 's' : ''})
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Order quantities are booked in <strong>pieces (pcs)</strong>. Printing is run in <strong>sheets</strong>. Enter sheet quantity below before dispatching to printing press.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProdModalOrders(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="overflow-y-auto py-4 space-y-4 flex-1 pr-1">
+              {prodModalOrders.map(ord => (
+                <div key={ord.id} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-xs text-white">{ord.id}</span>
+                      <span className="text-slate-400 text-xs">&bull;</span>
+                      <span className="text-xs text-indigo-300 font-semibold">{ord.customerCompany || ord.customerName}</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 border border-indigo-800">
+                      Approved Order
+                    </span>
+                  </div>
+
+                  {(ord.items || []).map((item, itemIdx) => {
+                    const isMulti = !!item.isMultiCard;
+                    const cardsList = isMulti && item.cards && item.cards.length > 0 ? item.cards : [
+                      {
+                        cardIndex: 1,
+                        title: item.name || item.itemCode || 'Single Card Tag',
+                        catalogCode: item.catalogCode || item.material || 'Standard Catalog'
+                      }
+                    ];
+
+                    return (
+                      <div key={itemIdx} className="space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-white">{item.name || item.itemCode}</span>
+                          <span className="font-mono text-emerald-400 font-bold">
+                            Order Qty: {Number(item.quantity || 1000).toLocaleString()} pcs
+                          </span>
+                        </div>
+
+                        {cardsList.map((card, cardIdx) => {
+                          const key = `${ord.id}_${itemIdx}_${cardIdx}`;
+                          const alloc = prodSheetAllocations[key] || { ups: 10, sheets: Math.ceil(Number(item.quantity || 1000) / 10), orderPieces: Number(item.quantity || 1000) };
+                          const targetSheets = alloc.sheets || 100;
+                          const bufferSheets = 40; // 20 print + 20 punch
+                          const issuedSheets = targetSheets + bufferSheets;
+                          const minFloor = Math.max(1, targetSheets - 40);
+
+                          return (
+                            <div key={cardIdx} className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="font-bold text-sky-400 flex items-center space-x-1.5">
+                                  <span>📄</span>
+                                  <span>{card.title || `Card #${cardIdx + 1}`} ({card.catalogCode || item.material || 'Catalog Paper'})</span>
+                                </span>
+                                <span className="text-slate-400">
+                                  Target: {alloc.orderPieces.toLocaleString()} tags
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div>
+                                  <label className="text-[10px] text-slate-400 block font-bold mb-1">
+                                    Ups / Tags Per Sheet (helper)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="200"
+                                    value={alloc.ups || 10}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'ups', e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-indigo-300 block font-bold mb-1">
+                                    Required Net Sheets * (Press Target)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    required
+                                    value={alloc.sheets || ''}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'sheets', e.target.value)}
+                                    className="w-full bg-slate-800 border border-indigo-500/80 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-400"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Sheet Calculation Live Summary */}
+                              <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 text-center font-mono text-xs">
+                                <div>
+                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Net Target</span>
+                                  <span className="font-bold text-white">{targetSheets}</span>
+                                  <span className="text-[9px] text-slate-500 block font-sans">sheets</span>
+                                </div>
+                                <div className="border-x border-slate-800">
+                                  <span className="text-[9px] text-indigo-400 uppercase block font-sans">Issued (+40 buf)</span>
+                                  <span className="font-bold text-indigo-300">{issuedSheets}</span>
+                                  <span className="text-[9px] text-indigo-400 block font-sans">+20 prn, +20 pnc</span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] text-amber-500 uppercase block font-sans">Floor (min)</span>
+                                  <span className="font-bold text-amber-400">{minFloor}</span>
+                                  <span className="text-[9px] text-amber-500 block font-sans">alert threshold</span>
+                                </div>
+                              </div>
+
+                            </div>
+                          );
+                        })}
+
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800 shrink-0">
+              <div className="text-xs text-slate-400">
+                <span>Buffer Rule:</span> <span className="text-slate-300 font-bold">+20 sheets Printing + 20 sheets Punching</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setProdModalOrders(null)}
+                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmMoveToProduction}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1.5"
+                >
+                  <span>🚀</span>
+                  <span>Confirm &amp; Move to Printing Floor</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
