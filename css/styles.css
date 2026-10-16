@@ -6,14 +6,14 @@
   --primary-dark: #1d4ed8;
   --primary-light: #dbeafe;
   --surface: #ffffff;
-  --background: #f8fafc;
-  --border: #e2e8f0;
+  --background: #f9f8f5;
+  --border: #e8e5de;
 }
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f9f8f5;
+  color: #1c1917;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -29,14 +29,14 @@ code, .font-mono {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f0eee8;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d6d2c8;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #b8b2a5;
 }
 
 /* Animations */

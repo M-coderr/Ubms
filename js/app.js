@@ -294,24 +294,24 @@ function App() {
       )}
 
       {/* Footer & Version Indicator */}
-      <footer className="no-print border-t border-slate-900 bg-slate-950 py-4 px-4 sm:px-8 text-xs text-slate-500">
+      <footer className="no-print border-t border-[#e8e5de] bg-[#f4f2ec] py-4 px-4 sm:px-8 text-xs text-stone-600">
         <div className="max-w-[1750px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
-            <span className="font-semibold text-slate-400">uBMS Enterprise</span>
+            <span className="font-bold text-stone-800">uBMS Enterprise</span>
             <span>&bull;</span>
             <span>Tags &amp; Labels Manufacturing &amp; Accounting Suite</span>
           </div>
 
-          <div className="flex items-center space-x-2.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full shadow-inner">
+          <div className="flex items-center space-x-2.5 bg-white border border-[#e8e5de] px-3.5 py-1.5 rounded-full shadow-xs">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-mono font-bold text-[11px]">
+            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold text-[11px]">
               v1.0 beta
             </span>
-            <span className="text-slate-400 text-[11px]">
-              &bull; created order entry page
+            <span className="text-stone-500 text-[11px]">
+              &bull; Warm Ivory Paper Theme
             </span>
           </div>
         </div>
