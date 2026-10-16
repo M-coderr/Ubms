@@ -1309,7 +1309,7 @@ function AdminPortal({
       
       {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
       {bannerMinimized ? (
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950/80 to-slate-900 rounded-2xl px-4 py-2.5 text-white shadow-xl border border-indigo-900/40 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
+        <div className="bg-white/95 rounded-2xl px-4 py-2.5 text-slate-800 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
           {/* Navigation Tabs (Sleek row) */}
           <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
             {adminTabs.map(tab => (
@@ -1318,8 +1318,8 @@ function AdminPortal({
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
-                    ? 'bg-indigo-600 text-white shadow-md font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -1332,7 +1332,7 @@ function AdminPortal({
           <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow transition-all flex items-center space-x-1"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center space-x-1"
               title="Book Order"
             >
               <span>➕</span>
@@ -1341,7 +1341,7 @@ function AdminPortal({
 
             <button
               onClick={() => setBannerMinimized(false)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
               title="Expand full operations banner"
             >
               <span>▼</span>
@@ -1351,12 +1351,12 @@ function AdminPortal({
         </div>
       ) : (
         /* Full Hero Banner (on Dashboard or when manually expanded) */
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-900/40 relative animate-fade-in">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 text-slate-800 shadow-xs border border-slate-200 relative animate-fade-in">
           {/* Minimize Toggle in Top Right */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
               onClick={() => setBannerMinimized(true)}
-              className="bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
               title="Minimize header banner to save screen space"
             >
               <span>▲</span>
@@ -1366,29 +1366,29 @@ function AdminPortal({
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold mb-2 border border-indigo-400/20">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2 border border-blue-200">
                 <span>🛡️</span>
                 <span>Tags &amp; Labels Operations Console</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
                 Enterprise Operations Control
               </h1>
-              <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                Logged in: <strong className="text-white">{currentMember.name}</strong> ({currentMember.roleLabel || currentMember.role}) &bull; Department: {currentMember.department}
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                Logged in: <strong className="text-slate-900">{currentMember.name}</strong> ({currentMember.roleLabel || currentMember.role}) &bull; Department: {currentMember.department}
               </p>
             </div>
 
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setActiveTab('place_order')}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
               >
                 <span>➕</span>
                 <span>Book Order</span>
               </button>
               <button
                 onClick={() => setActiveTab('label_config')}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-3.5 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-1 border border-slate-700"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1 border border-slate-200"
               >
                 <span>🏷️</span>
                 <span>Manage Types</span>
@@ -1397,15 +1397,15 @@ function AdminPortal({
           </div>
 
           {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
+          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-100 overflow-x-auto">
             {adminTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
-                    ? 'bg-white text-slate-900 shadow-md font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <span>{tab.icon}</span>

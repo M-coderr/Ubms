@@ -237,14 +237,24 @@ function CustomerPortal({
     setTagCards(prev => prev.slice(0, 2));
   };
 
-  // Image upload
+  // Image upload & cropping
+  const [showCropModal, setShowCropModal] = React.useState(false);
+  const [showFullImageModal, setShowFullImageModal] = React.useState(false);
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setOrderImage(reader.result);
+      reader.onloadend = () => {
+        setOrderImage(reader.result);
+      };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSaveCroppedImage = (croppedUrl) => {
+    setOrderImage(croppedUrl);
+    setShowCropModal(false);
   };
 
   // Cart / Items in Current Order
@@ -584,7 +594,7 @@ function CustomerPortal({
       
       {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
       {bannerMinimized ? (
-        <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-slate-900 rounded-2xl px-4 py-2.5 text-white shadow-xl border border-blue-900/40 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
+        <div className="bg-white rounded-2xl px-4 py-2.5 text-slate-800 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30">
           {/* Navigation Tabs (Sleek row) */}
           <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
             {customerTabs.map(tab => (
@@ -593,8 +603,8 @@ function CustomerPortal({
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-md font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80'
+                    ? 'bg-blue-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -606,14 +616,14 @@ function CustomerPortal({
           {/* Right: Balance & quick action & expand toggle */}
           <div className="flex items-center space-x-2 shrink-0">
             {outstandingLedger.totalOutstanding > 0 && (
-              <span className="text-[11px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-lg font-mono font-bold hidden sm:inline">
+              <span className="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg font-mono font-bold hidden sm:inline">
                 Due: {formatCurrency(outstandingLedger.totalOutstanding)}
               </span>
             )}
 
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow transition-all flex items-center space-x-1"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center space-x-1"
               title="Place New Order"
             >
               <span>➕</span>
@@ -622,7 +632,7 @@ function CustomerPortal({
 
             <button
               onClick={() => setBannerMinimized(false)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
               title="Expand full customer banner"
             >
               <span>▼</span>
@@ -632,12 +642,12 @@ function CustomerPortal({
         </div>
       ) : (
         /* Full Hero Banner (on Dashboard or when manually expanded) */
-        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-blue-800/40 relative animate-fade-in">
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white rounded-3xl p-6 sm:p-8 text-slate-900 shadow-sm border border-blue-100 relative animate-fade-in">
           {/* Minimize Toggle in Top Right */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
               onClick={() => setBannerMinimized(true)}
-              className="bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-700 transition-all flex items-center space-x-1"
+              className="bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-200 shadow-2xs transition-all flex items-center space-x-1"
               title="Minimize header banner to save screen space"
             >
               <span>▲</span>
@@ -647,26 +657,26 @@ function CustomerPortal({
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold mb-2 border border-blue-400/20">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-2 border border-blue-200">
                 <span>🏷️</span>
                 <span>Tags &amp; Labels Client Portal</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
                 {customer.company}
               </h1>
-              <p className="text-slate-300 text-xs sm:text-sm mt-1">
-                Client: {customer.name} &bull; Acc Manager: <span className="text-indigo-300 font-bold">{customerThread.accountManager}</span>
+              <p className="text-slate-600 text-xs sm:text-sm mt-1">
+                Client: {customer.name} &bull; Acc Manager: <span className="text-indigo-600 font-bold">{customerThread.accountManager}</span>
               </p>
             </div>
 
-            <div className="flex items-center space-x-3 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+            <div className="flex items-center space-x-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
               <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Outstanding Balance</span>
-                <span className="text-lg font-black text-amber-400">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
+                <span className="text-[10px] text-slate-500 block uppercase font-bold">Outstanding Balance</span>
+                <span className="text-lg font-black text-amber-700">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
               </div>
               <button
                 onClick={() => setActiveTab('place_order')}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-3 py-2 rounded-xl text-xs shadow transition-all ml-2"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all ml-2"
               >
                 + Place Order
               </button>
@@ -674,15 +684,15 @@ function CustomerPortal({
           </div>
 
           {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-800 overflow-x-auto">
+          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-200/80 overflow-x-auto">
             {customerTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
-                    ? 'bg-white text-slate-900 shadow-md font-bold'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -704,36 +714,36 @@ function CustomerPortal({
                 setOrderStatusFilter('all');
                 setActiveTab('order_register');
               }}
-              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-blue-400 p-5 rounded-3xl shadow-sm transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Orders</span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
                   📦
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 font-mono">
                 {customerStats.totalOrders}
               </div>
-              <div className="text-xs text-slate-400 mt-1 flex items-center space-x-1">
-                <span className="text-amber-400 font-semibold">{customerStats.pendingOrders} Pending</span>
+              <div className="text-xs text-slate-500 mt-1 flex items-center space-x-1 font-medium">
+                <span className="text-amber-700 font-semibold">{customerStats.pendingOrders} Pending</span>
                 <span>&bull;</span>
-                <span className="text-emerald-400 font-semibold">{customerStats.deliveredOrders} Delivered</span>
+                <span className="text-emerald-700 font-semibold">{customerStats.deliveredOrders} Delivered</span>
               </div>
             </div>
 
             {/* 2. Total Business Spend */}
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-xl">
+            <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Order Value</span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Order Value</span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg border border-emerald-100">
                   💰
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-3 font-mono">
                 {formatCurrency(customerStats.totalSpend)}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 Total manufacturing volume booked
               </div>
             </div>
@@ -741,30 +751,30 @@ function CustomerPortal({
             {/* 3. Outstanding Dues */}
             <div 
               onClick={() => setActiveTab('outstanding_ledger')}
-              className={`border p-5 rounded-3xl shadow-xl transition-all cursor-pointer group ${
+              className={`border p-5 rounded-3xl shadow-sm transition-all cursor-pointer group ${
                 customerStats.totalOutstanding > 0 
-                  ? 'bg-amber-950/20 border-amber-500/40 hover:border-amber-400' 
-                  : 'bg-slate-900 border-slate-800 hover:border-emerald-500/50'
+                  ? 'bg-amber-50/60 border-amber-200 hover:border-amber-400' 
+                  : 'bg-white border-slate-200/90 hover:border-emerald-400'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Outstanding Dues</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Outstanding Dues</span>
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform ${
-                  customerStats.totalOutstanding > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/10 text-emerald-400'
+                  customerStats.totalOutstanding > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                 }`}>
                   ⏳
                 </div>
               </div>
               <div className={`text-2xl sm:text-3xl font-extrabold mt-3 font-mono ${
-                customerStats.totalOutstanding > 0 ? 'text-amber-400' : 'text-emerald-400'
+                customerStats.totalOutstanding > 0 ? 'text-amber-800' : 'text-emerald-700'
               }`}>
                 {formatCurrency(customerStats.totalOutstanding)}
               </div>
               <div className="text-xs mt-1">
                 {customerStats.totalOutstanding > 0 ? (
-                  <span className="text-amber-400 font-semibold">{customerStats.unpaidInvoicesCount} unpaid bill(s) due &rarr;</span>
+                  <span className="text-amber-800 font-bold">{customerStats.unpaidInvoicesCount} unpaid bill(s) due &rarr;</span>
                 ) : (
-                  <span className="text-emerald-400 font-semibold">Account fully settled ✓</span>
+                  <span className="text-emerald-700 font-semibold">Account fully settled ✓</span>
                 )}
               </div>
             </div>
@@ -775,34 +785,34 @@ function CustomerPortal({
                 setOrderStatusFilter('in_production');
                 setActiveTab('order_register');
               }}
-              className="bg-slate-900 border border-slate-800 hover:border-sky-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-sky-400 p-5 rounded-3xl shadow-sm transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">In Production / Transit</span>
-                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">In Production / Transit</span>
+                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-sky-100">
                   ⚙️
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-sky-400 mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-sky-700 mt-3 font-mono">
                 {customerStats.activeOrders}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 {customerStats.inProdOrders} in machine &bull; {customerStats.shippedOrders} dispatched
               </div>
             </div>
           </div>
 
           {/* Interactive Manufacturing Pipeline Status Tracker */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-2">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-2">
               <div>
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
                   <span>🏭</span>
                   <span>Manufacturing Stage Tracker</span>
                 </h3>
-                <p className="text-xs text-slate-400">Click any stage below to jump to the Order Register filtered by that status.</p>
+                <p className="text-xs text-slate-500">Click any stage below to jump to the Order Register filtered by that status.</p>
               </div>
-              <span className="text-xs text-indigo-400 font-mono">
+              <span className="text-xs text-blue-700 font-mono font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
                 {customerOrders.length} Total Orders Tracked
               </span>
             </div>
@@ -822,11 +832,11 @@ function CustomerPortal({
                     setOrderStatusFilter(stg.key);
                     setActiveTab('order_register');
                   }}
-                  className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/60 rounded-2xl p-3.5 transition-all cursor-pointer group text-center"
+                  className="bg-slate-50 hover:bg-white border border-slate-200/80 hover:border-blue-400 rounded-2xl p-3.5 transition-all cursor-pointer group text-center shadow-2xs hover:shadow-sm"
                 >
                   <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stg.icon}</div>
-                  <div className="text-lg font-bold text-white font-mono">{stg.count}</div>
-                  <div className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{stg.label}</div>
+                  <div className="text-lg font-bold text-slate-900 font-mono">{stg.count}</div>
+                  <div className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">{stg.label}</div>
                 </div>
               ))}
             </div>
@@ -836,21 +846,21 @@ function CustomerPortal({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left 2 Cols: Recent Manufacturing Orders */}
-            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+            <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                  <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
                     <span>📋</span>
                     <span>Recent Orders</span>
                   </h3>
-                  <p className="text-xs text-slate-400">Latest manufacturing orders submitted by your company.</p>
+                  <p className="text-xs text-slate-500">Latest manufacturing orders submitted by your company.</p>
                 </div>
                 <button
                   onClick={() => {
                     setOrderStatusFilter('all');
                     setActiveTab('order_register');
                   }}
-                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold hover:underline flex items-center space-x-1"
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold hover:underline flex items-center space-x-1"
                 >
                   <span>View Full Register ({customerOrders.length})</span>
                   <span>&rarr;</span>
@@ -858,20 +868,20 @@ function CustomerPortal({
               </div>
 
               {customerOrders.length === 0 ? (
-                <div className="py-12 text-center text-slate-500">
+                <div className="py-12 text-center text-slate-400">
                   <div className="text-3xl mb-2">🛒</div>
-                  <p className="text-sm font-semibold text-slate-400">No orders placed yet.</p>
+                  <p className="text-sm font-semibold text-slate-600">No orders placed yet.</p>
                   <button
                     onClick={() => setActiveTab('place_order')}
-                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20"
+                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
                   >
                     + Place Your First Order
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                       <tr>
                         <th className="py-3 px-3">Order ID</th>
                         <th className="py-3 px-3">Artwork</th>
@@ -882,16 +892,16 @@ function CustomerPortal({
                         <th className="py-3 px-3 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-100">
                       {customerOrders.slice(0, 5).map(order => {
                         const firstItem = order.items[0] || {};
                         const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
 
                         return (
-                          <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="py-3 px-3 font-mono font-bold text-blue-400">
+                          <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="py-3 px-3 font-mono font-bold text-blue-700">
                               {order.id}
-                              <div className="text-[10px] text-slate-500 font-normal">{formatDate(order.createdAt)}</div>
+                              <div className="text-[10px] text-slate-400 font-normal">{formatDate(order.createdAt)}</div>
                             </td>
                             <td className="py-3 px-3">
                               {firstItem.image ? (
@@ -899,49 +909,49 @@ function CustomerPortal({
                                   src={firstItem.image} 
                                   alt="Artwork" 
                                   onClick={() => setPreviewArtworkUrl(firstItem.image)}
-                                  className="w-10 h-10 object-cover rounded-xl border border-slate-700 cursor-pointer hover:scale-105 transition-transform" 
+                                  className="w-10 h-10 object-contain rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition-transform bg-white shadow-2xs" 
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm">
                                   🏷️
                                 </div>
                               )}
                             </td>
                             <td className="py-3 px-3">
-                              <div className="font-bold text-white text-xs">{firstItem.brandName || order.customerCompany}</div>
-                              <div className="text-[11px] text-slate-400 font-mono">{firstItem.itemCode || firstItem.type}</div>
+                              <div className="font-bold text-slate-900 text-xs">{firstItem.brandName || order.customerCompany}</div>
+                              <div className="text-[11px] text-slate-500 font-mono">{firstItem.itemCode || firstItem.type}</div>
                             </td>
-                            <td className="py-3 px-3 font-mono font-semibold text-white">
+                            <td className="py-3 px-3 font-mono font-bold text-slate-800">
                               {Number(firstItem.quantity || 0).toLocaleString()} pcs
                             </td>
                             <td className="py-3 px-3">
                               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                                order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                                order.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                                order.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
-                                order.status === 'ready_dispatch' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
-                                order.status === 'shipped' ? 'bg-orange-950 text-orange-400 border border-orange-800' :
-                                order.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                                'bg-amber-950 text-amber-300 border border-amber-800'
+                                order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                order.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                                order.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
+                                order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                                order.status === 'shipped' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
+                                order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                'bg-amber-50 text-amber-800 border border-amber-200'
                               }`}>
                                 <span>{order.status === 'pending' || order.status === 'placed' ? 'Pending' : order.status.replace(/_/g, ' ')}</span>
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                            <td className="py-3 px-3 text-right font-mono font-extrabold text-emerald-700">
                               {formatCurrency(order.total)}
                             </td>
                             <td className="py-3 px-3 text-center">
                               {isEditable ? (
                                 <button
                                   onClick={() => handleOpenEditModal(order)}
-                                  className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold shadow transition-all"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-xs transition-all"
                                 >
                                   Edit
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => onOpenInvoice(order)}
-                                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1 rounded-lg text-[11px] border border-slate-700 transition-colors"
+                                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-semibold"
                                 >
                                   Invoice
                                 </button>
@@ -960,19 +970,19 @@ function CustomerPortal({
             <div className="space-y-6">
               
               {/* Quick Actions Hub */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+              <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-3">
+                <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
                   <span>⚡</span>
                   <span>Quick Shortcuts</span>
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <button
                     onClick={() => setActiveTab('place_order')}
-                    className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3.5 rounded-2xl text-left shadow-lg transition-all group"
+                    className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-3.5 rounded-2xl text-left shadow-sm transition-all group"
                   >
                     <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🛒</div>
                     <div className="font-bold text-xs">New Order</div>
-                    <div className="text-[10px] text-blue-200 mt-0.5 leading-tight">Configure tags &amp; labels</div>
+                    <div className="text-[10px] text-blue-100 mt-0.5 leading-tight">Configure tags &amp; labels</div>
                   </button>
 
                   <button
@@ -980,56 +990,56 @@ function CustomerPortal({
                       setOrderStatusFilter('all');
                       setActiveTab('order_register');
                     }}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
                   >
                     <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</div>
-                    <div className="font-bold text-xs text-white">Order Register</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Search &amp; edit orders</div>
+                    <div className="font-bold text-xs text-slate-900">Order Register</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Search &amp; edit orders</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('invoice_register')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
                   >
                     <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📄</div>
-                    <div className="font-bold text-xs text-white">Invoices</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
+                    <div className="font-bold text-xs text-slate-900">Invoices</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('general_ledger')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
                   >
                     <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📑</div>
-                    <div className="font-bold text-xs text-white">Ledger (SOA)</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Statement of account</div>
+                    <div className="font-bold text-xs text-slate-900">Ledger (SOA)</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Statement of account</div>
                   </button>
                 </div>
               </div>
 
               {/* Dedicated Support Card */}
-              <div className="bg-gradient-to-br from-indigo-950/80 to-slate-900 border border-indigo-800/40 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+              <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 border border-indigo-100 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-xl text-indigo-300">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl border border-indigo-200">
                     👩‍💼
                   </div>
                   <div>
-                    <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Account Manager</div>
-                    <div className="font-bold text-white text-sm">{customerThread.accountManager || 'Parth'}</div>
-                    <div className="text-[11px] text-emerald-400 flex items-center space-x-1 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <div className="text-xs text-indigo-700 font-bold uppercase tracking-wider">Account Manager</div>
+                    <div className="font-extrabold text-slate-900 text-sm">{customerThread.accountManager || 'Parth'}</div>
+                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 mt-0.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                       <span>Active &bull; Factory Support</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 leading-relaxed">
                   Need urgent revisions, custom sample approvals, or dispatch priority? Chat directly with your production account lead.
                 </p>
 
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2"
                 >
                   <span>💬</span>
                   <span>Open Dedicated Chat</span>
@@ -1047,375 +1057,542 @@ function CustomerPortal({
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in">
           
           {/* Left Form: Tag & Label Creation Fields */}
-          <div className="xl:col-span-3 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-200 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
+          <div className="xl:col-span-3 bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm text-slate-800 space-y-6">
+            
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                <h3 className="font-extrabold text-slate-900 text-lg flex items-center space-x-2">
                   <span>🏷️</span>
                   <span>Create Tag / Label Manufacturing Item</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Specify Brand, Type, Material, Dori, Plastic, artwork and required manufacturing quantities.
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Follow the 4 simple steps below to specify details, preview/crop artwork, and book your production order.
                 </p>
               </div>
-              <span className="text-xs px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-medium">
+              <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
                 Customer Ordering Portal
               </span>
             </div>
 
-            <form onSubmit={handleAddItemToOrder} className="space-y-5 bg-slate-800/40 p-5 rounded-2xl border border-slate-800">
+            {/* Visual 4-Step Progress Guide */}
+            <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-600 mb-2">
+                <span className="text-blue-950 font-extrabold flex items-center space-x-1.5">
+                  <span>🚀</span>
+                  <span>Order Flow Guide — Where to Start &amp; Next Steps</span>
+                </span>
+                <span className="text-slate-500 font-normal hidden sm:inline">Fill each section in order</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div className="bg-white border border-blue-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
+                  <div>
+                    <div className="font-bold text-slate-800">1. Item &amp; Paper</div>
+                    <div className="text-[10px] text-slate-500">Brand, type &amp; catalog</div>
+                  </div>
+                </div>
+                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">2</span>
+                  <div>
+                    <div className="font-bold text-slate-800">2. Specifications</div>
+                    <div className="text-[10px] text-slate-500">Cards, dori &amp; plastic</div>
+                  </div>
+                </div>
+                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">3</span>
+                  <div>
+                    <div className="font-bold text-slate-800">3. Artwork &amp; Crop</div>
+                    <div className="text-[10px] text-slate-500">Preview &amp; crop tool</div>
+                  </div>
+                </div>
+                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">4</span>
+                  <div>
+                    <div className="font-bold text-slate-800">4. Qty &amp; Add</div>
+                    <div className="text-[10px] text-slate-500">Calculate &amp; add to order</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleAddItemToOrder} className="space-y-6">
               
-              {/* TIER 1: CORE IDENTIFIERS (4-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Brand Name <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Urban Stitch / Denim Club"
-                    value={brandName}
-                    onChange={(e) => setBrandName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                  />
+              {/* STEP 1: CORE IDENTIFIERS & PAPER CATALOG */}
+              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                    1
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Step 1: Item &amp; Paper Catalog Details (Start Here)
+                  </span>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-300">Item Code</label>
-                    <span className="text-[10px] text-blue-400 font-mono">🔒 Auto-assigned</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Brand Name */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Brand Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Urban Stitch / Denim Club"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Client brand or firm name</span>
                   </div>
-                  <div 
-                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-blue-400 flex items-center justify-between cursor-not-allowed select-none"
-                    title="Unique Article / Item Code is automatically generated and secured by Admin"
-                  >
-                    <span>{currentCustomerItemCode}</span>
-                    <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Auto</span>
-                  </div>
-                </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Type <span className="text-rose-400">*</span>
-                  </label>
-                  <select
-                    value={selectedType}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                  >
-                    {availableTypes.map(t => (
-                      <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    {selectedType === 'Tag' ? '📖 Paper Catalog' : 'Material'} <span className="text-rose-400">*</span>
-                    <span className="text-[10px] text-slate-400 ml-1 font-normal">({selectedType})</span>
-                  </label>
-                  {selectedType === 'Tag' ? (
-                    <select
-                      value={selectedCatalogId}
-                      onChange={(e) => setSelectedCatalogId(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
+                  {/* Item Code (Auto-assigned) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">Item Code</label>
+                      <span className="text-[10px] text-blue-600 font-mono font-medium">Auto-assigned</span>
+                    </div>
+                    <div 
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-blue-700 flex items-center justify-between cursor-not-allowed select-none shadow-2xs"
+                      title="Unique Article / Item Code is automatically generated and secured by Admin"
                     >
-                      {availableCatalogs.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.code} ({cat.gsm} GSM - {cat.finish})
-                        </option>
+                      <span>{currentCustomerItemCode}</span>
+                      <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">Auto</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Unique catalog reference code</span>
+                  </div>
+
+                  {/* Type */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Manufacturing Type <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={selectedType}
+                      onChange={(e) => handleTypeChange(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                    >
+                      {availableTypes.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
                       ))}
                     </select>
-                  ) : (
-                    <select
-                      value={selectedMaterial}
-                      onChange={(e) => setSelectedMaterial(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                    >
-                      {(currentTypeObj?.materials || []).map((mat, i) => (
-                        <option key={i} value={mat}>{mat}</option>
-                      ))}
-                    </select>
-                  )}
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Select product category</span>
+                  </div>
+
+                  {/* Paper Catalog */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      {selectedType === 'Tag' ? '📖 Paper Catalog' : 'Material'} <span className="text-rose-500">*</span>
+                    </label>
+                    {selectedType === 'Tag' ? (
+                      <select
+                        value={selectedCatalogId}
+                        onChange={(e) => setSelectedCatalogId(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                      >
+                        {availableCatalogs.map(cat => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.code} ({cat.gsm} GSM - {cat.finish})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        value={selectedMaterial}
+                        onChange={(e) => setSelectedMaterial(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                      >
+                        {(currentTypeObj?.materials || []).map((mat, i) => (
+                          <option key={i} value={mat}>{mat}</option>
+                        ))}
+                      </select>
+                    )}
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Weight (GSM) &amp; paper finish</span>
+                  </div>
                 </div>
               </div>
 
-              {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG */}
-              {selectedType === 'Tag' && (
-                <div className="bg-slate-900/90 border border-indigo-900/60 rounded-2xl p-4 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
-                        <span>📑</span>
-                        <span>Tag Composition & Paper Cards</span>
-                      </span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Does this tag have a single paper card or multiple cards bound together with Dori & Plastic?
-                      </p>
+              {/* STEP 2: TAG SPECIFICATIONS & HANDWORK */}
+              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                    2
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Step 2: Tag Specifications &amp; Handwork Accessories
+                  </span>
+                </div>
+
+                {/* Tag Composition: Single vs Multi-Card */}
+                {selectedType === 'Tag' && (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                          <span>📑</span>
+                          <span>Tag Composition</span>
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Does this tag have a single paper card or multiple cards bound together with Dori &amp; Plastic?
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setIsMultiCard(false)}
+                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                            !isMultiCard ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📄 Single Card Tag
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsMultiCard(true)}
+                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                            isMultiCard ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          📑 Multi-Card Tag Set ({tagCards.length} Cards)
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center space-x-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setIsMultiCard(false)}
-                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                          !isMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        📄 Single Card Tag
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsMultiCard(true)}
-                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                          isMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        📑 Multi-Card Tag Set ({tagCards.length} Cards)
-                      </button>
-                    </div>
-                  </div>
-
-                  {isMultiCard && (
-                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-800">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {tagCards.map((card, idx) => (
-                          <div key={card.id} className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-sky-300">
-                                Card #{idx + 1}: {card.title}
-                              </span>
-                              {idx === 2 && (
-                                <button
-                                  type="button"
-                                  onClick={handleRemoveThirdCard}
-                                  className="text-rose-400 hover:text-rose-300 text-xs font-bold"
-                                  title="Remove 3rd Card"
-                                >
-                                  &times; Remove
-                                </button>
-                              )}
+                    {isMultiCard && (
+                      <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-100">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {tagCards.map((card, idx) => (
+                            <div key={card.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-blue-700">
+                                  Card #{idx + 1}: {card.title}
+                                </span>
+                                {idx === 2 && (
+                                  <button
+                                    type="button"
+                                    onClick={handleRemoveThirdCard}
+                                    className="text-rose-600 hover:text-rose-700 text-xs font-bold"
+                                    title="Remove 3rd Card"
+                                  >
+                                    &times; Remove
+                                  </button>
+                                )}
+                              </div>
+                              <label className="text-[10px] text-slate-500 block font-semibold">Select Paper Catalog:</label>
+                              <select
+                                value={card.catalogId}
+                                onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                              >
+                                {availableCatalogs.map(cat => (
+                                  <option key={cat.id} value={cat.id}>
+                                    {cat.code} - {cat.gsm} GSM ({cat.finish})
+                                  </option>
+                                ))}
+                              </select>
                             </div>
-                            <label className="text-[10px] text-slate-400 block font-semibold">Select Paper Catalog:</label>
-                            <select
-                              value={card.catalogId}
-                              onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
-                            >
-                              {availableCatalogs.map(cat => (
-                                <option key={cat.id} value={cat.id}>
-                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
 
-                      {tagCards.length < 3 && (
+                        {tagCards.length < 3 && (
+                          <button
+                            type="button"
+                            onClick={handleAddThirdCard}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center space-x-1 mt-2"
+                          >
+                            <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                          </button>
+                        )}
+                        
+                        <div className="text-[11px] text-blue-800 bg-blue-50/80 border border-blue-200 rounded-xl p-2.5 flex items-center space-x-2">
+                          <span>ℹ️</span>
+                          <span>Each card will receive its own printing &amp; punching form, and will merge at the Handwork (Dori &amp; Plastic) stage.</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Handwork Accessories: Dori & Plastic */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Dori */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800">🧵 Dori (String)</label>
+                      <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
                         <button
                           type="button"
-                          onClick={handleAddThirdCard}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1 mt-2"
+                          onClick={() => { setDoriOption('reg'); setDoriCustom(''); }}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                            doriOption === 'reg' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
                         >
-                          <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                          Reg. (₹0.20)
                         </button>
-                      )}
-                      
-                      <div className="text-[11px] text-indigo-300/80 bg-indigo-950/40 border border-indigo-900/50 rounded-xl p-2.5 flex items-center space-x-2">
-                        <span>ℹ️</span>
-                        <span>Each card will receive its own printing & punching job form, and will merge at the Handwork (Dori & Plastic) stage.</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TIER 2: ACCESSORIES & ARTWORK (3-COLUMNS) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* DORI FIELD */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🧵 Dori</label>
-                    <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setDoriOption('reg'); setDoriCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          doriOption === 'reg' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDoriOption('custom')}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          doriOption === 'custom' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-                  </div>
-
-                  {doriOption === 'custom' ? (
-                    <input
-                      type="text"
-                      required
-                      placeholder="Specify custom dori (e.g. Waxed Cotton Black 7-in)"
-                      value={doriCustom}
-                      onChange={(e) => setDoriCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
-                  ) : (
-                    <div className="text-xs text-slate-400 py-1.5 px-2 bg-slate-900/50 rounded-xl border border-slate-800">
-                      Standard / Regular Dori assigned
-                    </div>
-                  )}
-                </div>
-
-                {/* PLASTIC FIELD */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🔒 Plastic Lock</label>
-                    <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setPlasticOption('reg'); setPlasticCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          plasticOption === 'reg' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPlasticOption('custom')}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          plasticOption === 'custom' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-                  </div>
-
-                  {plasticOption === 'custom' ? (
-                    <input
-                      type="text"
-                      required
-                      placeholder="Specify custom plastic (e.g. Embossed Square Seal)"
-                      value={plasticCustom}
-                      onChange={(e) => setPlasticCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
-                  ) : (
-                    <div className="text-xs text-slate-400 py-1.5 px-2 bg-slate-900/50 rounded-xl border border-slate-800">
-                      Standard / Regular Plastic Lock assigned
-                    </div>
-                  )}
-                </div>
-
-                {/* ARTWORK UPLOAD & PREVIEW */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
-                  <label className="text-xs font-bold text-slate-200 block">📎 Order Image / Artwork</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      id="customer-file-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
-                    />
-                    {orderImage && (
-                      <div className="flex items-center space-x-2 bg-slate-900 px-2 py-1 rounded-xl border border-slate-700 flex-shrink-0">
-                        <img src={orderImage} alt="Preview" className="w-7 h-7 object-cover rounded" />
                         <button
                           type="button"
-                          onClick={() => {
-                            setOrderImage('');
-                            const el = document.getElementById('customer-file-upload');
-                            if (el) el.value = '';
-                          }}
-                          className="text-rose-400 hover:text-rose-300 text-xs font-bold"
+                          onClick={() => setDoriOption('custom')}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                            doriOption === 'custom' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
                         >
-                          &times;
+                          Custom
                         </button>
+                      </div>
+                    </div>
+
+                    {doriOption === 'custom' ? (
+                      <input
+                        type="text"
+                        required
+                        placeholder="Specify custom dori (e.g. Waxed Cotton cord / Satin string)"
+                        value={doriCustom}
+                        onChange={(e) => setDoriCustom(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                    ) : (
+                      <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
+                        Standard / Regular Cotton Dori assigned (₹0.20/pc included)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Plastic Lock */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800">🔒 Plastic Lock / Seal</label>
+                      <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => { setPlasticOption('reg'); setPlasticCustom(''); }}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                            plasticOption === 'reg' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Reg. (₹0.10)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlasticOption('custom')}
+                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                            plasticOption === 'custom' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                    </div>
+
+                    {plasticOption === 'custom' ? (
+                      <input
+                        type="text"
+                        required
+                        placeholder="Specify custom plastic (e.g. Embossed Square Seal)"
+                        value={plasticCustom}
+                        onChange={(e) => setPlasticCustom(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
+                      />
+                    ) : (
+                      <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
+                        Standard / Regular Plastic Lock assigned (₹0.10/pc included)
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* TIER 3: COMMERCIALS & ACTION (4-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-2 border-t border-slate-800">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Quantity (Pcs) <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={qty}
-                    onFocus={() => { if (Number(qty) === 0) setQty(''); }}
-                    onBlur={() => { if (qty === '' || isNaN(qty)) setQty(0); }}
-                    onChange={(e) => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
+              {/* STEP 3: ARTWORK & DESIGN (PREVIEW & CROP) */}
+              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
+                  <div className="flex items-center space-x-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                      3
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Step 3: Tag Artwork &amp; Design (Preview &amp; Crop)
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Supports JPG, PNG, WEBP</span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    Rate per Pc (₹) <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={rate}
-                    onFocus={() => { if (Number(rate) === 0) setRate(''); }}
-                    onBlur={() => { if (rate === '' || isNaN(rate)) setRate(0); }}
-                    onChange={(e) => setRate(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
-                  />
+                {!orderImage ? (
+                  <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/30 transition-all rounded-2xl p-5 text-center cursor-pointer relative group shadow-2xs">
+                    <input
+                      id="customer-file-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2 py-2">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform border border-blue-100">
+                        🖼️
+                      </div>
+                      <div className="text-xs font-extrabold text-slate-800">
+                        Click or drag tag design / artwork here to upload
+                      </div>
+                      <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                        Upload your file to get an instant live preview and use our built-in tag crop &amp; frame tool before adding to order.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Thumbnail & Info */}
+                    <div className="flex items-center space-x-4 w-full sm:w-auto">
+                      <div 
+                        onClick={() => setShowFullImageModal(true)}
+                        className="relative group w-20 h-28 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
+                        title="Click to view full image"
+                      >
+                        <img src={orderImage} alt="Artwork Preview" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                          🔍
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-bold text-slate-900">Artwork Uploaded &amp; Ready</span>
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
+                            ✓ Ready
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Want to adjust the framing or aspect ratio? Use the crop tool below.
+                        </p>
+                        
+                        {/* Action buttons */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowCropModal(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center space-x-1.5"
+                          >
+                            <span>✂️</span>
+                            <span>Crop Image</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowFullImageModal(true)}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1"
+                          >
+                            <span>🔍</span>
+                            <span>View Full</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOrderImage('');
+                              const el = document.getElementById('customer-file-upload');
+                              if (el) el.value = '';
+                            }}
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* STEP 4: COMMERCIALS & ADD TO ORDER */}
+              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
+                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                    4
+                  </span>
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Step 4: Quantity (in Pieces) &amp; Pricing
+                  </span>
                 </div>
 
-                <div className="bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700/80 flex flex-col justify-center">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Item Subtotal</span>
-                  <span className="text-emerald-400 font-extrabold text-sm">{formatCurrency(qty * rate)}</span>
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-1">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Quantity (Pcs) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={qty}
+                      onFocus={() => { if (Number(qty) === 0) setQty(''); }}
+                      onBlur={() => { if (qty === '' || isNaN(qty)) setQty(0); }}
+                      onChange={(e) => setQty(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-mono font-bold"
+                    />
+                    {/* Quick Presets */}
+                    <div className="flex items-center space-x-1 mt-1.5">
+                      <span className="text-[10px] text-slate-400 font-medium mr-0.5">Quick:</span>
+                      {[1000, 2500, 5000, 10000].map(val => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setQty(val)}
+                          className="text-[10px] bg-white border border-slate-200 hover:border-blue-400 text-slate-600 hover:text-blue-600 px-1.5 py-0.5 rounded shadow-2xs font-mono"
+                        >
+                          {val >= 1000 ? `${val / 1000}k` : val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                <div>
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center space-x-1.5"
-                  >
-                    <span>➕</span>
-                    <span>Add Item to Order</span>
-                  </button>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Rate per Pc (₹) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={rate}
+                      onFocus={() => { if (Number(rate) === 0) setRate(''); }}
+                      onBlur={() => { if (rate === '' || isNaN(rate)) setRate(0); }}
+                      onChange={(e) => setRate(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-mono font-bold"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">Agreed piece manufacturing rate</span>
+                  </div>
+
+                  <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex flex-col justify-center">
+                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold">Item Subtotal</span>
+                    <span className="text-emerald-700 font-black text-lg font-mono">{formatCurrency(qty * rate)}</span>
+                  </div>
+
+                  <div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center space-x-1.5"
+                    >
+                      <span>➕</span>
+                      <span>Add Item to Order</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
             </form>
 
             {/* Configured Line Items Table */}
-            <div className="space-y-3 pt-2">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
-                Order Line Items ({orderItems.length})
+            <div className="space-y-3 pt-3">
+              <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-2">
+                <span>🛒</span>
+                <span>Configured Order Line Items ({orderItems.length})</span>
               </h4>
 
               {orderItems.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-slate-800 rounded-2xl text-slate-500 text-xs">
-                  No items added yet. Fill out the form above and click &quot;+ Add Item to Order&quot;.
+                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 text-xs bg-slate-50/50">
+                  No items added yet. Complete the 4 steps above and click &quot;+ Add Item to Order&quot;.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-bold">
                       <tr>
                         <th className="py-3 px-4">Item &amp; Artwork</th>
                         <th className="py-3 px-4">Brand</th>
@@ -1428,35 +1605,36 @@ function CustomerPortal({
                         <th className="py-3 px-4 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 bg-slate-900/60">
+                    <tbody className="divide-y divide-slate-100">
                       {orderItems.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-2.5">
-                              <img src={item.image} alt={item.type} className="w-9 h-9 object-cover rounded-lg border border-slate-700" />
+                              <img src={item.image} alt={item.type} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
                               <div className="flex flex-col">
-                                <span className="font-mono font-bold text-xs text-blue-400 bg-blue-950/60 border border-blue-800/80 px-1.5 py-0.5 rounded inline-block w-fit">
+                                <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded inline-block w-fit">
                                   {item.itemCode || item.name}
                                 </span>
-                                <span className="font-mono text-[10px] text-slate-500 mt-0.5">#{idx + 1}</span>
+                                <span className="font-mono text-[10px] text-slate-400 mt-0.5">#{idx + 1}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-4 font-bold text-white">{item.brandName}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{item.brandName}</td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20 mr-1.5 font-medium">{item.type}</span>
-                            <span className="text-sky-300 font-medium">{item.material}</span>
+                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 mr-1.5 font-semibold">{item.type}</span>
+                            <span className="text-slate-600 font-medium">{item.material}</span>
                           </td>
-                          <td className="py-3 px-4 text-slate-300">{item.dori}</td>
-                          <td className="py-3 px-4 text-slate-300">{item.plastic}</td>
-                          <td className="py-3 px-4 text-center font-mono font-medium">{item.quantity.toLocaleString()}</td>
-                          <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.unitPrice)}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">{formatCurrency(item.total)}</td>
+                          <td className="py-3 px-4 text-slate-600">{item.dori}</td>
+                          <td className="py-3 px-4 text-slate-600">{item.plastic}</td>
+                          <td className="py-3 px-4 text-center font-mono font-bold text-slate-800">{item.quantity.toLocaleString()}</td>
+                          <td className="py-3 px-4 text-right font-mono text-slate-700">{formatCurrency(item.unitPrice)}</td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">{formatCurrency(item.total)}</td>
                           <td className="py-3 px-4 text-center">
                             <button
                               type="button"
                               onClick={() => handleRemoveOrderItem(item.id)}
-                              className="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold transition-colors inline-flex items-center justify-center"
+                              className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors inline-flex items-center justify-center border border-rose-200"
+                              title="Delete Item"
                             >
                               &times;
                             </button>
@@ -1471,42 +1649,50 @@ function CustomerPortal({
 
           </div>
 
-          {/* Right Summary: Total & Submit (No taxes, No shipping, No urgency) */}
-          <div className="xl:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4 self-start sticky top-24">
-            <h3 className="font-bold text-white text-base pb-3 border-b border-slate-800 flex justify-between">
+          {/* Right Summary: Total & Submit */}
+          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4 self-start sticky top-24">
+            <h3 className="font-extrabold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
               <span>Order Summary</span>
-              <span className="text-xs text-blue-400 font-mono">({orderItems.length} items)</span>
+              <span className="text-xs text-blue-600 font-mono font-bold">({orderItems.length} items)</span>
             </h3>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-4 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-400 block mb-1">Special Order Remarks</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Cut & fold preference, packaging instructions..."
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">Special Order Remarks</label>
+                <textarea
+                  rows="3"
+                  placeholder="e.g. Cut &amp; fold preference, packaging instructions, urgent dispatch note..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs"
                 />
               </div>
 
               {/* Total Calculation (Pure Subtotal, NO TAXES) */}
-              <div className="pt-3 border-t border-slate-800 space-y-2">
-                <div className="flex justify-between text-base font-black text-white pt-1">
-                  <span>Total Amount</span>
-                  <span className="text-emerald-400 text-lg">{formatCurrency(grandTotal)}</span>
+              <div className="pt-3 border-t border-slate-100 space-y-1.5">
+                <div className="flex justify-between items-center text-sm font-bold text-slate-600">
+                  <span>Subtotal:</span>
+                  <span className="font-mono text-slate-800">{formatCurrency(grandTotal)}</span>
                 </div>
-                <p className="text-[10px] text-slate-500">Zero additional taxes applied.</p>
+                <div className="flex justify-between items-center text-base font-black text-slate-900 pt-2 border-t border-dashed border-slate-200">
+                  <span>Grand Total:</span>
+                  <span className="text-emerald-700 text-xl font-mono">{formatCurrency(grandTotal)}</span>
+                </div>
+                <p className="text-[10px] text-slate-400">Zero additional taxes applied.</p>
               </div>
 
               <button
                 type="button"
                 onClick={handleSubmitFinalOrder}
                 disabled={orderItems.length === 0}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl shadow-lg transition-all mt-3"
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-extrabold text-xs py-3.5 rounded-xl shadow-md transition-all mt-2 cursor-pointer disabled:cursor-not-allowed"
               >
-                🚀 Confirm & Book Manufacturing Order
+                🚀 Confirm &amp; Book Manufacturing Order
               </button>
+
+              <div className="text-[11px] text-slate-500 text-center leading-relaxed">
+                Orders are reviewed by factory admin before proceeding to offset printing.
+              </div>
             </div>
           </div>
 
@@ -1516,29 +1702,29 @@ function CustomerPortal({
       {/* MODULE 2: ORDER REGISTER */}
       {activeTab === 'order_register' && (
         <div className="space-y-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-3">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
               <div>
-                <h3 className="font-bold text-white text-base">Customer Order Register</h3>
-                <p className="text-xs text-slate-400">Complete registry of manufacturing orders. Orders can be edited until approved by admin.</p>
+                <h3 className="font-extrabold text-slate-900 text-base">Customer Order Register</h3>
+                <p className="text-xs text-slate-500">Complete registry of manufacturing orders. Orders can be edited until approved by admin.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {/* Filter option for order status */}
-                <div className="flex items-center space-x-2 bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-1.5">
-                  <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Status:</span>
+                <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                  <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Status:</span>
                   <select
                     value={orderStatusFilter}
                     onChange={(e) => setOrderStatusFilter(e.target.value)}
-                    className="bg-transparent text-xs text-white font-semibold outline-none cursor-pointer pr-1"
+                    className="bg-transparent text-xs text-slate-800 font-semibold outline-none cursor-pointer pr-1"
                   >
-                    <option value="all" className="bg-slate-900 text-white">All Statuses ({customerOrders.length})</option>
-                    <option value="pending" className="bg-slate-900 text-amber-300">⏳ Pending Approval ({customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
-                    <option value="approved" className="bg-slate-900 text-emerald-400">✓ Approved ({customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
-                    <option value="in_production" className="bg-slate-900 text-sky-400">⚙️ In Production ({customerOrders.filter(o => o.status === 'in_production').length})</option>
-                    <option value="ready_dispatch" className="bg-slate-900 text-purple-400">📦 Ready / QC ({customerOrders.filter(o => o.status === 'ready_dispatch').length})</option>
-                    <option value="shipped" className="bg-slate-900 text-orange-400">🚚 Dispatched ({customerOrders.filter(o => o.status === 'shipped').length})</option>
-                    <option value="delivered" className="bg-slate-900 text-emerald-300">🎉 Delivered ({customerOrders.filter(o => o.status === 'delivered').length})</option>
-                    <option value="rejected" className="bg-slate-900 text-rose-400">✕ Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
+                    <option value="all" className="bg-white text-slate-800">All Statuses ({customerOrders.length})</option>
+                    <option value="pending" className="bg-white text-amber-700">⏳ Pending Approval ({customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
+                    <option value="approved" className="bg-white text-emerald-700">✓ Approved ({customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
+                    <option value="in_production" className="bg-white text-sky-700">⚙️ In Production ({customerOrders.filter(o => o.status === 'in_production').length})</option>
+                    <option value="ready_dispatch" className="bg-white text-purple-700">📦 Ready / QC ({customerOrders.filter(o => o.status === 'ready_dispatch').length})</option>
+                    <option value="shipped" className="bg-white text-indigo-700">🚚 Dispatched ({customerOrders.filter(o => o.status === 'shipped').length})</option>
+                    <option value="delivered" className="bg-white text-emerald-700">🎉 Delivered ({customerOrders.filter(o => o.status === 'delivered').length})</option>
+                    <option value="rejected" className="bg-white text-rose-700">✕ Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
                   </select>
                 </div>
 
@@ -1551,7 +1737,7 @@ function CustomerPortal({
                       setSearchQty('');
                       setSearchRate('');
                     }}
-                    className="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all font-medium flex items-center space-x-1"
+                    className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl border border-amber-200 transition-all font-semibold flex items-center space-x-1"
                     title="Reset all search and status filters"
                   >
                     <span>✕</span>
@@ -1559,27 +1745,27 @@ function CustomerPortal({
                   </button>
                 )}
 
-                <span className="text-xs text-indigo-400 font-mono bg-indigo-950/60 border border-indigo-800/60 px-3 py-1.5 rounded-xl">
+                <span className="text-xs text-blue-700 font-mono bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl font-bold">
                   {filteredCustomerOrders.length} of {customerOrders.length} Order(s)
                 </span>
               </div>
             </div>
 
             <div className="overflow-x-auto mt-4">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4">Order ID</th>
-                    <th className="py-3 px-4">Artwork</th>
-                    <th className="py-3 px-4">Brand &amp; Item Specs</th>
-                    <th className="py-3 px-4">Dori Plastic</th>
-                    <th className="py-3 px-4">Qty</th>
-                    <th className="py-3 px-4">Rate</th>
-                    <th className="py-3 px-4 text-right">Amt</th>
-                    <th className="py-3 px-4 text-center">Edit</th>
+                    <th className="py-3 px-4 font-bold">Order ID</th>
+                    <th className="py-3 px-4 font-bold">Artwork</th>
+                    <th className="py-3 px-4 font-bold">Brand &amp; Item Specs</th>
+                    <th className="py-3 px-4 font-bold">Dori Plastic</th>
+                    <th className="py-3 px-4 font-bold">Qty</th>
+                    <th className="py-3 px-4 font-bold">Rate</th>
+                    <th className="py-3 px-4 text-right font-bold">Amt</th>
+                    <th className="py-3 px-4 text-center font-bold">Action</th>
                   </tr>
                   {/* Individual search bar below brand and item spec | dori plastic | qty | rate */}
-                  <tr className="bg-slate-900/95 border-t border-slate-700/60">
+                  <tr className="bg-slate-50/70 border-b border-slate-200">
                     <th className="py-2.5 px-4 font-normal"></th>
                     <th className="py-2.5 px-4 font-normal"></th>
                     {/* Search: Brand & Item Specs */}
@@ -1590,12 +1776,12 @@ function CustomerPortal({
                           value={searchBrandSpecs}
                           onChange={(e) => setSearchBrandSpecs(e.target.value)}
                           placeholder="🔍 Search specs..."
-                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
                         />
                         {searchBrandSpecs && (
                           <button
                             onClick={() => setSearchBrandSpecs('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
                             ✕
@@ -1611,12 +1797,12 @@ function CustomerPortal({
                           value={searchDoriPlastic}
                           onChange={(e) => setSearchDoriPlastic(e.target.value)}
                           placeholder="🔍 Search dori / plastic..."
-                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
                         />
                         {searchDoriPlastic && (
                           <button
                             onClick={() => setSearchDoriPlastic('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
                             ✕
@@ -1632,12 +1818,12 @@ function CustomerPortal({
                           value={searchQty}
                           onChange={(e) => setSearchQty(e.target.value)}
                           placeholder="🔍 Filter qty..."
-                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
                         />
                         {searchQty && (
                           <button
                             onClick={() => setSearchQty('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
                             ✕
@@ -1653,12 +1839,12 @@ function CustomerPortal({
                           value={searchRate}
                           onChange={(e) => setSearchRate(e.target.value)}
                           placeholder="🔍 Filter rate..."
-                          className="w-full bg-slate-800/90 border border-slate-700 focus:border-indigo-500 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none transition-all normal-case font-normal"
+                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
                         />
                         {searchRate && (
                           <button
                             onClick={() => setSearchRate('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
                             ✕
@@ -1676,7 +1862,7 @@ function CustomerPortal({
                             setSearchQty('');
                             setSearchRate('');
                           }}
-                          className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold underline"
+                          className="text-[11px] text-amber-700 hover:text-amber-800 font-semibold underline"
                           title="Reset search fields"
                         >
                           Clear
@@ -1685,26 +1871,26 @@ function CustomerPortal({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {filteredCustomerOrders.map(order => {
                     const firstItem = order.items[0] || {};
                     const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
 
                     return (
-                      <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
+                      <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                         {/* 1. ORDER ID */}
                         <td className="py-4 px-4 align-top">
-                          <div className="font-mono font-bold text-blue-400 text-sm">{order.id}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">{formatDate(order.createdAt)}</div>
+                          <div className="font-mono font-bold text-blue-600 text-sm">{order.id}</div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(order.createdAt)}</div>
                           <div className="mt-1.5">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                              order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 shadow-emerald-900/20' :
-                              order.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                              order.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
-                              order.status === 'ready_dispatch' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
-                              order.status === 'shipped' ? 'bg-orange-950 text-orange-400 border border-orange-800' :
-                              order.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                              'bg-amber-950 text-amber-300 border border-amber-800'
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
+                              order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              order.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                              order.status === 'in_production' ? 'bg-sky-50 text-sky-700 border border-sky-200' :
+                              order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                              order.status === 'shipped' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                              order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
+                              'bg-amber-50 text-amber-700 border border-amber-200'
                             }`}>
                               <span>{order.status === 'approved' || order.status === 'confirmed' ? '✓' : order.status === 'rejected' ? '✕' : '⏳'}</span>
                               <span>
@@ -1728,14 +1914,14 @@ function CustomerPortal({
                               <img 
                                 src={firstItem.image} 
                                 alt="Artwork" 
-                                className="w-16 h-16 object-cover rounded-2xl border-2 border-slate-700 shadow-md group-hover:border-blue-500 group-hover:scale-105 transition-all" 
+                                className="w-16 h-16 object-cover rounded-2xl border border-slate-200 shadow-xs group-hover:border-blue-500 group-hover:scale-105 transition-all bg-slate-50" 
                               />
-                              <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                              <div className="absolute inset-0 bg-slate-900/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
                                 🔍 Zoom
                               </div>
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg text-slate-500">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg text-slate-400">
                               🏷️
                             </div>
                           )}
@@ -1744,32 +1930,32 @@ function CustomerPortal({
                         {/* 3. BRAND AND ITEM SPECS */}
                         <td className="py-4 px-4 align-top">
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                               {firstItem.itemCode || firstItem.name || 'ITEM'}
                             </span>
-                            <span className="font-extrabold text-white text-sm">
+                            <span className="font-extrabold text-slate-900 text-sm">
                               {firstItem.brandName || order.customerCompany}
                             </span>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
-                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold text-[11px]">
+                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px]">
                               {firstItem.type || 'Tag'}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20 text-[11px] font-medium">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
                               {firstItem.material || 'Standard'}
                             </span>
                           </div>
 
                           {firstItem.isMultiCard && firstItem.cards && firstItem.cards.length > 0 && (
-                            <div className="mt-2 bg-slate-900/80 border border-indigo-900/50 rounded-xl p-2 space-y-1">
-                              <span className="text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-800/50 px-1.5 py-0.5 rounded inline-block">
+                            <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">
                                 📑 {firstItem.cards.length}-Card Set
                               </span>
-                              <div className="text-[11px] text-slate-400 space-y-0.5">
+                              <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-sky-400 font-semibold">• {c.title}:</span>
-                                    <span className="text-slate-300">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
+                                    <span className="text-blue-600 font-semibold">• {c.title}:</span>
+                                    <span className="text-slate-800">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
                               </div>
@@ -1777,13 +1963,13 @@ function CustomerPortal({
                           )}
 
                           {order.status === 'rejected' && (
-                            <div className="mt-2 bg-rose-950/60 border border-rose-800/80 rounded-xl p-2 text-rose-300 text-xs">
-                              <span className="font-bold text-rose-400">⚠️ Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
+                            <div className="mt-2 bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-rose-800 text-xs">
+                              <span className="font-bold text-rose-700">⚠️ Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
                             </div>
                           )}
 
                           {order.items.length > 1 && (
-                            <span className="inline-block mt-1 text-[10px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md border border-slate-700 font-semibold">
+                            <span className="inline-block mt-1 text-[10px] bg-slate-100 text-blue-700 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
                               + {order.items.length - 1} more item(s)
                             </span>
                           )}
@@ -1791,30 +1977,30 @@ function CustomerPortal({
 
                         {/* 4. DORI PLASTIC */}
                         <td className="py-4 px-4 align-top text-xs space-y-1">
-                          <div className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 text-slate-200">
+                          <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
                             🧵 Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
                           </div>
-                          <div className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 text-slate-200">
+                          <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
                             🔒 Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
                           </div>
                         </td>
 
                         {/* 5. QTY */}
                         <td className="py-4 px-4 align-top">
-                          <div className="font-mono font-bold text-white text-sm">
+                          <div className="font-mono font-bold text-slate-900 text-sm">
                             {Number(firstItem.quantity || 0).toLocaleString()}
                           </div>
                           <span className="text-[11px] text-slate-400">pcs</span>
                         </td>
 
                         {/* 6. RATE */}
-                        <td className="py-4 px-4 align-top font-mono font-semibold text-slate-200 text-sm whitespace-nowrap">
+                        <td className="py-4 px-4 align-top font-mono font-semibold text-slate-700 text-sm whitespace-nowrap">
                           {formatCurrency(firstItem.unitPrice || 0)}
                         </td>
 
                         {/* 7. AMT */}
                         <td className="py-4 px-4 align-top text-right">
-                          <span className="font-extrabold text-emerald-400 text-base font-mono whitespace-nowrap">
+                          <span className="font-extrabold text-emerald-600 text-base font-mono whitespace-nowrap">
                             {formatCurrency(order.total)}
                           </span>
                         </td>
@@ -1825,7 +2011,7 @@ function CustomerPortal({
                             {order.status === 'rejected' ? (
                               <button
                                 onClick={() => handleDuplicateOrder(order)}
-                                className="w-full bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center justify-center space-x-1"
+                                className="w-full bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center space-x-1"
                                 title="Duplicate order details into a new draft with new order number"
                               >
                                 <span>🔁</span>
@@ -1834,7 +2020,7 @@ function CustomerPortal({
                             ) : isEditable ? (
                               <button
                                 onClick={() => handleOpenEditModal(order)}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center space-x-1"
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1"
                                 title="Edit order specifications"
                               >
                                 <span>✏️</span>
@@ -1842,7 +2028,7 @@ function CustomerPortal({
                               </button>
                             ) : (
                               <span 
-                                className="text-[11px] text-slate-500 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/60" 
+                                className="text-[11px] text-slate-400 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200" 
                                 title="Order approved by admin. Editing locked."
                               >
                                 <span>🔒</span>
@@ -1852,7 +2038,7 @@ function CustomerPortal({
 
                             <button
                               onClick={() => onOpenInvoice(order)}
-                              className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl text-xs border border-slate-700 transition-colors flex items-center justify-center space-x-1"
+                              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs border border-slate-200 transition-colors flex items-center justify-center space-x-1 font-medium"
                               title="View Invoice & Receipt"
                             >
                               <span>📄</span>
@@ -1867,8 +2053,8 @@ function CustomerPortal({
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <div className="text-3xl mb-2">🔍</div>
-                        <div className="font-semibold text-slate-300">No orders match your filter criteria</div>
-                        <p className="text-xs text-slate-500 mt-1">Try clearing or adjusting the search bars or status filter.</p>
+                        <div className="font-semibold text-slate-600">No orders match your filter criteria</div>
+                        <p className="text-xs text-slate-400 mt-1">Try clearing or adjusting the search bars or status filter.</p>
                         <button
                           onClick={() => {
                             setOrderStatusFilter('all');
@@ -1877,7 +2063,7 @@ function CustomerPortal({
                             setSearchQty('');
                             setSearchRate('');
                           }}
-                          className="mt-3 inline-block px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-blue-400 text-xs rounded-xl border border-slate-700"
+                          className="mt-3 inline-block px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-blue-600 text-xs font-semibold rounded-xl border border-slate-200"
                         >
                           Clear all filters
                         </button>
@@ -1894,37 +2080,37 @@ function CustomerPortal({
       {/* MODULE 3: INVOICE REGISTER */}
       {activeTab === 'invoice_register' && (
         <div className="space-y-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Customer Invoice Register</h3>
-            <p className="text-xs text-slate-400 mb-4">Invoices issued against completed orders.</p>
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-extrabold text-slate-900 text-base mb-1">Customer Invoice Register</h3>
+            <p className="text-xs text-slate-500 mb-4">Invoices issued against completed orders.</p>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4">Invoice No</th>
-                    <th className="py-3 px-4">Order Ref</th>
-                    <th className="py-3 px-4">Issue Date</th>
-                    <th className="py-3 px-4">Invoice Total</th>
-                    <th className="py-3 px-4">Paid</th>
-                    <th className="py-3 px-4">Balance Due</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="py-3 px-4 font-bold">Invoice No</th>
+                    <th className="py-3 px-4 font-bold">Order Ref</th>
+                    <th className="py-3 px-4 font-bold">Issue Date</th>
+                    <th className="py-3 px-4 font-bold">Invoice Total</th>
+                    <th className="py-3 px-4 font-bold">Paid</th>
+                    <th className="py-3 px-4 font-bold">Balance Due</th>
+                    <th className="py-3 px-4 font-bold">Status</th>
+                    <th className="py-3 px-4 text-right font-bold">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {customerInvoices.map(inv => (
-                    <tr key={inv.id} className="hover:bg-slate-800/40">
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-400">{inv.orderId}</td>
+                    <tr key={inv.id} className="hover:bg-slate-50/70">
+                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{inv.id}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-500">{inv.orderId}</td>
                       <td className="py-3.5 px-4">{formatDate(inv.issueDate)}</td>
-                      <td className="py-3.5 px-4 font-bold text-white">{formatCurrency(inv.total)}</td>
-                      <td className="py-3.5 px-4 text-emerald-400">{formatCurrency(inv.paidAmount)}</td>
-                      <td className="py-3.5 px-4 font-extrabold text-amber-400">{formatCurrency(inv.balanceDue)}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(inv.total)}</td>
+                      <td className="py-3.5 px-4 text-emerald-600 font-bold">{formatCurrency(inv.paidAmount)}</td>
+                      <td className="py-3.5 px-4 font-extrabold text-amber-700">{formatCurrency(inv.balanceDue)}</td>
                       <td className="py-3.5 px-4">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          inv.status === 'paid' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                          'bg-amber-950 text-amber-400 border border-amber-800'
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                          inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
                           {inv.status}
                         </span>
@@ -1935,7 +2121,7 @@ function CustomerPortal({
                             const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
                             onOpenInvoice(linkedOrder);
                           }}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg text-xs font-semibold"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-xl text-xs font-semibold shadow-xs"
                         >
                           Print / PDF
                         </button>
@@ -1953,44 +2139,44 @@ function CustomerPortal({
       {activeTab === 'outstanding_ledger' && (
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold block uppercase">Total Outstanding</span>
-              <div className="text-2xl font-black text-rose-400 mt-1">{formatCurrency(outstandingLedger.totalOutstanding)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold block uppercase">Total Outstanding</span>
+              <div className="text-2xl font-black text-rose-600 mt-1">{formatCurrency(outstandingLedger.totalOutstanding)}</div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold block uppercase">0 - 30 Days Aging</span>
-              <div className="text-2xl font-black text-emerald-400 mt-1">{formatCurrency(outstandingLedger.aging0to30)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold block uppercase">0 - 30 Days Aging</span>
+              <div className="text-2xl font-black text-emerald-600 mt-1">{formatCurrency(outstandingLedger.aging0to30)}</div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold block uppercase">31 - 60 Days Aging</span>
-              <div className="text-2xl font-black text-amber-400 mt-1">{formatCurrency(outstandingLedger.aging31to60)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold block uppercase">31 - 60 Days Aging</span>
+              <div className="text-2xl font-black text-amber-600 mt-1">{formatCurrency(outstandingLedger.aging31to60)}</div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold block uppercase">60+ Days Overdue</span>
-              <div className="text-2xl font-black text-rose-500 mt-1">{formatCurrency(outstandingLedger.aging60Plus)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold block uppercase">60+ Days Overdue</span>
+              <div className="text-2xl font-black text-rose-700 mt-1">{formatCurrency(outstandingLedger.aging60Plus)}</div>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Unpaid Dues Breakdown</h3>
-            <table className="w-full text-left text-xs text-slate-300 mt-3">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-extrabold text-slate-900 text-base mb-1">Unpaid Dues Breakdown</h3>
+            <table className="w-full text-left text-xs text-slate-700 mt-3">
+              <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
                 <tr>
-                  <th className="py-3 px-4">Invoice No</th>
-                  <th className="py-3 px-4">Issue Date</th>
-                  <th className="py-3 px-4">Due Date</th>
-                  <th className="py-3 px-4">Total Amount</th>
-                  <th className="py-3 px-4">Balance Pending</th>
+                  <th className="py-3 px-4 font-bold">Invoice No</th>
+                  <th className="py-3 px-4 font-bold">Issue Date</th>
+                  <th className="py-3 px-4 font-bold">Due Date</th>
+                  <th className="py-3 px-4 font-bold">Total Amount</th>
+                  <th className="py-3 px-4 font-bold">Balance Pending</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {outstandingLedger.bills.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-800/40">
-                    <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{b.id}</td>
+                  <tr key={b.id} className="hover:bg-slate-50/70">
+                    <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{b.id}</td>
                     <td className="py-3.5 px-4">{formatDate(b.issueDate)}</td>
                     <td className="py-3.5 px-4">{formatDate(b.dueDate)}</td>
-                    <td className="py-3.5 px-4 font-bold text-white">{formatCurrency(b.total)}</td>
-                    <td className="py-3.5 px-4 font-extrabold text-rose-400">{formatCurrency(b.balanceDue)}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(b.total)}</td>
+                    <td className="py-3.5 px-4 font-extrabold text-rose-600">{formatCurrency(b.balanceDue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2003,42 +2189,42 @@ function CustomerPortal({
       {activeTab === 'general_ledger' && (
         <div className="space-y-6 animate-fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold uppercase block">Total Debited (Invoices)</span>
-              <div className="text-xl font-bold text-white mt-1">{formatCurrency(generalLedger.totalDebited)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold uppercase block">Total Debited (Invoices)</span>
+              <div className="text-xl font-black text-slate-900 mt-1">{formatCurrency(generalLedger.totalDebited)}</div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold uppercase block">Total Credited (Payments)</span>
-              <div className="text-xl font-bold text-emerald-400 mt-1">{formatCurrency(generalLedger.totalCredited)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold uppercase block">Total Credited (Payments)</span>
+              <div className="text-xl font-black text-emerald-600 mt-1">{formatCurrency(generalLedger.totalCredited)}</div>
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
-              <span className="text-slate-400 text-xs font-bold uppercase block">Closing Ledger Balance</span>
-              <div className="text-xl font-bold text-amber-400 mt-1">{formatCurrency(generalLedger.closingBalance)}</div>
+            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+              <span className="text-slate-500 text-xs font-bold uppercase block">Closing Ledger Balance</span>
+              <div className="text-xl font-black text-amber-700 mt-1">{formatCurrency(generalLedger.closingBalance)}</div>
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Statement of Account (General Ledger)</h3>
-            <table className="w-full text-left text-xs text-slate-300 mt-3">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-extrabold text-slate-900 text-base mb-1">Statement of Account (General Ledger)</h3>
+            <table className="w-full text-left text-xs text-slate-700 mt-3">
+              <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
                 <tr>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Particulars</th>
-                  <th className="py-3 px-4">Ref No</th>
-                  <th className="py-3 px-4 text-right">Debit (₹)</th>
-                  <th className="py-3 px-4 text-right">Credit (₹)</th>
-                  <th className="py-3 px-4 text-right">Balance (₹)</th>
+                  <th className="py-3 px-4 font-bold">Date</th>
+                  <th className="py-3 px-4 font-bold">Particulars</th>
+                  <th className="py-3 px-4 font-bold">Ref No</th>
+                  <th className="py-3 px-4 text-right font-bold">Debit (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Credit (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Balance (₹)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {generalLedger.journal.map((j, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/40">
-                    <td className="py-3 px-4 text-slate-400">{formatDate(j.date)}</td>
-                    <td className="py-3 px-4 font-bold text-white">{j.particulars}</td>
-                    <td className="py-3 px-4 font-mono text-blue-400">{j.refNo}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-200">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-black text-amber-400">{formatCurrency(j.balance)}</td>
+                  <tr key={idx} className="hover:bg-slate-50/70">
+                    <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
+                    <td className="py-3 px-4 font-mono text-blue-600">{j.refNo}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2049,15 +2235,15 @@ function CustomerPortal({
 
       {/* MODULE 6: CHAT WITH ACCOUNT MANAGER */}
       {activeTab === 'chat' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 animate-fade-in max-w-4xl mx-auto flex flex-col h-[650px]">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 animate-fade-in max-w-4xl mx-auto flex flex-col h-[650px]">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-xs">
                 PS
               </div>
               <div>
-                <h3 className="font-bold text-white text-sm">{customerThread.accountManager}</h3>
-                <span className="text-[11px] text-emerald-400 flex items-center space-x-1">
+                <h3 className="font-extrabold text-slate-900 text-sm">{customerThread.accountManager}</h3>
+                <span className="text-[11px] text-emerald-600 flex items-center space-x-1 font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                   <span>Assigned Account Manager &bull; Online</span>
                 </span>
@@ -2071,27 +2257,27 @@ function CustomerPortal({
               <div key={msg.id} className={`flex flex-col ${msg.isCustomer ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed ${
                   msg.isCustomer
-                    ? 'bg-blue-600 text-white rounded-br-none shadow-md'
-                    : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none shadow'
+                    ? 'bg-blue-600 text-white rounded-br-none shadow-xs'
+                    : 'bg-slate-100 text-slate-800 border border-slate-200 rounded-bl-none shadow-xs'
                 }`}>
                   <p>{msg.text}</p>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1 px-1">{msg.sender} &bull; {msg.timestamp}</span>
+                <span className="text-[10px] text-slate-400 mt-1 px-1">{msg.sender} &bull; {msg.timestamp}</span>
               </div>
             ))}
           </div>
 
-          <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-800 flex gap-2">
+          <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-100 flex gap-2">
             <input
               type="text"
               placeholder={`Message ${customerThread.accountManager}...`}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
             />
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition-all"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all"
             >
               Send &rarr;
             </button>
@@ -2101,21 +2287,21 @@ function CustomerPortal({
 
       {/* CUSTOMER EDIT ORDER MODAL */}
       {editingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-5 text-slate-200">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-5 text-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-lg font-black text-white flex items-center space-x-2">
+                <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">
                   <span>✏️</span>
                   <span>Edit Manufacturing Order</span>
-                  <span className="font-mono text-blue-400 text-sm ml-2">({editingOrder.id})</span>
+                  <span className="font-mono text-blue-600 text-sm ml-2">({editingOrder.id})</span>
                 </h3>
-                <p className="text-xs text-slate-400">Order is awaiting admin approval. You can modify any specifications below.</p>
+                <p className="text-xs text-slate-500">Order is awaiting admin approval. You can modify any specifications below.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingOrder(null)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-sm font-bold"
               >
                 &times;
               </button>
@@ -2125,17 +2311,17 @@ function CustomerPortal({
               {/* Row 1: Brand, Type, Material */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Brand Name *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Brand Name *</label>
                   <input
                     type="text"
                     required
                     value={editBrandName}
                     onChange={(e) => setEditBrandName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Type *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Type *</label>
                   <select
                     value={editSelectedType}
                     onChange={(e) => {
@@ -2143,7 +2329,7 @@ function CustomerPortal({
                       const tObj = availableTypes.find(t => t.name === e.target.value);
                       if (tObj) setEditSelectedMaterial(tObj.materials[0] || '');
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   >
                     {availableTypes.map(t => (
                       <option key={t.id} value={t.name}>{t.name}</option>
@@ -2151,11 +2337,11 @@ function CustomerPortal({
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Material *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Material *</label>
                   <select
                     value={editSelectedMaterial}
                     onChange={(e) => setEditSelectedMaterial(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   >
                     {(availableTypes.find(t => t.name === editSelectedType)?.materials || []).map((m, idx) => (
                       <option key={idx} value={m}>{m}</option>
@@ -2167,21 +2353,21 @@ function CustomerPortal({
               {/* Row 2: Dori, Plastic, Artwork */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* DORI */}
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 space-y-1.5">
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🧵 Dori</label>
-                    <div className="flex space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+                    <label className="text-xs font-bold text-slate-700">🧵 Dori</label>
+                    <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setEditDoriOption('reg'); setEditDoriCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
                       >
                         Reg.
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditDoriOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'custom' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'custom' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
                       >
                         Custom
                       </button>
@@ -2194,29 +2380,29 @@ function CustomerPortal({
                       placeholder="Specify custom dori"
                       value={editDoriCustom}
                       onChange={(e) => setEditDoriCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800"
                     />
                   ) : (
-                    <div className="text-[11px] text-slate-400 italic">Standard / Regular Dori</div>
+                    <div className="text-[11px] text-slate-500 italic">Standard / Regular Dori</div>
                   )}
                 </div>
 
                 {/* PLASTIC */}
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 space-y-1.5">
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🔒 Plastic</label>
-                    <div className="flex space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+                    <label className="text-xs font-bold text-slate-700">🔒 Plastic</label>
+                    <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setEditPlasticOption('reg'); setEditPlasticCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}
+                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
                       >
                         Reg.
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditPlasticOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'custom' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'custom' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
                       >
                         Custom
                       </button>
@@ -2229,45 +2415,45 @@ function CustomerPortal({
                       placeholder="Specify custom plastic"
                       value={editPlasticCustom}
                       onChange={(e) => setEditPlasticCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800"
                     />
                   ) : (
-                    <div className="text-[11px] text-slate-400 italic">Standard / Regular Plastic lock</div>
+                    <div className="text-[11px] text-slate-500 italic">Standard / Regular Plastic lock</div>
                   )}
                 </div>
 
                 {/* ARTWORK */}
-                <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-200 block">📎 Artwork Image</label>
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">📎 Artwork Image</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleEditImageUpload}
-                      className="w-full text-[11px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-blue-600 file:text-white cursor-pointer"
+                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-blue-600 file:text-white cursor-pointer"
                     />
                     {editOrderImage && (
-                      <img src={editOrderImage} alt="Artwork" className="w-8 h-8 rounded object-cover border border-slate-600" />
+                      <img src={editOrderImage} alt="Artwork" className="w-8 h-8 rounded object-cover border border-slate-200" />
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Row 3: Quantity, Rate, Subtotal */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-2 border-t border-slate-100">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Quantity (Pcs) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Quantity (Pcs) *</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={editQty}
                     onChange={(e) => setEditQty(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Rate per Pc (₹) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (₹) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2275,37 +2461,37 @@ function CustomerPortal({
                     required
                     value={editRate}
                     onChange={(e) => setEditRate(Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
-                <div className="bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700 flex flex-col justify-center">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">Order Total</span>
-                  <span className="text-emerald-400 font-extrabold text-sm">{formatCurrency(editQty * editRate)}</span>
+                <div className="bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 flex flex-col justify-center">
+                  <span className="text-[10px] text-emerald-700 font-bold uppercase">Order Total</span>
+                  <span className="text-emerald-700 font-black text-sm">{formatCurrency(editQty * editRate)}</span>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Customer Remarks</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Customer Remarks</label>
                 <input
                   type="text"
                   placeholder="Additional order instructions"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingOrder(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
                 >
                   ✓ Save Order Changes
                 </button>
@@ -2319,15 +2505,15 @@ function CustomerPortal({
       {previewArtworkUrl && (
         <div 
           onClick={() => setPreviewArtworkUrl(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in cursor-zoom-out"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-md animate-fade-in cursor-zoom-out"
         >
-          <div className="relative max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-3xl p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-              <span className="text-xs font-bold text-white uppercase tracking-wider">High-Resolution Artwork Preview</span>
+          <div className="relative max-w-3xl max-h-[85vh] bg-white border border-slate-200 rounded-3xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">High-Resolution Artwork Preview</span>
               <button
                 type="button"
                 onClick={() => setPreviewArtworkUrl(null)}
-                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center"
               >
                 &times;
               </button>
@@ -2335,8 +2521,55 @@ function CustomerPortal({
             <img 
               src={previewArtworkUrl} 
               alt="High Resolution Artwork" 
-              className="max-h-[70vh] w-auto max-w-full object-contain rounded-2xl mx-auto shadow-lg border border-slate-800" 
+              className="max-h-[70vh] w-auto max-w-full object-contain rounded-2xl mx-auto shadow-xs border border-slate-200" 
             />
+          </div>
+        </div>
+      )}
+
+      {/* CROP MODAL FOR PLACE ORDER ARTWORK */}
+      {showCropModal && orderImage && (
+        <window.uBMS.ImageCropModal
+          imageSrc={orderImage}
+          onSave={handleSaveCroppedImage}
+          onClose={() => setShowCropModal(false)}
+        />
+      )}
+
+      {/* FULL IMAGE MODAL FOR CURRENT ARTWORK */}
+      {showFullImageModal && orderImage && (
+        <div 
+          onClick={() => setShowFullImageModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in cursor-zoom-out"
+        >
+          <div className="relative max-w-2xl max-h-[85vh] bg-white border border-slate-200 rounded-3xl p-5 shadow-2xl space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Artwork Preview</span>
+              <button
+                type="button"
+                onClick={() => setShowFullImageModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex items-center justify-center bg-slate-50 rounded-2xl p-2 max-h-[60vh] overflow-hidden">
+              <img 
+                src={orderImage} 
+                alt="Artwork" 
+                className="max-h-[55vh] w-auto max-w-full object-contain rounded-xl mx-auto shadow-xs border border-slate-200" 
+              />
+            </div>
+            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setShowFullImageModal(false); setShowCropModal(true); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5"
+              >
+                <span>✂️</span>
+                <span>Crop Artwork</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
