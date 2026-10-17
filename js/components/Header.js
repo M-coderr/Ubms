@@ -131,39 +131,39 @@ function Header({
 
                   {/* Switch Team Roles */}
                   <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    🏢 Team &amp; Staff Roles
+                    Team &amp; Staff Roles
                   </div>
                   {teamMembers.map((member) => (
                     <button
                       key={member.id}
                       onClick={() => handleSelectPersona(member, false)}
                       className={`w-full text-left px-3.5 py-2 flex items-center space-x-2.5 hover:bg-slate-50 text-xs transition-colors ${
-                        !activePersona.isCustomer && activePersona.id === member.id ? 'bg-indigo-50 text-indigo-900 font-semibold' : 'text-slate-700'
+                        !activePersona.isCustomer && activePersona.id === member.id ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700'
                       }`}
                     >
-                      <div className="w-6 h-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                      <div className="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
                         {member.avatar}
                       </div>
                       <div className="flex-1 truncate">
                         <div className="truncate text-slate-800 font-medium">{member.name}</div>
-                        <div className="text-[10px] text-indigo-600">{member.roleLabel}</div>
+                        <div className="text-[10px] text-slate-500">{member.roleLabel}</div>
                       </div>
                     </button>
                   ))}
 
                   {/* Switch Customers */}
                   <div className="px-3 py-1.5 mt-2 border-t border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    🛍️ Customer Profiles
+                    Customer Profiles
                   </div>
                   {customers.map((cust) => (
                     <button
                       key={cust.id}
                       onClick={() => handleSelectPersona(cust, true)}
                       className={`w-full text-left px-3.5 py-2 flex items-center space-x-2.5 hover:bg-slate-50 text-xs transition-colors ${
-                        activePersona.isCustomer && activePersona.id === cust.id ? 'bg-emerald-50 text-emerald-900 font-semibold' : 'text-slate-700'
+                        activePersona.isCustomer && activePersona.id === cust.id ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-700'
                       }`}
                     >
-                      <div className="w-6 h-6 rounded bg-emerald-100 text-emerald-800 flex items-center justify-center text-[10px] font-bold">
+                      <div className="w-6 h-6 rounded bg-slate-200 text-slate-800 flex items-center justify-center text-[10px] font-bold">
                         {cust.avatar}
                       </div>
                       <div className="flex-1 truncate">

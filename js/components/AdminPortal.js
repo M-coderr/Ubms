@@ -1786,24 +1786,24 @@ function AdminPortal({
       {activeTab === 'place_order' && (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in">
           
-          <div className="xl:col-span-3 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-200 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800">
+          <div className="xl:col-span-3 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-bold text-white text-base">Book Manufacturing Order (Tags & Labels)</h3>
-                <p className="text-xs text-slate-400">Precision manufacturing order entry with dynamic materials, custom trims & artwork.</p>
+                <h3 className="font-bold text-slate-900 text-base">Book Manufacturing Order (Tags &amp; Labels)</h3>
+                <p className="text-xs text-slate-500">Precision manufacturing order entry with dynamic materials, custom trims &amp; artwork.</p>
               </div>
-              <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+              <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-medium">
                 Admin Entry Console
               </span>
             </div>
 
             {/* Line Item Creation Form */}
-            <form onSubmit={handleAdminAddItem} className="space-y-5 bg-slate-800/40 p-5 rounded-2xl border border-slate-800">
+            <form onSubmit={handleAdminAddItem} className="space-y-5 bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80">
               
               {/* TIER 1: CORE IDENTIFIERS (5-COLUMNS) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Customer Account Party *</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Customer Account Party *</label>
                   <select
                     value={adminOrderCustId}
                     onChange={(e) => {
@@ -1811,7 +1811,7 @@ function AdminPortal({
                       const cust = users.customers.find(c => c.id === e.target.value);
                       if (cust) setAdminBrandName(cust.company || cust.name);
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                   >
                     {users.customers.map(c => (
                       <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
@@ -1820,21 +1820,21 @@ function AdminPortal({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Brand Name *</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Brand Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Urban Stitch / Denim Club"
                     value={adminBrandName}
                     onChange={(e) => setAdminBrandName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-300">Item Code *</label>
-                    <span className="text-[10px] text-indigo-400 font-mono">Auto / Admin Edit</span>
+                    <label className="text-xs font-semibold text-slate-700">Item Code *</label>
+                    <span className="text-[10px] text-slate-500 font-mono">Auto / Admin Edit</span>
                   </div>
                   <input
                     type="text"
@@ -1845,16 +1845,16 @@ function AdminPortal({
                       setAdminItemCode(e.target.value.toUpperCase());
                       setAdminItemCodeManual(true);
                     }}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-indigo-300 font-mono font-bold focus:outline-none focus:border-indigo-500 uppercase tracking-wider"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs uppercase tracking-wider"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Type *</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Type *</label>
                   <select
                     value={adminSelectedType}
                     onChange={(e) => handleAdminTypeChange(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                   >
                     {availableTypes.map(t => (
                       <option key={t.id} value={t.name}>{t.name}</option>
@@ -1863,15 +1863,15 @@ function AdminPortal({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">
-                    {adminSelectedType === 'Tag' ? '📖 Paper Catalog *' : 'Material *'}{' '}
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    {adminSelectedType === 'Tag' ? 'Paper Catalog *' : 'Material *'}{' '}
                     <span className="text-slate-400 font-normal">({adminSelectedType})</span>
                   </label>
                   {adminSelectedType === 'Tag' ? (
                     <select
                       value={adminSelectedCatalogId}
                       onChange={(e) => setAdminSelectedCatalogId(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs font-medium"
                     >
                       {availableCatalogs.map(cat => (
                         <option key={cat.id} value={cat.id}>
@@ -1883,7 +1883,7 @@ function AdminPortal({
                     <select
                       value={adminSelectedMaterial}
                       onChange={(e) => setAdminSelectedMaterial(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                     >
                       {(adminTypeObj?.materials || []).map((m, idx) => (
                         <option key={idx} value={m}>{m}</option>
@@ -1895,68 +1895,67 @@ function AdminPortal({
 
               {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG FOR ADMIN */}
               {adminSelectedType === 'Tag' && (
-                <div className="bg-slate-900/90 border border-indigo-900/60 rounded-2xl p-4 space-y-3">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
-                        <span>📑</span>
-                        <span>Tag Composition &amp; Paper Cards</span>
+                      <span className="text-xs font-semibold text-slate-900">
+                        Tag Composition &amp; Paper Cards
                       </span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
+                      <p className="text-[11px] text-slate-500 mt-0.5">
                         Does this tag have a single paper card or multiple cards bound together with Dori &amp; Plastic?
                       </p>
                     </div>
 
-                    <div className="flex items-center space-x-1 bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs">
+                    <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                       <button
                         type="button"
                         onClick={() => setAdminIsMultiCard(false)}
-                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                          !adminIsMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                          !adminIsMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        📄 Single Card Tag
+                        Single Card Tag
                       </button>
                       <button
                         type="button"
                         onClick={() => setAdminIsMultiCard(true)}
-                        className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                          adminIsMultiCard ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                          adminIsMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        📑 Multi-Card Tag Set ({adminTagCards.length} Cards)
+                        Multi-Card Tag Set ({adminTagCards.length} Cards)
                       </button>
                     </div>
                   </div>
 
                   {adminIsMultiCard && (
-                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-800">
+                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-100">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {adminTagCards.map((card, idx) => (
-                          <div key={card.id} className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 space-y-2">
+                          <div key={card.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-sky-300">
+                              <span className="text-[11px] font-semibold text-slate-800">
                                 Card #{idx + 1}: {card.title}
                               </span>
                               {idx === 2 && (
                                 <button
                                   type="button"
                                   onClick={() => setAdminTagCards(prev => prev.slice(0, 2))}
-                                  className="text-rose-400 hover:text-rose-300 text-xs font-bold"
+                                  className="text-rose-600 hover:text-rose-700 text-xs font-semibold"
                                   title="Remove 3rd Card"
                                 >
                                   &times; Remove
                                 </button>
                               )}
                             </div>
-                            <label className="text-[10px] text-slate-400 block font-semibold">Select Paper Catalog:</label>
+                            <label className="text-[10px] text-slate-500 block font-semibold">Select Paper Catalog:</label>
                             <select
                               value={card.catalogId}
                               onChange={(e) => {
                                 const newCatId = e.target.value;
                                 setAdminTagCards(prev => prev.map((c, i) => i === idx ? { ...c, catalogId: newCatId } : c));
                               }}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                             >
                               {availableCatalogs.map(cat => (
                                 <option key={cat.id} value={cat.id}>
@@ -1975,15 +1974,14 @@ function AdminPortal({
                             ...prev,
                             { id: 3, title: 'Card 3 (Story / Overlay Card)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115' }
                           ])}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center space-x-1 mt-2"
+                          className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1 mt-2"
                         >
-                          <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                          <span>+ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
                         </button>
                       )}
                       
-                      <div className="text-[11px] text-indigo-300/80 bg-indigo-950/40 border border-indigo-900/50 rounded-xl p-2.5 flex items-center space-x-2">
-                        <span>ℹ️</span>
-                        <span>Each card will receive its own printing &amp; punching job form, and will merge at the Handwork (Dori &amp; Plastic) stage.</span>
+                      <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                        Each card will receive its own printing &amp; punching job form, and will merge at the Handwork (Dori &amp; Plastic) stage.
                       </div>
                     </div>
                   )}
@@ -1993,15 +1991,15 @@ function AdminPortal({
               {/* TIER 2: ACCESSORIES & ARTWORK (3-COLUMNS) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* DORI FIELD */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🧵 Dori</label>
-                    <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+                    <label className="text-xs font-semibold text-slate-700">Dori</label>
+                    <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setAdminDoriOption('reg'); setAdminDoriCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          adminDoriOption === 'reg' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1 rounded-md font-medium transition-all ${
+                          adminDoriOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         Reg.
@@ -2009,8 +2007,8 @@ function AdminPortal({
                       <button
                         type="button"
                         onClick={() => setAdminDoriOption('custom')}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          adminDoriOption === 'custom' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1 rounded-md font-medium transition-all ${
+                          adminDoriOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         Custom
@@ -2025,25 +2023,25 @@ function AdminPortal({
                       placeholder="Specify custom dori (e.g. Waxed Cotton Black 7-in)"
                       value={adminDoriCustom}
                       onChange={(e) => setAdminDoriCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   ) : (
-                    <div className="text-xs text-slate-400 py-1.5 px-2 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div className="text-xs text-slate-500 py-1.5 px-2 bg-slate-50 rounded-xl border border-slate-200">
                       Standard / Regular Dori assigned
                     </div>
                   )}
                 </div>
 
                 {/* PLASTIC FIELD */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-200">🔒 Plastic Lock</label>
-                    <div className="flex items-center space-x-1 bg-slate-900 p-0.5 rounded-lg border border-slate-700 text-[11px]">
+                    <label className="text-xs font-semibold text-slate-700">Plastic Lock</label>
+                    <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setAdminPlasticOption('reg'); setAdminPlasticCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          adminPlasticOption === 'reg' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1 rounded-md font-medium transition-all ${
+                          adminPlasticOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         Reg.
@@ -2051,8 +2049,8 @@ function AdminPortal({
                       <button
                         type="button"
                         onClick={() => setAdminPlasticOption('custom')}
-                        className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                          adminPlasticOption === 'custom' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                        className={`px-3 py-1 rounded-md font-medium transition-all ${
+                          adminPlasticOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
                         Custom
@@ -2067,28 +2065,28 @@ function AdminPortal({
                       placeholder="Specify custom plastic (e.g. Matte Embossed Square)"
                       value={adminPlasticCustom}
                       onChange={(e) => setAdminPlasticCustom(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   ) : (
-                    <div className="text-xs text-slate-400 py-1.5 px-2 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div className="text-xs text-slate-500 py-1.5 px-2 bg-slate-50 rounded-xl border border-slate-200">
                       Standard / Regular Plastic lock assigned
                     </div>
                   )}
                 </div>
 
                 {/* ARTWORK UPLOAD & PREVIEW */}
-                <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700/80 space-y-2">
-                  <label className="text-xs font-bold text-slate-200 block">📎 Order Image / Artwork</label>
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
+                  <label className="text-xs font-semibold text-slate-700 block">Order Image / Artwork</label>
                   <div className="flex items-center space-x-2">
                     <input
                       id="admin-file-upload"
                       type="file"
                       accept="image/*"
                       onChange={handleAdminImageUpload}
-                      className="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
                     />
                     {adminOrderImage && (
-                      <div className="flex items-center space-x-2 bg-slate-900 px-2 py-1 rounded-xl border border-slate-700 flex-shrink-0">
+                      <div className="flex items-center space-x-2 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200 flex-shrink-0">
                         <img src={adminOrderImage} alt="Preview" className="w-7 h-7 object-cover rounded" />
                         <button
                           type="button"
@@ -2097,7 +2095,7 @@ function AdminPortal({
                             const el = document.getElementById('admin-file-upload');
                             if (el) el.value = '';
                           }}
-                          className="text-rose-400 hover:text-rose-300 text-xs font-bold"
+                          className="text-rose-600 hover:text-rose-700 text-xs font-bold"
                         >
                           &times;
                         </button>
@@ -2108,9 +2106,9 @@ function AdminPortal({
               </div>
 
               {/* TIER 3: COMMERCIALS & ACTION (4-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-2 border-t border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-2 border-t border-slate-200">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Quantity (Pcs) *</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Quantity (Pcs) *</label>
                   <input
                     type="number"
                     min="0"
@@ -2119,12 +2117,12 @@ function AdminPortal({
                     onFocus={() => { if (Number(adminQty) === 0) setAdminQty(''); }}
                     onBlur={() => { if (adminQty === '' || isNaN(adminQty)) setAdminQty(0); }}
                     onChange={(e) => setAdminQty(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5">Rate per Pc (₹) *</label>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Rate per Pc (₹) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2134,22 +2132,21 @@ function AdminPortal({
                     onFocus={() => { if (Number(adminRate) === 0) setAdminRate(''); }}
                     onBlur={() => { if (adminRate === '' || isNaN(adminRate)) setAdminRate(0); }}
                     onChange={(e) => setAdminRate(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
                   />
                 </div>
 
-                <div className="bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700/80 flex flex-col justify-center">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Item Subtotal</span>
-                  <span className="text-emerald-400 font-extrabold text-sm">{formatCurrency(adminQty * adminRate)}</span>
+                <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 flex flex-col justify-center">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Item Subtotal</span>
+                  <span className="text-slate-900 font-extrabold text-sm font-mono">{formatCurrency(adminQty * adminRate)}</span>
                 </div>
 
                 <div>
                   <button
                     type="submit"
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center space-x-1.5"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5"
                   >
-                    <span>➕</span>
-                    <span>Add Line Item</span>
+                    <span>+ Add Line Item</span>
                   </button>
                 </div>
               </div>
@@ -2158,18 +2155,18 @@ function AdminPortal({
 
             {/* Configured Line Items Table */}
             <div className="space-y-3 pt-2">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
                 Order Line Items ({adminOrderItems.length})
               </h4>
 
               {adminOrderItems.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-slate-800 rounded-2xl text-slate-500 text-xs">
+                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
                   No items added yet. Configure fields above and click &quot;+ Add Line Item&quot;.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="bg-slate-800/80 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-bold">
                       <tr>
                         <th className="py-3 px-4">Item &amp; Artwork</th>
                         <th className="py-3 px-4">Brand</th>
@@ -2182,35 +2179,39 @@ function AdminPortal({
                         <th className="py-3 px-4 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 bg-slate-900/60">
+                    <tbody className="divide-y divide-slate-100 bg-white">
                       {adminOrderItems.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-2.5">
-                              <img src={item.image} alt={item.type} className="w-9 h-9 object-cover rounded-lg border border-slate-700" />
+                              {item.image ? (
+                                <img src={item.image} alt={item.type} className="w-9 h-9 object-contain rounded-lg border border-slate-200 bg-white" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">ART</div>
+                              )}
                               <div className="flex flex-col">
-                                <span className="font-mono font-bold text-xs text-indigo-400 bg-indigo-950/60 border border-indigo-800/80 px-1.5 py-0.5 rounded inline-block w-fit">
+                                <span className="font-mono font-bold text-xs text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded inline-block w-fit">
                                   {item.itemCode || item.name}
                                 </span>
-                                <span className="font-mono text-[10px] text-slate-500 mt-0.5">#{idx + 1}</span>
+                                <span className="font-mono text-[10px] text-slate-400 mt-0.5">#{idx + 1}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-4 font-bold text-white">{item.brandName}</td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{item.brandName}</td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 mr-1.5 font-medium">{item.type}</span>
-                            <span className="text-sky-300 font-medium">{item.material}</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 mr-1.5 font-medium">{item.type}</span>
+                            <span className="text-slate-800 font-medium">{item.material}</span>
                           </td>
-                          <td className="py-3 px-4 text-slate-300">{item.dori}</td>
-                          <td className="py-3 px-4 text-slate-300">{item.plastic}</td>
+                          <td className="py-3 px-4 text-slate-600">{item.dori}</td>
+                          <td className="py-3 px-4 text-slate-600">{item.plastic}</td>
                           <td className="py-3 px-4 text-center font-mono font-medium">{item.quantity.toLocaleString()}</td>
                           <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.unitPrice)}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">{formatCurrency(item.total)}</td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(item.total)}</td>
                           <td className="py-3 px-4 text-center">
                             <button
                               type="button"
                               onClick={() => handleAdminRemoveItem(item.id)}
-                              className="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold transition-colors inline-flex items-center justify-center"
+                              className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold transition-colors inline-flex items-center justify-center"
                             >
                               &times;
                             </button>
@@ -2226,43 +2227,43 @@ function AdminPortal({
           </div>
 
           {/* Admin Order Finalization */}
-          <div className="xl:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4 self-start sticky top-24">
-            <h3 className="font-bold text-white text-base pb-3 border-b border-slate-800 flex justify-between">
+          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4 self-start sticky top-24">
+            <h3 className="font-bold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
               <span>Order Summary</span>
-              <span className="text-xs text-indigo-400 font-mono">{selectedCust?.company}</span>
+              <span className="text-xs text-slate-600 font-mono font-semibold">{selectedCust?.company}</span>
             </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-[10px] text-slate-400 block font-bold mb-1">Special Discount (₹)</label>
+                <label className="text-[10px] text-slate-600 block font-bold mb-1">Special Discount (₹)</label>
                 <input
                   type="number"
                   min="0"
                   value={adminOrderDiscount}
                   onChange={(e) => setAdminOrderDiscount(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-400 block font-bold mb-1">Internal / Production Note</label>
+                <label className="text-[10px] text-slate-600 block font-bold mb-1">Internal / Production Note</label>
                 <input
                   type="text"
-                  placeholder="e.g. Color matching approved offline via WhatsApp"
+                  placeholder="e.g. Color matching approved offline"
                   value={adminOrderNotes}
                   onChange={(e) => setAdminOrderNotes(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                 />
               </div>
 
-              <div className="pt-2 border-t border-slate-800 space-y-1.5">
-                <div className="flex justify-between text-slate-400">
+              <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                <div className="flex justify-between text-slate-500">
                   <span>Subtotal</span>
-                  <span>{formatCurrency(Math.max(0, adminSubtotal))}</span>
+                  <span className="font-mono">{formatCurrency(Math.max(0, adminSubtotal))}</span>
                 </div>
-                <div className="flex justify-between text-white font-black text-sm pt-2 border-t border-slate-800">
+                <div className="flex justify-between text-slate-900 font-bold text-sm pt-2 border-t border-slate-100">
                   <span>Total Amount</span>
-                  <span className="text-emerald-400">{formatCurrency(adminTotal)}</span>
+                  <span className="font-mono font-extrabold">{formatCurrency(adminTotal)}</span>
                 </div>
               </div>
 
@@ -2270,9 +2271,9 @@ function AdminPortal({
                 type="button"
                 onClick={handleAdminSubmitOrder}
                 disabled={adminOrderItems.length === 0}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all mt-2"
+                className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-xs mt-2"
               >
-                Confirm & Create Order
+                Confirm &amp; Create Order
               </button>
             </div>
           </div>
@@ -2285,31 +2286,29 @@ function AdminPortal({
         <div className="space-y-6 animate-fade-in">
           
           {/* Sub-tab Navigation: Paper Catalogs Master vs Types & Materials */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
             <div className="flex items-center space-x-2">
               <button
                 type="button"
                 onClick={() => setCatalogSubTab('catalogs')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
                   catalogSubTab === 'catalogs'
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
                 }`}
               >
-                <span>📄</span>
-                <span>Paper Catalogs Master ({availableCatalogs.length})</span>
+                Paper Catalogs Master ({availableCatalogs.length})
               </button>
               <button
                 type="button"
                 onClick={() => setCatalogSubTab('types')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
                   catalogSubTab === 'types'
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
                 }`}
               >
-                <span>🏷️</span>
-                <span>Product Types &amp; Materials ({availableTypes.length})</span>
+                Product Types &amp; Materials ({availableTypes.length})
               </button>
             </div>
 
@@ -2317,10 +2316,9 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={handleOpenAddCatalog}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all active:scale-95 self-start sm:self-auto"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-3.5 rounded-xl shadow-xs flex items-center space-x-1.5 transition-all self-start sm:self-auto"
               >
-                <span>➕</span>
-                <span>Add New Paper Catalog</span>
+                <span>+ Add New Paper Catalog</span>
               </button>
             )}
           </div>
@@ -2328,18 +2326,17 @@ function AdminPortal({
           {/* SUB-TAB 1: PAPER CATALOGS MASTER */}
           {catalogSubTab === 'catalogs' && (
             <div className="space-y-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-                <div className="pb-3 border-b border-slate-800 mb-4 flex items-center justify-between">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+                <div className="pb-3 border-b border-slate-100 mb-4 flex items-center justify-between">
                   <div>
-                    <h3 className="font-extrabold text-white text-base flex items-center space-x-2">
-                      <span>📄</span>
-                      <span>Paper Catalogs &amp; Swatches Master</span>
+                    <h3 className="font-bold text-slate-900 text-base">
+                      Paper Catalogs &amp; Swatches Master
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Physical paper swatch books provided to customers for hangtag selection. Sheet rates and opening stocks automatically feed into the production order forms and inventory.
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-950/80 border border-indigo-800/80 px-3 py-1 rounded-xl">
+                  <span className="text-xs font-mono text-slate-700 font-semibold bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
                     {availableCatalogs.length} Active Swatches
                   </span>
                 </div>
@@ -2348,58 +2345,56 @@ function AdminPortal({
                   {availableCatalogs.map(cat => (
                     <div 
                       key={cat.id} 
-                      className="bg-slate-800/70 border border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-indigo-500/50 transition-all group"
+                      className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-400 transition-all group"
                     >
                       <div>
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="font-mono text-xs font-bold text-indigo-400 bg-indigo-950/80 border border-indigo-800/80 px-2 py-0.5 rounded-lg inline-block">
+                            <span className="font-mono text-xs font-bold text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-md inline-block">
                               {cat.code}
                             </span>
-                            <h4 className="font-bold text-white text-sm mt-1.5">{cat.name}</h4>
+                            <h4 className="font-bold text-slate-900 text-sm mt-1.5">{cat.name}</h4>
                           </div>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-900 text-emerald-400 font-mono font-bold text-xs border border-slate-700 shrink-0">
+                          <span className="px-2 py-0.5 rounded-md bg-white text-slate-900 font-mono font-bold text-xs border border-slate-200 shrink-0">
                             ₹{Number(cat.sheetRate || 0).toFixed(2)} / sheet
                           </span>
                         </div>
 
                         <div className="flex flex-wrap gap-1.5 mt-2.5">
-                          <span className="bg-slate-900/90 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-mono">
+                          <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-mono">
                             {cat.gsm} GSM
                           </span>
-                          <span className="bg-slate-900/90 text-sky-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px]">
+                          <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px]">
                             {cat.finish}
                           </span>
                           {cat.stockSheets !== undefined && (
-                            <span className="bg-slate-900/90 text-indigo-300 border border-slate-700 px-2 py-0.5 rounded-lg text-[10px] font-mono">
+                            <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-mono">
                               Stock: {Number(cat.stockSheets).toLocaleString()} shts
                             </span>
                           )}
                         </div>
 
                         {cat.recommendedFor && (
-                          <p className="text-[11px] text-slate-400 mt-2 line-clamp-2 italic">
+                          <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 italic">
                             &ldquo;{cat.recommendedFor}&rdquo;
                           </p>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-700/60">
+                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
                         <button
                           type="button"
                           onClick={() => handleOpenEditCatalog(cat)}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all flex items-center space-x-1"
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium transition-all"
                         >
-                          <span>✏️</span>
-                          <span>Edit</span>
+                          Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteCatalog(cat.id)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold transition-all flex items-center space-x-1"
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 text-[11px] font-medium transition-all"
                         >
-                          <span>🗑️</span>
-                          <span>Delete</span>
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -2414,53 +2409,52 @@ function AdminPortal({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Create New Type Form */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                  <span>➕</span>
-                  <span>Add New Product Type</span>
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-3">
+                <h3 className="font-bold text-slate-900 text-base">
+                  Add New Product Type
                 </h3>
-                <p className="text-xs text-slate-400 mb-2">Create a new manufacturing classification (e.g. Woven Label, Heat Transfer, Satin Tape).</p>
+                <p className="text-xs text-slate-500 mb-2">Create a new manufacturing classification (e.g. Woven Label, Heat Transfer, Satin Tape).</p>
 
                 <form onSubmit={handleCreateNewType} className="space-y-3">
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">Type Name *</label>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Type Name *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. Woven Label / Sticker"
                       value={newTypeName}
                       onChange={(e) => setNewTypeName(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">Initial Materials (comma separated) *</label>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Initial Materials (comma separated) *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. Damask 50D, Satin, Taffeta"
                       value={newTypeMaterials}
                       onChange={(e) => setNewTypeMaterials(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">Default Unit Rate (₹)</label>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Default Unit Rate (₹)</label>
                     <input
                       type="number"
                       step="0.1"
                       min="0.1"
                       value={newTypeDefaultRate}
                       onChange={(e) => setNewTypeDefaultRate(Number(e.target.value))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl shadow-xs transition-all"
                   >
                     Add Type to Catalog
                   </button>
@@ -2468,20 +2462,19 @@ function AdminPortal({
               </div>
 
               {/* Add Material to Existing Type Form */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                  <span>➕</span>
-                  <span>Add Material Thickness / Variant</span>
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-3">
+                <h3 className="font-bold text-slate-900 text-base">
+                  Add Material Thickness / Variant
                 </h3>
-                <p className="text-xs text-slate-400 mb-2">Add a new material or GSM to an existing type (e.g. add 400 GSM to Tag, or 2.5 to PU Label).</p>
+                <p className="text-xs text-slate-500 mb-2">Add a new material or GSM to an existing type (e.g. add 400 GSM to Tag, or 2.5 to PU Label).</p>
 
                 <form onSubmit={handleAddMaterialToType} className="space-y-3">
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">Select Type *</label>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">Select Type *</label>
                     <select
                       value={addMatTargetType}
                       onChange={(e) => setAddMatTargetType(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     >
                       {availableTypes.map(t => (
                         <option key={t.id} value={t.name}>{t.name}</option>
@@ -2490,20 +2483,20 @@ function AdminPortal({
                   </div>
 
                   <div>
-                    <label className="text-xs text-slate-300 block mb-1">New Material / Specification Name *</label>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">New Material / Specification Name *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. 400 GSM / 2.5 / Holographic"
                       value={addMatName}
                       onChange={(e) => setAddMatName(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all"
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl shadow-xs transition-all"
                   >
                     Add Material to {addMatTargetType}
                   </button>
@@ -2511,31 +2504,31 @@ function AdminPortal({
               </div>
 
               {/* Active Types & Materials Overview Cards */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-                <h3 className="font-bold text-white text-base mb-1">Active Types Matrix</h3>
-                <p className="text-xs text-slate-400 mb-3">{availableTypes.length} configured types available for order booking.</p>
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+                <h3 className="font-bold text-slate-900 text-base mb-1">Active Types Matrix</h3>
+                <p className="text-xs text-slate-500 mb-3">{availableTypes.length} configured types available for order booking.</p>
 
                 <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                   {availableTypes.map(type => (
-                    <div key={type.id} className="bg-slate-800/70 border border-slate-700 rounded-2xl p-3.5 space-y-2">
+                    <div key={type.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-sm text-white">{type.name}</span>
-                        <span className="text-[11px] text-emerald-400 font-mono">Rate: ₹{type.defaultRate}</span>
+                        <span className="font-bold text-sm text-slate-900">{type.name}</span>
+                        <span className="text-[11px] text-slate-600 font-mono">Rate: ₹{type.defaultRate}</span>
                       </div>
 
                       <div>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Materials:</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold block mb-1">Materials:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {type.materials.map((mat, i) => (
                             <span
                               key={i}
-                              className="bg-slate-900 text-slate-200 border border-slate-700 px-2.5 py-0.5 rounded-lg text-[10px] font-mono flex items-center space-x-1"
+                              className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-mono flex items-center space-x-1"
                             >
                               <span>{mat}</span>
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMaterial(type.name, mat)}
-                                className="text-slate-500 hover:text-rose-400 font-bold ml-1"
+                                className="text-slate-400 hover:text-rose-600 font-bold ml-1"
                                 title="Delete Material"
                               >
                                 &times;
@@ -2561,14 +2554,14 @@ function AdminPortal({
           
           {/* BULK ACTION BAR (Visible when 1 or more orders are selected) */}
           {selectedOrderIds.length > 0 && (
-            <div className="sticky top-20 z-20 bg-indigo-950/95 border-2 border-indigo-500/60 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xl backdrop-blur-md animate-fade-in">
+            <div className="sticky top-20 z-20 bg-white/95 border-2 border-slate-900 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg backdrop-blur-md animate-fade-in">
               <div className="flex items-center space-x-3">
-                <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-900"></span>
                 </span>
-                <span className="font-bold text-white text-xs">
-                  <strong className="text-indigo-300 font-mono text-sm">{selectedOrderIds.length}</strong> Order(s) Selected for Bulk Movement
+                <span className="font-semibold text-slate-900 text-xs">
+                  <strong className="text-slate-900 font-mono text-sm">{selectedOrderIds.length}</strong> Order(s) Selected for Bulk Movement
                 </span>
               </div>
 
@@ -2576,9 +2569,8 @@ function AdminPortal({
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange('approved')}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow transition-all flex items-center space-x-1"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
                 >
-                  <span>✓</span>
                   <span>Bulk Approve</span>
                 </button>
 
@@ -2588,29 +2580,27 @@ function AdminPortal({
                     const selectedOrdersList = orders.filter(o => selectedOrderIds.includes(o.id));
                     handleOpenMoveToProduction(selectedOrdersList);
                   }}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold px-3.5 py-1.5 rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center space-x-1.5 active:scale-95"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
                 >
-                  <span>🚀</span>
                   <span>Bulk Move to Production</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleBulkStatusChange('rejected')}
-                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow transition-all flex items-center space-x-1"
+                  className="bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
                 >
-                  <span>✕</span>
                   <span>Bulk Reject</span>
                 </button>
 
-                <div className="h-5 w-px bg-indigo-800 mx-1"></div>
+                <div className="h-5 w-px bg-slate-200 mx-1"></div>
 
                 <div className="flex items-center space-x-1.5">
-                  <span className="text-[11px] text-slate-300 font-medium">Move Status to:</span>
+                  <span className="text-[11px] text-slate-600 font-medium">Move Status to:</span>
                   <select
                     value={bulkTargetStatus}
                     onChange={(e) => setBulkTargetStatus(e.target.value)}
-                    className="bg-slate-900 border border-indigo-500/60 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-400"
+                    className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-slate-500"
                   >
                     {STAGES.map(s => (
                       <option key={s.key} value={s.key}>{s.label}</option>
@@ -2619,7 +2609,7 @@ function AdminPortal({
                   <button
                     type="button"
                     onClick={() => handleBulkStatusChange(bulkTargetStatus)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs shadow transition-all"
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all"
                   >
                     Move
                   </button>
@@ -2628,7 +2618,7 @@ function AdminPortal({
                 <button
                   type="button"
                   onClick={() => setSelectedOrderIds([])}
-                  className="text-xs text-slate-400 hover:text-white underline ml-2"
+                  className="text-xs text-slate-500 hover:text-slate-900 underline ml-2"
                 >
                   Deselect All
                 </button>
@@ -2636,40 +2626,40 @@ function AdminPortal({
             </div>
           )}
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
               <div>
-                <h3 className="font-bold text-white text-base">Admin Order Register</h3>
-                <p className="text-xs text-slate-400">Complete registry with large artwork inspection, 1-click Approve/Reject, and bulk status movement.</p>
+                <h3 className="font-bold text-slate-900 text-base">Admin Order Register</h3>
+                <p className="text-xs text-slate-500">Complete registry with artwork inspection, 1-click Approve/Reject, and bulk status movement.</p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs text-indigo-400 font-mono mr-2">{orders.length} Total Orders</span>
+                <span className="text-xs text-slate-600 font-mono font-semibold mr-2">{orders.length} Total Orders</span>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${viewMode === 'table' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${viewMode === 'table' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:text-slate-900'}`}
                 >
-                  ☰ Table
+                  Table View
                 </button>
                 <button
                   onClick={() => setViewMode('kanban')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${viewMode === 'kanban' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:text-slate-900'}`}
                 >
-                  📊 Kanban
+                  Kanban View
                 </button>
               </div>
             </div>
 
             {viewMode === 'table' ? (
-              <div className="overflow-x-auto mt-4">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+              <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                     <tr>
                       <th className="py-3 px-3 text-center w-10">
                         <input
                           type="checkbox"
                           checked={orders.length > 0 && selectedOrderIds.length === orders.length}
                           onChange={handleToggleSelectAll}
-                          className="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400 cursor-pointer"
                           title="Select / Deselect All Orders"
                         />
                       </th>
@@ -2683,7 +2673,7 @@ function AdminPortal({
                       <th className="py-3 px-4 text-center">Approve / Reject</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-slate-100 bg-white">
                     {orders.map(o => {
                       const firstItem = o.items[0] || {};
                       const isSelected = selectedOrderIds.includes(o.id);
@@ -2693,7 +2683,7 @@ function AdminPortal({
                       return (
                         <tr 
                           key={o.id} 
-                          className={`hover:bg-slate-800/40 transition-colors ${isSelected ? 'bg-indigo-950/30' : ''}`}
+                          className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-slate-50/90' : ''}`}
                         >
                           {/* 0. BULK SELECT CHECKBOX */}
                           <td className="py-4 px-3 text-center">
@@ -2701,14 +2691,14 @@ function AdminPortal({
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => handleToggleSelectOrder(o.id)}
-                              className="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400 cursor-pointer"
                             />
                           </td>
 
                           {/* 1. ORDER ID */}
                           <td className="py-4 px-4">
-                            <div className="font-mono font-bold text-blue-400 text-sm">{o.id}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">{formatDate(o.createdAt)}</div>
+                            <div className="font-mono font-bold text-slate-900 text-sm">{o.id}</div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(o.createdAt)}</div>
                           </td>
 
                           {/* 2. ARTWORK (LARGER SIZE WITH CLICK TO ENLARGE LIGHTBOX) */}
@@ -2722,51 +2712,51 @@ function AdminPortal({
                                 <img 
                                   src={firstItem.image} 
                                   alt="Artwork" 
-                                  className="w-20 h-20 object-cover rounded-2xl border-2 border-slate-700 shadow-md group-hover:border-indigo-500 group-hover:scale-105 transition-all" 
+                                  className="w-20 h-20 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs group-hover:border-slate-400 group-hover:scale-105 transition-all" 
                                 />
-                                <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                                  🔍 Zoom
+                                <div className="absolute inset-0 bg-black/30 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition-opacity">
+                                  Zoom
                                 </div>
                               </div>
                             ) : (
-                              <div className="w-20 h-20 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-lg text-slate-500">
-                                🏷️
+                              <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                                ART
                               </div>
                             )}
                           </td>
 
                           {/* 3. CUSTOMER NAME */}
                           <td className="py-4 px-4">
-                            <div className="font-bold text-white text-sm">{o.customerCompany}</div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{o.customerName}</div>
+                            <div className="font-bold text-slate-900 text-sm">{o.customerCompany}</div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">{o.customerName}</div>
                             {o.customerPhone && (
-                              <div className="text-[10px] text-slate-500 font-mono">{o.customerPhone}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{o.customerPhone}</div>
                             )}
                           </td>
 
                           {/* 4. BRAND AND ITEM SPECS */}
                           <td className="py-4 px-4">
                             <div className="flex items-center space-x-2">
-                              <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200">
                                 {firstItem.itemCode || firstItem.name || 'ITEM'}
                               </span>
-                              <span className="font-extrabold text-white text-sm">
+                              <span className="font-bold text-slate-900 text-sm">
                                 {firstItem.brandName || o.customerCompany}
                               </span>
                             </div>
                             <div className="mt-1 flex flex-wrap gap-1.5 items-center">
-                              <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-bold text-[11px]">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-medium text-[11px]">
                                 {firstItem.type || 'Tag'}
                               </span>
-                              <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20 text-[11px] font-medium">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
                                 {firstItem.material || 'Standard'}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-400 mt-1 font-mono">
-                              Qty: <strong className="text-white">{Number(firstItem.quantity || 0).toLocaleString()} pcs</strong> &bull; Rate: <strong className="text-slate-300">{formatCurrency(firstItem.unitPrice || 0)}</strong>
+                            <div className="text-xs text-slate-500 mt-1 font-mono">
+                              Qty: <strong className="text-slate-900">{Number(firstItem.quantity || 0).toLocaleString()} pcs</strong> &bull; Rate: <strong className="text-slate-700">{formatCurrency(firstItem.unitPrice || 0)}</strong>
                             </div>
                             {o.items.length > 1 && (
-                              <span className="inline-block mt-1 text-[10px] bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-md border border-slate-700 font-semibold">
+                              <span className="inline-block mt-1 text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200 font-medium">
                                 + {o.items.length - 1} more item(s)
                               </span>
                             )}
@@ -2774,11 +2764,11 @@ function AdminPortal({
 
                           {/* 5. DORI AND PLASTIC */}
                           <td className="py-4 px-4 text-xs space-y-1">
-                            <div className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 text-slate-200">
-                              🧵 Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
+                            <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
+                              Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
                             </div>
-                            <div className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 text-slate-200">
-                              🔒 Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
+                            <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
+                              Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
                             </div>
                           </td>
 
@@ -2786,14 +2776,13 @@ function AdminPortal({
                           <td className="py-4 px-4 space-y-1.5">
                             <div>
                               <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                                o.status === 'approved' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 shadow-emerald-900/20' :
-                                o.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                                o.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
-                                o.status === 'delivered' ? 'bg-purple-950 text-purple-400 border border-purple-800' :
-                                o.status === 'pending' ? 'bg-amber-950 text-amber-400 border border-amber-800' :
-                                'bg-slate-800 text-slate-300 border border-slate-700'
+                                o.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                o.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                                o.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
+                                o.status === 'delivered' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                                o.status === 'pending' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                'bg-slate-100 text-slate-700 border border-slate-200'
                               }`}>
-                                <span>{STAGES.find(s => s.key === o.status)?.icon || '●'}</span>
                                 <span>{STAGES.find(s => s.key === o.status)?.label || o.status}</span>
                               </span>
                             </div>
@@ -2820,14 +2809,14 @@ function AdminPortal({
                                 };
                                 onUpdateOrder(updated);
                               }}
-                              className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-0.5 text-[11px] text-slate-300 focus:outline-none focus:border-indigo-500 w-full"
+                              className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-[11px] text-slate-900 focus:outline-none focus:border-slate-500 w-full"
                             >
                               {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                             </select>
                           </td>
 
                           {/* 7. TOTAL AMT */}
-                          <td className="py-4 px-4 text-right font-extrabold text-emerald-400 font-mono text-sm whitespace-nowrap">
+                          <td className="py-4 px-4 text-right font-bold text-slate-900 font-mono text-sm whitespace-nowrap">
                             {formatCurrency(o.total)}
                           </td>
 
@@ -2839,20 +2828,18 @@ function AdminPortal({
                                   <button
                                     type="button"
                                     onClick={() => setActiveTab('production')}
-                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-900/20 flex items-center space-x-1"
+                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
                                     title="View this job in production flow"
                                   >
-                                    <span>⚙️</span>
                                     <span>In Production &rarr;</span>
                                   </button>
                                 ) : isApproved ? (
                                   <button
                                     type="button"
                                     onClick={() => handleMoveToProduction(o)}
-                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-900/20 active:scale-95 flex items-center space-x-1"
-                                    title="Create Production Job Form & dispatch to Printing team"
+                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
+                                    title="Create Production Job Form &amp; dispatch to Printing team"
                                   >
-                                    <span>🚀</span>
                                     <span>Send to Production</span>
                                   </button>
                                 ) : (
@@ -2860,10 +2847,9 @@ function AdminPortal({
                                     type="button"
                                     onClick={() => handleApproveOrder(o)}
                                     disabled={isApproved || isRejected}
-                                    className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-900/20 active:scale-95 flex items-center space-x-1"
+                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
                                     title="Approve this manufacturing order"
                                   >
-                                    <span>✓</span>
                                     <span>Approve</span>
                                   </button>
                                 )}
@@ -2873,14 +2859,13 @@ function AdminPortal({
                                     type="button"
                                     onClick={() => handleOpenRejectModal(o)}
                                     disabled={isRejected}
-                                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                                       isRejected 
-                                        ? 'bg-rose-950/60 text-rose-500/60 border border-rose-900 cursor-not-allowed' 
-                                        : 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-900/20 active:scale-95'
+                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' 
+                                        : 'bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 shadow-xs'
                                     }`}
                                     title={isRejected ? 'Order already rejected' : 'Reject this order with structured reason'}
                                   >
-                                    <span>✕</span>
                                     <span>Reject</span>
                                   </button>
                                 )}
@@ -2889,9 +2874,9 @@ function AdminPortal({
                               <button
                                 type="button"
                                 onClick={() => onOpenInvoice(o)}
-                                className="text-[11px] text-slate-400 hover:text-slate-200 underline mt-0.5"
+                                className="text-[11px] text-slate-500 hover:text-slate-900 hover:underline mt-0.5"
                               >
-                                📄 View Invoice
+                                View Invoice
                               </button>
                             </div>
                           </td>
@@ -2905,49 +2890,49 @@ function AdminPortal({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                 {['pending', 'approved', 'in_production', 'delivered'].map(stg => (
-                  <div key={stg} className="bg-slate-800/50 border border-slate-700 rounded-2xl p-4">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                  <div key={stg} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600 mb-3 flex items-center justify-between">
                       <span>{stg.replace('_', ' ')}</span>
-                      <span className="text-[10px] bg-slate-900 px-2 py-0.5 rounded-full border border-slate-700">
+                      <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-slate-200 font-mono">
                         {orders.filter(o => o.status === stg).length}
                       </span>
                     </h4>
                     <div className="space-y-2">
                       {orders.filter(o => o.status === stg).map(o => (
-                        <div key={o.id} className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs space-y-2">
-                          <div className="flex justify-between font-mono font-bold text-blue-400">
+                        <div key={o.id} className="bg-white border border-slate-200 rounded-xl p-3 text-xs space-y-2 shadow-2xs">
+                          <div className="flex justify-between font-mono font-bold text-slate-900">
                             <span>{o.id}</span>
-                            <span className="text-emerald-400">{formatCurrency(o.total)}</span>
+                            <span>{formatCurrency(o.total)}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             {o.items[0]?.image && (
-                              <img src={o.items[0].image} alt="Art" className="w-10 h-10 object-cover rounded-lg border border-slate-700" />
+                              <img src={o.items[0].image} alt="Art" className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
                             )}
                             <div>
-                              <div className="font-semibold text-white">{o.customerCompany}</div>
-                              <div className="text-[10px] text-slate-400">
+                              <div className="font-semibold text-slate-900">{o.customerCompany}</div>
+                              <div className="text-[10px] text-slate-500">
                                 {o.items[0]?.brandName} &bull; {o.items[0]?.type}
                               </div>
                             </div>
                           </div>
-                          <div className="flex justify-between items-center pt-1 border-t border-slate-800">
-                            <span className="text-[10px] text-slate-400">{o.items[0]?.dori || 'Reg.'}</span>
+                          <div className="flex justify-between items-center pt-1 border-t border-slate-100">
+                            <span className="text-[10px] text-slate-500">{o.items[0]?.dori || 'Reg.'}</span>
                             <div className="space-x-1">
                               {o.status === 'approved' && (
                                 <button 
                                   type="button" 
                                   onClick={() => handleOpenMoveToProduction(o)} 
-                                  className="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow"
-                                  title="Allocate sheets & send to production"
+                                  className="text-[10px] bg-slate-900 hover:bg-slate-800 text-white px-2 py-0.5 rounded font-medium shadow-xs"
+                                  title="Allocate sheets &amp; send to production"
                                 >
-                                  🚀 Produce
+                                  Produce
                                 </button>
                               )}
                               {o.status !== 'approved' && o.status !== 'in_production' && (
-                                <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">✓</button>
+                                <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded font-medium">Approve</button>
                               )}
                               {o.status !== 'rejected' && o.status !== 'in_production' && (
-                                <button onClick={() => handleRejectOrder(o)} className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold">✕</button>
+                                <button onClick={() => handleRejectOrder(o)} className="text-[10px] bg-white text-rose-700 border border-slate-200 px-2 py-0.5 rounded font-medium">Reject</button>
                               )}
                             </div>
                           </div>
@@ -2965,19 +2950,19 @@ function AdminPortal({
 
       {/* MODULE 3: CREATE INVOICE */}
       {activeTab === 'create_invoice' && (
-        <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-200 animate-fade-in space-y-4">
+        <div className="max-w-2xl mx-auto bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs text-slate-800 animate-fade-in space-y-4">
           <div>
-            <h3 className="font-bold text-white text-base">Generate Commercial Invoice</h3>
-            <p className="text-xs text-slate-400">Issue an invoice against a completed manufacturing order.</p>
+            <h3 className="font-bold text-slate-900 text-base">Generate Commercial Invoice</h3>
+            <p className="text-xs text-slate-500">Issue an invoice against a completed manufacturing order.</p>
           </div>
 
-          <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 pt-2 border-t border-slate-800">
+          <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 pt-2 border-t border-slate-100">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Select Order to Bill</label>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Select Order to Bill</label>
               <select
                 value={invOrderId}
                 onChange={(e) => setInvOrderId(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
               >
                 {orders.map(o => (
                   <option key={o.id} value={o.id}>
@@ -2988,35 +2973,35 @@ function AdminPortal({
             </div>
 
             {targetOrder && (
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700 text-xs space-y-2">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-xs space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Customer:</span>
-                  <span className="font-bold text-white">{targetOrder.customerCompany} ({targetOrder.customerName})</span>
+                  <span className="text-slate-500">Customer:</span>
+                  <span className="font-semibold text-slate-900">{targetOrder.customerCompany} ({targetOrder.customerName})</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Items:</span>
-                  <span className="text-slate-200">{targetOrder.items.map(i => i.name).join(', ')}</span>
+                  <span className="text-slate-500">Items:</span>
+                  <span className="text-slate-700">{targetOrder.items.map(i => i.name).join(', ')}</span>
                 </div>
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-slate-700">
-                  <span className="text-white">Total Billable:</span>
-                  <span className="text-emerald-400 font-mono">{formatCurrency(targetOrder.total)}</span>
+                <div className="flex justify-between text-sm font-bold pt-2 border-t border-slate-200">
+                  <span className="text-slate-900">Total Billable:</span>
+                  <span className="text-slate-900 font-mono">{formatCurrency(targetOrder.total)}</span>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Payment Due Date</label>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Payment Due Date</label>
               <input
                 type="date"
                 value={invDueDate}
                 onChange={(e) => setInvDueDate(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-3 rounded-xl shadow transition-all"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-3 rounded-xl transition-colors"
             >
               Generate Commercial Invoice
             </button>
@@ -3027,39 +3012,39 @@ function AdminPortal({
       {/* MODULE 4: VIEW ALL INVOICES */}
       {activeTab === 'all_invoices' && (
         <div className="space-y-4 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Commercial Invoices Register</h3>
-            <p className="text-xs text-slate-400 mb-4">Master record of all tax invoices and payment collections.</p>
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-bold text-slate-900 text-base mb-1">Commercial Invoices Register</h3>
+            <p className="text-xs text-slate-500 mb-4">Master record of all tax invoices and payment collections.</p>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4">Invoice No</th>
-                    <th className="py-3 px-4">Customer Party</th>
-                    <th className="py-3 px-4">Order Ref</th>
-                    <th className="py-3 px-4">Issue Date</th>
-                    <th className="py-3 px-4">Total Amount</th>
-                    <th className="py-3 px-4">Collected</th>
-                    <th className="py-3 px-4">Balance Due</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 font-semibold">Invoice No</th>
+                    <th className="py-3 px-4 font-semibold">Customer Party</th>
+                    <th className="py-3 px-4 font-semibold">Order Ref</th>
+                    <th className="py-3 px-4 font-semibold">Issue Date</th>
+                    <th className="py-3 px-4 font-semibold">Total Amount</th>
+                    <th className="py-3 px-4 font-semibold">Collected</th>
+                    <th className="py-3 px-4 font-semibold">Balance Due</th>
+                    <th className="py-3 px-4 font-semibold">Status</th>
+                    <th className="py-3 px-4 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {invoices.map(inv => (
-                    <tr key={inv.id} className="hover:bg-slate-800/40">
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-bold text-white">{inv.customerCompany || inv.customerName}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-400">{inv.orderId}</td>
-                      <td className="py-3.5 px-4">{formatDate(inv.issueDate)}</td>
-                      <td className="py-3.5 px-4 font-bold text-white">{formatCurrency(inv.total)}</td>
-                      <td className="py-3.5 px-4 text-emerald-400">{formatCurrency(inv.paidAmount)}</td>
-                      <td className="py-3.5 px-4 font-extrabold text-amber-400">{formatCurrency(inv.balanceDue)}</td>
+                    <tr key={inv.id} className="hover:bg-slate-50/70">
+                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{inv.id}</td>
+                      <td className="py-3.5 px-4 font-medium text-slate-900">{inv.customerCompany || inv.customerName}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-500">{inv.orderId}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{formatDate(inv.issueDate)}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">{formatCurrency(inv.total)}</td>
+                      <td className="py-3.5 px-4 text-emerald-700 font-medium">{formatCurrency(inv.paidAmount)}</td>
+                      <td className="py-3.5 px-4 font-bold text-amber-700">{formatCurrency(inv.balanceDue)}</td>
                       <td className="py-3.5 px-4">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          inv.status === 'paid' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                          'bg-amber-950 text-amber-400 border border-amber-800'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                          inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
                           {inv.status}
                         </span>
@@ -3070,7 +3055,7 @@ function AdminPortal({
                             const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, shippingAddress: 'Client Registered Address', priority: 'standard' };
                             onOpenInvoice(linkedOrder);
                           }}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg text-xs font-semibold"
+                          className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors"
                         >
                           Print / View
                         </button>
@@ -3087,18 +3072,18 @@ function AdminPortal({
       {/* MODULE 5: LEDGERS HUB */}
       {activeTab === 'ledgers' && (
         <div className="space-y-6 animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
               <div>
-                <h3 className="font-bold text-white text-base">Party-Wise Customer Ledgers</h3>
-                <p className="text-xs text-slate-400">Statement of Account with double-entry debits and credits.</p>
+                <h3 className="font-bold text-slate-900 text-base">Party-Wise Customer Ledgers</h3>
+                <p className="text-xs text-slate-500">Statement of Account with double-entry debits and credits.</p>
               </div>
               <div className="flex items-center space-x-2">
-                <label className="text-xs text-slate-400">Select Party:</label>
+                <label className="text-xs font-medium text-slate-600">Select Party:</label>
                 <select
                   value={selectedLedgerPartyId}
                   onChange={(e) => setSelectedLedgerPartyId(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white"
+                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 >
                   {users.customers.map(c => (
                     <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
@@ -3108,43 +3093,43 @@ function AdminPortal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-4">
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Invoiced (Debits)</span>
-                <span className="text-lg font-bold text-white">{formatCurrency(partyLedger.totalDebited)}</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Total Invoiced (Debits)</span>
+                <span className="text-lg font-bold text-slate-900">{formatCurrency(partyLedger.totalDebited)}</span>
               </div>
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Received (Credits)</span>
-                <span className="text-lg font-bold text-emerald-400">{formatCurrency(partyLedger.totalCredited)}</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Total Received (Credits)</span>
+                <span className="text-lg font-bold text-emerald-700">{formatCurrency(partyLedger.totalCredited)}</span>
               </div>
-              <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Current Net Balance</span>
-                <span className="text-lg font-black text-amber-400">{formatCurrency(partyLedger.closingBalance)}</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Current Net Balance</span>
+                <span className="text-lg font-bold text-slate-900">{formatCurrency(partyLedger.closingBalance)}</span>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Transaction / Type</th>
-                    <th className="py-3 px-4">Ref / Doc No</th>
-                    <th className="py-3 px-4">Particulars</th>
-                    <th className="py-3 px-4 text-right">Debit (₹)</th>
-                    <th className="py-3 px-4 text-right">Credit (₹)</th>
-                    <th className="py-3 px-4 text-right">Running Balance (₹)</th>
+                    <th className="py-3 px-4 font-semibold">Date</th>
+                    <th className="py-3 px-4 font-semibold">Transaction / Type</th>
+                    <th className="py-3 px-4 font-semibold">Ref / Doc No</th>
+                    <th className="py-3 px-4 font-semibold">Particulars</th>
+                    <th className="py-3 px-4 text-right font-semibold">Debit (₹)</th>
+                    <th className="py-3 px-4 text-right font-semibold">Credit (₹)</th>
+                    <th className="py-3 px-4 text-right font-semibold">Running Balance (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {partyLedger.journal.map((j, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/40">
-                      <td className="py-3 px-4 text-slate-400">{formatDate(j.date)}</td>
-                      <td className="py-3 px-4 font-bold text-white">{j.type}</td>
-                      <td className="py-3 px-4 font-mono text-blue-400">{j.refNo}</td>
-                      <td className="py-3 px-4 text-slate-300">{j.particulars}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-200">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
-                      <td className="py-3 px-4 text-right font-mono font-black text-amber-400">{formatCurrency(j.balance)}</td>
+                    <tr key={idx} className="hover:bg-slate-50/70">
+                      <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
+                      <td className="py-3 px-4 font-medium text-slate-900">{j.type}</td>
+                      <td className="py-3 px-4 font-mono text-slate-600">{j.refNo}</td>
+                      <td className="py-3 px-4 text-slate-600">{j.particulars}</td>
+                      <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
+                      <td className="py-3 px-4 text-right font-mono font-medium text-emerald-700">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(j.balance)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -3158,17 +3143,17 @@ function AdminPortal({
       {activeTab === 'payments' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
           
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Record Inward Payment</h3>
-            <p className="text-xs text-slate-400 mb-4">Post client collections to update outstanding ledgers.</p>
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-bold text-slate-900 text-base mb-1">Record Inward Payment</h3>
+            <p className="text-xs text-slate-500 mb-4">Post client collections to update outstanding ledgers.</p>
 
             <form onSubmit={handleRecordPayment} className="space-y-3">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Customer Party</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Customer Party</label>
                 <select
                   value={payCustId}
                   onChange={(e) => setPayCustId(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 >
                   {users.customers.map(c => (
                     <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
@@ -3177,11 +3162,11 @@ function AdminPortal({
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Knock-off Invoice (Optional)</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Knock-off Invoice (Optional)</label>
                 <select
                   value={payInvId}
                   onChange={(e) => setPayInvId(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 >
                   <option value="">General On-Account Advance</option>
                   {custPendingInvoices.map(inv => (
@@ -3194,22 +3179,22 @@ function AdminPortal({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Amount (₹)</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Amount (₹)</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Payment Mode</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1">Payment Mode</label>
                   <select
                     value={payMode}
                     onChange={(e) => setPayMode(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   >
                     <option value="NEFT / Bank Transfer">NEFT / RTGS</option>
                     <option value="UPI (Corporate)">UPI</option>
@@ -3220,56 +3205,56 @@ function AdminPortal({
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Reference / UTR No</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Reference / UTR No</label>
                 <input
                   type="text"
                   value={payRefNo}
                   onChange={(e) => setPayRefNo(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Remarks</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Remarks</label>
                 <input
                   type="text"
                   value={payNotes}
                   onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 rounded-xl shadow transition-all mt-2"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 rounded-xl transition-colors mt-2"
               >
                 Post Payment Receipt
               </button>
             </form>
           </div>
 
-          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Recent Collections Log</h3>
-            <p className="text-xs text-slate-400 mb-4">Historical receipts posted to accounts.</p>
+          <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-bold text-slate-900 text-base mb-1">Recent Collections Log</h3>
+            <p className="text-xs text-slate-500 mb-4">Historical receipts posted to accounts.</p>
 
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
                 <tr>
-                  <th className="py-3 px-4">Receipt No</th>
-                  <th className="py-3 px-4">Customer</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Mode & Ref</th>
-                  <th className="py-3 px-4 text-right">Amount (₹)</th>
+                  <th className="py-3 px-4 font-semibold">Receipt No</th>
+                  <th className="py-3 px-4 font-semibold">Customer</th>
+                  <th className="py-3 px-4 font-semibold">Date</th>
+                  <th className="py-3 px-4 font-semibold">Mode & Ref</th>
+                  <th className="py-3 px-4 text-right font-semibold">Amount (₹)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {payments.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-800/40">
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">{p.id}</td>
-                    <td className="py-3.5 px-4 font-semibold text-white">{p.customerCompany || p.customerName}</td>
-                    <td className="py-3.5 px-4">{formatDate(p.date)}</td>
-                    <td className="py-3.5 px-4">{p.paymentMode} ({p.referenceNumber})</td>
-                    <td className="py-3.5 px-4 text-right font-extrabold text-emerald-400">{formatCurrency(p.amount)}</td>
+                  <tr key={p.id} className="hover:bg-slate-50/70">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{p.id}</td>
+                    <td className="py-3.5 px-4 font-medium text-slate-900">{p.customerCompany || p.customerName}</td>
+                    <td className="py-3.5 px-4 text-slate-600">{formatDate(p.date)}</td>
+                    <td className="py-3.5 px-4 text-slate-600">{p.paymentMode} ({p.referenceNumber})</td>
+                    <td className="py-3.5 px-4 text-right font-bold text-emerald-700">{formatCurrency(p.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -3284,29 +3269,27 @@ function AdminPortal({
         <div className="space-y-6 animate-fade-in">
           
           {/* Header & Role Context Banner */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-xl">🏭</span>
-                  <h3 className="font-extrabold text-white text-base">Shop-Floor Production Flow Manager</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <h3 className="font-bold text-slate-900 text-base">Shop-Floor Production Flow Manager</h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
                     Live Pipeline
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Sequential flow: <strong>1. Printing Press</strong> &rarr; <strong>2. Punching &amp; Packing</strong> &rarr; <strong>3. Handwork (Dori &amp; Plastic)</strong> &rarr; <strong>4. Godown Dispatch</strong>.
                 </p>
               </div>
 
               {/* Persona / Role Badge */}
-              <div className="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-700">
-                <span className="text-xs text-slate-400">Current Operator:</span>
-                <span className="font-bold text-xs text-white flex items-center space-x-1.5">
-                  <span>👤</span>
-                  <span>{currentMember.name}</span>
+              <div className="flex items-center space-x-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
+                <span className="text-xs text-slate-500">Current Operator:</span>
+                <span className="font-semibold text-xs text-slate-900">
+                  {currentMember.name}
                 </span>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-950 text-blue-300 border border-blue-800">
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
                   {currentMember.role}
                 </span>
               </div>
@@ -3317,14 +3300,14 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setProductionFilterStage('all')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'all' 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
                 <span>All Active Jobs</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.length}
                 </span>
               </button>
@@ -3332,14 +3315,14 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setProductionFilterStage('printing')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'printing' 
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>🖨️ 1. Printing Unit</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                <span>1. Printing Unit</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => (j.currentStage || 'printing') === 'printing').length}
                 </span>
               </button>
@@ -3347,14 +3330,14 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setProductionFilterStage('punching')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'punching' 
-                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>🥊 2. Punching &amp; Packing</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                <span>2. Punching &amp; Packing</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => j.currentStage === 'punching').length}
                 </span>
               </button>
@@ -3362,14 +3345,14 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setProductionFilterStage('handwork')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'handwork' 
-                    ? 'bg-yellow-600 text-white shadow-lg shadow-yellow-600/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>🧵 3. Handwork (Dori &amp; Plastic)</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                <span>3. Handwork (Dori &amp; Plastic)</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => j.currentStage === 'handwork').length}
                 </span>
               </button>
@@ -3377,14 +3360,14 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setProductionFilterStage('godown')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'godown' 
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>📦 4. Godown / Ready for Dispatch</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-900/60 text-[10px] font-mono">
+                <span>4. Godown / Ready for Dispatch</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => j.currentStage === 'godown' || j.stage === 'packaged').length}
                 </span>
               </button>
@@ -3414,33 +3397,33 @@ function AdminPortal({
                 return (
                   <div 
                     key={job.jobId} 
-                    className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all"
+                    className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all text-slate-800"
                   >
                     {/* Card Header: Job ID, Priority, Client & Item */}
                     <div>
-                      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-800">
+                      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono font-bold text-xs text-blue-400 bg-blue-950/60 border border-blue-800 px-2 py-0.5 rounded-lg">
+                            <span className="font-mono font-semibold text-xs text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
                               {job.jobId}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-mono">
+                            <span className="text-[11px] text-slate-500 font-mono">
                               Ref: {job.orderId}
                             </span>
                           </div>
-                          <h4 className="font-extrabold text-white text-base mt-1">
+                          <h4 className="font-bold text-slate-900 text-base mt-1">
                             {job.itemName}
                           </h4>
-                          <div className="text-xs text-slate-300 mt-0.5 flex items-center space-x-1.5">
-                            <span className="text-slate-400">Client:</span>
-                            <span className="font-bold text-white">{job.customerCompany || job.customerName}</span>
+                          <div className="text-xs text-slate-600 mt-0.5 flex items-center space-x-1.5">
+                            <span className="text-slate-500">Client:</span>
+                            <span className="font-semibold text-slate-900">{job.customerCompany || job.customerName}</span>
                           </div>
                         </div>
 
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider ${
                           job.priority === 'urgent' 
-                            ? 'bg-rose-950 text-rose-400 border border-rose-800 shadow-rose-900/20' 
-                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}>
                           {job.priority || 'standard'}
                         </span>
@@ -3450,109 +3433,107 @@ function AdminPortal({
                       <div className="mt-3.5 space-y-2">
                         {/* Multi-Card or Single-Card breakdown */}
                         {job.isMultiCard && job.cards && job.cards.length > 0 ? (
-                          <div className="bg-slate-800/80 border border-indigo-950 rounded-2xl p-3">
-                            <span className="text-[10px] uppercase font-bold text-amber-300 block mb-1">
-                              📑 Multi-Card Components ({job.cards.length} Cards in set)
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <span className="text-[10px] uppercase font-semibold text-slate-700 block mb-1">
+                              Multi-Card Components ({job.cards.length} Cards in set)
                             </span>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                               {job.cards.map((c, ci) => (
-                                <div key={ci} className="bg-slate-900/70 p-2 rounded-xl border border-slate-700/60">
-                                  <span className="font-bold text-sky-400 block">{c.title}</span>
-                                  <span className="text-slate-300 text-[11px]">{c.catalogCode || c.name}</span>
+                                <div key={ci} className="bg-white p-2 rounded-lg border border-slate-200">
+                                  <span className="font-semibold text-slate-900 block">{c.title}</span>
+                                  <span className="text-slate-500 text-[11px]">{c.catalogCode || c.name}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between">
-                            <span className="text-slate-400">Paper Catalog:</span>
-                            <span className="font-bold text-slate-200">{job.cards?.[0]?.catalogCode || job.material || 'Standard Catalog'}</span>
+                          <div className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                            <span className="text-slate-500">Paper Catalog:</span>
+                            <span className="font-medium text-slate-900">{job.cards?.[0]?.catalogCode || job.material || 'Standard Catalog'}</span>
                           </div>
                         )}
 
                         {/* Sheet Buffer Metrics Grid */}
-                        <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 text-center font-mono text-xs">
+                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center font-mono text-xs">
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Target</span>
-                            <span className="font-bold text-white text-sm">{(job.targetQty || 1000).toLocaleString()}</span>
-                            <span className="text-[10px] text-slate-400 block font-sans">pcs</span>
+                            <span className="font-bold text-slate-900 text-sm">{(job.targetQty || 1000).toLocaleString()}</span>
+                            <span className="text-[10px] text-slate-500 block font-sans">pcs</span>
                           </div>
-                          <div className="border-x border-slate-800">
-                            <span className="text-[10px] text-indigo-400 uppercase block font-sans font-semibold">Issued (+40 buf)</span>
-                            <span className="font-bold text-indigo-300 text-sm">{job.issuedSheets || (job.targetQty + 40)}</span>
-                            <span className="text-[10px] text-indigo-400 block font-sans">sheets</span>
+                          <div className="border-x border-slate-200">
+                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Issued (+40 buf)</span>
+                            <span className="font-bold text-slate-900 text-sm">{job.issuedSheets || (job.targetQty + 40)}</span>
+                            <span className="text-[10px] text-slate-500 block font-sans">sheets</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-amber-400 uppercase block font-sans font-semibold">Allowed Floor</span>
-                            <span className="font-bold text-amber-300 text-sm">{job.minimumAllowedFloor || 960}</span>
-                            <span className="text-[10px] text-amber-400 block font-sans">min sheets</span>
+                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Allowed Floor</span>
+                            <span className="font-bold text-slate-900 text-sm">{job.minimumAllowedFloor || 960}</span>
+                            <span className="text-[10px] text-slate-500 block font-sans">min sheets</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Visual 4-Step Pipeline Bar */}
-                      <div className="mt-4 pt-3 border-t border-slate-800/80">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 mb-1.5">
-                          <span className={isPrinting ? 'text-indigo-400' : job.printing?.status === 'completed' ? 'text-emerald-400' : ''}>
+                      <div className="mt-4 pt-3 border-t border-slate-100">
+                        <div className="flex items-center justify-between text-[10px] uppercase font-semibold text-slate-500 mb-1.5">
+                          <span className={isPrinting ? 'text-slate-900 font-bold' : job.printing?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
                             {job.printing?.status === 'completed' ? '✓ ' : ''}1. Print
                           </span>
-                          <span className={isPunching ? 'text-teal-400' : job.punching?.status === 'completed' ? 'text-emerald-400' : ''}>
+                          <span className={isPunching ? 'text-slate-900 font-bold' : job.punching?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
                             {job.punching?.status === 'completed' ? '✓ ' : ''}2. Punch
                           </span>
-                          <span className={isHandwork ? 'text-yellow-400' : job.handwork?.status === 'completed' ? 'text-emerald-400' : ''}>
+                          <span className={isHandwork ? 'text-slate-900 font-bold' : job.handwork?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
                             {job.handwork?.status === 'completed' ? '✓ ' : ''}3. Handwork
                           </span>
-                          <span className={isGodown ? 'text-emerald-400' : ''}>
+                          <span className={isGodown ? 'text-emerald-700 font-bold' : ''}>
                             {isGodown ? '✓ ' : ''}4. Godown
                           </span>
                         </div>
-                        <div className="grid grid-cols-4 gap-1 h-1.5 rounded-full overflow-hidden bg-slate-800">
-                          <div className={`h-full ${job.printing?.status === 'completed' ? 'bg-emerald-500' : isPrinting ? 'bg-indigo-500 animate-pulse' : 'bg-slate-700'}`}></div>
-                          <div className={`h-full ${job.punching?.status === 'completed' ? 'bg-emerald-500' : isPunching ? 'bg-teal-500 animate-pulse' : 'bg-slate-700'}`}></div>
-                          <div className={`h-full ${job.handwork?.status === 'completed' ? 'bg-emerald-500' : isHandwork ? 'bg-yellow-500 animate-pulse' : 'bg-slate-700'}`}></div>
-                          <div className={`h-full ${isGodown ? 'bg-emerald-500' : 'bg-slate-700'}`}></div>
+                        <div className="grid grid-cols-4 gap-1 h-1.5 rounded-full overflow-hidden bg-slate-100">
+                          <div className={`h-full ${job.printing?.status === 'completed' ? 'bg-emerald-600' : isPrinting ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
+                          <div className={`h-full ${job.punching?.status === 'completed' ? 'bg-emerald-600' : isPunching ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
+                          <div className={`h-full ${job.handwork?.status === 'completed' ? 'bg-emerald-600' : isHandwork ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
+                          <div className={`h-full ${isGodown ? 'bg-emerald-600' : 'bg-slate-200'}`}></div>
                         </div>
                       </div>
                     </div>
 
                     {/* Stage Specific Interactive Action Panel */}
-                    <div className="mt-2 bg-slate-800/80 border border-slate-700 rounded-2xl p-4">
+                    <div className="mt-2 bg-slate-50 border border-slate-200/90 rounded-xl p-4">
                       
                       {/* STAGE 1: PRINTING PROCESS */}
                       {isPrinting && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
-                              <span>🖨️</span>
-                              <span>Printing Press Station ({job.printing?.operatorName || 'Kanu'})</span>
+                            <span className="text-xs font-semibold text-slate-800">
+                              Printing Press Station ({job.printing?.operatorName || 'Kanu'})
                             </span>
-                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
                               Stage 1 of 4
                             </span>
                           </div>
 
                           {job.printing?.status !== 'in_progress' ? (
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-xs text-slate-400">Job queued for offset/screen press.</span>
+                              <span className="text-xs text-slate-500">Job queued for offset/screen press.</span>
                               <button
                                 type="button"
                                 onClick={() => handleStartPrinting(job)}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs px-4 py-2 rounded-xl transition-colors"
                               >
-                                <span>▶</span>
-                                <span>Start Printing</span>
+                                Start Printing
                               </button>
                             </div>
                           ) : (
                             <div className="space-y-3 pt-1">
-                              <div className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-900/50 p-2 rounded-xl">
-                                ⚠️ <strong>Mandatory Rule:</strong> Write down the exact number of sheets printed. It must be &ge; 960 sheets to proceed.
+                              <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-xl">
+                                <strong>Rule:</strong> Record the exact number of sheets printed. It must be &ge; 960 sheets to proceed.
                               </div>
 
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                                    Good Sheets Printed <span className="text-rose-400">*</span>
+                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                    Good Sheets Printed <span className="text-rose-600">*</span>
                                   </label>
                                   <input
                                     type="number"
@@ -3560,12 +3541,12 @@ function AdminPortal({
                                     placeholder="e.g. 1010"
                                     value={getSheetInput(job.jobId, 'printed')}
                                     onChange={(e) => setSheetInput(job.jobId, 'printed', e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
 
                                 <div>
-                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
                                     Waste / Spoilage Sheets
                                   </label>
                                   <input
@@ -3574,7 +3555,7 @@ function AdminPortal({
                                     placeholder="e.g. 30"
                                     value={getSheetInput(job.jobId, 'waste')}
                                     onChange={(e) => setSheetInput(job.jobId, 'waste', e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
                               </div>
@@ -3582,9 +3563,8 @@ function AdminPortal({
                               <button
                                 type="button"
                                 onClick={() => handleCompletePrinting(job)}
-                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
                               >
-                                <span>✓</span>
                                 <span>Complete Printing &amp; Forward to Punching</span>
                               </button>
                             </div>
@@ -3596,40 +3576,38 @@ function AdminPortal({
                       {isPunching && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-teal-300 flex items-center space-x-1.5">
-                              <span>🥊</span>
-                              <span>Punching &amp; Die Press ({job.punching?.operatorName || 'Shivakant'})</span>
+                            <span className="text-xs font-semibold text-slate-800">
+                              Punching &amp; Die Press ({job.punching?.operatorName || 'Shivakant'})
                             </span>
-                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
                               Stage 2 of 4
                             </span>
                           </div>
 
-                          <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between font-mono">
-                            <span className="text-slate-400">Printed Input Received:</span>
-                            <span className="font-bold text-indigo-300">
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs flex items-center justify-between font-mono">
+                            <span className="text-slate-500">Printed Input Received:</span>
+                            <span className="font-bold text-slate-900">
                               {job.printing?.goodSheetsPrinted || 1010} sheets
                             </span>
                           </div>
 
                           {job.punching?.status !== 'in_progress' ? (
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-xs text-slate-400">Ready for die-punching &amp; creasing.</span>
+                              <span className="text-xs text-slate-500">Ready for die-punching &amp; creasing.</span>
                               <button
                                 type="button"
                                 onClick={() => handleStartPunching(job)}
-                                className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-lg shadow-teal-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs px-4 py-2 rounded-xl transition-colors"
                               >
-                                <span>▶</span>
-                                <span>Start Punching</span>
+                                Start Punching
                               </button>
                             </div>
                           ) : (
                             <div className="space-y-3 pt-1">
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                                    Good Punched Sheets <span className="text-rose-400">*</span>
+                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                    Good Punched Sheets <span className="text-rose-600">*</span>
                                   </label>
                                   <input
                                     type="number"
@@ -3637,12 +3615,12 @@ function AdminPortal({
                                     placeholder="e.g. 995"
                                     value={getSheetInput(job.jobId, 'punched')}
                                     onChange={(e) => setSheetInput(job.jobId, 'punched', e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-teal-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
 
                                 <div>
-                                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
                                     Die Wastage
                                   </label>
                                   <input
@@ -3651,7 +3629,7 @@ function AdminPortal({
                                     placeholder="e.g. 15"
                                     value={getSheetInput(job.jobId, 'punchWaste')}
                                     onChange={(e) => setSheetInput(job.jobId, 'punchWaste', e.target.value)}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-teal-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
                               </div>
@@ -3659,9 +3637,8 @@ function AdminPortal({
                               <button
                                 type="button"
                                 onClick={() => handleCompletePunching(job)}
-                                className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg shadow-teal-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
                               >
-                                <span>✓</span>
                                 <span>Complete Punching &amp; Move to Handwork</span>
                               </button>
                             </div>
@@ -3673,48 +3650,47 @@ function AdminPortal({
                       {isHandwork && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-yellow-300 flex items-center space-x-1.5">
-                              <span>🧵</span>
-                              <span>Handwork Assembly (Dori &amp; Plastic)</span>
+                            <span className="text-xs font-semibold text-slate-800">
+                              Handwork Assembly (Dori &amp; Plastic)
                             </span>
-                            <span className="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
                               Stage 3 of 4
                             </span>
                           </div>
 
                           {/* Rate Card & Specification Summary */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60 text-xs font-mono">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 text-xs font-mono">
                             <div>
-                              <span className="text-[10px] text-slate-400 block font-sans">Dori Spec</span>
-                              <span className="font-bold text-white">{job.handwork?.doriType || 'Reg.'}</span>
-                              <span className="text-[10px] text-slate-400 block">@ ₹{job.handwork?.doriRate || '0.20'}/pc</span>
+                              <span className="text-[10px] text-slate-500 block font-sans">Dori Spec</span>
+                              <span className="font-bold text-slate-900">{job.handwork?.doriType || 'Reg.'}</span>
+                              <span className="text-[10px] text-slate-500 block">@ ₹{job.handwork?.doriRate || '0.20'}/pc</span>
                             </div>
                             <div>
-                              <span className="text-[10px] text-slate-400 block font-sans">Plastic Lock</span>
-                              <span className="font-bold text-white">{job.handwork?.plasticType || 'Reg.'}</span>
-                              <span className="text-[10px] text-slate-400 block">@ ₹{job.handwork?.plasticRate || '0.10'}/pc</span>
+                              <span className="text-[10px] text-slate-500 block font-sans">Plastic Lock</span>
+                              <span className="font-bold text-slate-900">{job.handwork?.plasticType || 'Reg.'}</span>
+                              <span className="text-[10px] text-slate-500 block">@ ₹{job.handwork?.plasticRate || '0.10'}/pc</span>
                             </div>
-                            <div className="col-span-2 sm:col-span-1 border-t sm:border-t-0 sm:border-l border-slate-800 pt-1 sm:pt-0 sm:pl-2">
-                              <span className="text-[10px] text-yellow-400 block font-sans font-bold">Total Rate</span>
-                              <span className="font-extrabold text-yellow-300 text-sm">
+                            <div className="col-span-2 sm:col-span-1 border-t sm:border-t-0 sm:border-l border-slate-200 pt-1 sm:pt-0 sm:pl-2">
+                              <span className="text-[10px] text-slate-700 block font-sans font-semibold">Total Rate</span>
+                              <span className="font-bold text-slate-900 text-sm">
                                 ₹{(job.handwork?.totalRatePerTag || 0.30).toFixed(2)}
                               </span>
-                              <span className="text-[10px] text-yellow-400/80 block font-sans">per tag set</span>
+                              <span className="text-[10px] text-slate-500 block font-sans">per tag set</span>
                             </div>
                           </div>
 
                           {/* Manager Assignment Controls (If unassigned or admin role) */}
                           {(!job.handwork?.assignedLabourerId || currentMember.role === 'admin' || currentMember.role === 'manager') && (
-                            <div className="bg-slate-900/80 p-3 rounded-2xl border border-yellow-900/40 space-y-2.5">
-                              <span className="text-[11px] font-bold text-slate-300 block">
-                                👷 Assign Job to Handwork Labourer:
+                            <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2.5">
+                              <span className="text-[11px] font-semibold text-slate-700 block">
+                                Assign Job to Handwork Labourer:
                               </span>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div className="sm:col-span-2">
                                   <select
                                     value={getSheetInput(job.jobId, 'labourerId', job.handwork?.assignedLabourerId || '')}
                                     onChange={(e) => setSheetInput(job.jobId, 'labourerId', e.target.value)}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   >
                                     <option value="">-- Choose Labourer / Artisan --</option>
                                     {users.team
@@ -3728,7 +3704,7 @@ function AdminPortal({
                                 <button
                                   type="button"
                                   onClick={() => handleAssignHandwork(job)}
-                                  className="bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-bold text-xs py-2 px-3 rounded-xl shadow active:scale-95 transition-all"
+                                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-3 rounded-xl transition-colors"
                                 >
                                   Assign Batch
                                 </button>
@@ -3738,13 +3714,13 @@ function AdminPortal({
 
                           {/* Labourer Execution Panel */}
                           {job.handwork?.assignedLabourerId && (
-                            <div className="bg-yellow-950/20 border border-yellow-500/30 p-3 rounded-2xl space-y-3">
+                            <div className="bg-white border border-slate-200 p-3 rounded-xl space-y-3">
                               <div className="flex items-center justify-between text-xs">
                                 <div>
-                                  <span className="text-slate-400">Assigned Artisan:</span>{' '}
-                                  <strong className="text-yellow-300">{job.handwork.assignedLabourerName}</strong>
+                                  <span className="text-slate-500">Assigned Artisan:</span>{' '}
+                                  <strong className="text-slate-900">{job.handwork.assignedLabourerName}</strong>
                                 </div>
-                                <div className="font-mono text-emerald-400 font-bold">
+                                <div className="font-mono text-emerald-700 font-bold">
                                   Potential Earning: {formatCurrency((job.targetQty || 1000) * (job.handwork.totalRatePerTag || 0.30))}
                                 </div>
                               </div>
@@ -3753,16 +3729,15 @@ function AdminPortal({
                                 <button
                                   type="button"
                                   onClick={() => handleStartHandwork(job)}
-                                  className="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-extrabold text-xs py-2.5 rounded-xl shadow-lg shadow-yellow-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors"
                                 >
-                                  <span>▶</span>
-                                  <span>Start Handwork Assembly</span>
+                                  Start Handwork Assembly
                                 </button>
                               ) : (
                                 <div className="space-y-2 pt-1">
                                   <div>
-                                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
-                                      Finished Tags Completed (Pcs) <span className="text-rose-400">*</span>
+                                    <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                      Finished Tags Completed (Pcs) <span className="text-rose-600">*</span>
                                     </label>
                                     <input
                                       type="number"
@@ -3770,17 +3745,16 @@ function AdminPortal({
                                       placeholder="e.g. 990"
                                       value={getSheetInput(job.jobId, 'handworkPieces', job.punching?.goodSheetsPunched || job.targetQty || 1000)}
                                       onChange={(e) => setSheetInput(job.jobId, 'handworkPieces', e.target.value)}
-                                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-yellow-500"
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                     />
                                   </div>
 
                                   <button
                                     type="button"
                                     onClick={() => handleCompleteHandwork(job)}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors"
                                   >
-                                    <span>✓</span>
-                                    <span>Mark Complete &amp; Move to Godown</span>
+                                    Mark Complete &amp; Move to Godown
                                   </button>
                                 </div>
                               )}
@@ -3793,29 +3767,28 @@ function AdminPortal({
                       {isGodown && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-emerald-400 flex items-center space-x-1.5">
-                              <span>📦</span>
-                              <span>Godown / Finished Goods Storage</span>
+                            <span className="text-xs font-semibold text-slate-800">
+                              Godown / Finished Goods Storage
                             </span>
-                            <span className="text-[10px] text-emerald-300 bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-800">
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-medium">
                               Ready for Dispatch ✓
                             </span>
                           </div>
 
-                          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-xs space-y-1.5">
+                          <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Warehouse Location:</span>
-                              <span className="font-mono font-bold text-white">{job.godown?.location || 'Rack Bay A-01'}</span>
+                              <span className="text-slate-500">Warehouse Location:</span>
+                              <span className="font-mono font-semibold text-slate-900">{job.godown?.location || 'Rack Bay A-01'}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Verified Quantity:</span>
-                              <span className="font-mono font-bold text-emerald-400">
+                              <span className="text-slate-500">Verified Quantity:</span>
+                              <span className="font-mono font-bold text-emerald-700">
                                 {job.handwork?.completedPieces || job.targetQty || 1000} pcs ready
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-400">Handwork Artisan Payout:</span>
-                              <span className="font-mono text-slate-300">
+                              <span className="text-slate-500">Handwork Artisan Payout:</span>
+                              <span className="font-mono text-slate-700">
                                 {job.handwork?.assignedLabourerName || 'Artisan'} &bull; {formatCurrency(job.handwork?.earnedPayout || 300)}
                               </span>
                             </div>
@@ -3828,10 +3801,9 @@ function AdminPortal({
                                 const parent = orders.find(o => o.id === job.orderId);
                                 if (parent) onOpenInvoice(parent);
                               }}
-                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-3 rounded-xl border border-slate-700 transition-all flex items-center space-x-1"
+                              className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-3 rounded-xl border border-slate-300 transition-colors"
                             >
-                              <span>📄</span>
-                              <span>Check Invoice</span>
+                              Check Invoice
                             </button>
 
                             <button
@@ -3840,10 +3812,9 @@ function AdminPortal({
                                 const parent = orders.find(o => o.id === job.orderId);
                                 if (parent) setDispatchModalOrder(parent);
                               }}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center space-x-1.5"
+                              className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-4 rounded-xl transition-colors"
                             >
-                              <span>🚚</span>
-                              <span>Dispatch Order</span>
+                              Dispatch Order
                             </button>
                           </div>
                         </div>
@@ -3855,10 +3826,9 @@ function AdminPortal({
               })}
 
             {production.length === 0 && (
-              <div className="col-span-2 text-center py-16 bg-slate-900 border border-slate-800 rounded-3xl text-slate-500">
-                <span className="text-4xl block mb-2">📋</span>
-                <p className="text-sm font-semibold text-slate-400">No active production jobs yet.</p>
-                <p className="text-xs text-slate-600 mt-1">Approve an order in &quot;View All Orders&quot; and click &quot;Send to Production&quot; to generate job forms.</p>
+              <div className="col-span-2 text-center py-16 bg-white border border-slate-200/90 rounded-2xl text-slate-500 shadow-xs">
+                <p className="text-sm font-semibold text-slate-800">No active production jobs yet.</p>
+                <p className="text-xs text-slate-500 mt-1">Approve an order in &quot;View All Orders&quot; and click &quot;Send to Production&quot; to generate job forms.</p>
               </div>
             )}
           </div>
@@ -3869,106 +3839,109 @@ function AdminPortal({
       {activeTab === 'payroll' && (
         <div className="space-y-6 animate-fade-in">
           
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Today&apos;s Staff Attendance Log</h3>
-            <table className="w-full text-left text-xs text-slate-300 mt-3">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
-                <tr>
-                  <th className="py-3 px-4">Staff Member</th>
-                  <th className="py-3 px-4">Attendance Status</th>
-                  <th className="py-3 px-4">Check In</th>
-                  <th className="py-3 px-4">Check Out</th>
-                  <th className="py-3 px-4">Overtime</th>
-                  <th className="py-3 px-4 text-right">Quick Mark</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {payroll.dailyAttendance.map(att => (
-                  <tr key={att.staffId} className="hover:bg-slate-800/40">
-                    <td className="py-3.5 px-4 font-bold text-white">{att.name}</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                        att.status === 'Present' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                        'bg-rose-950 text-rose-400 border border-rose-800'
-                      }`}>
-                        {att.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono">{att.checkIn}</td>
-                    <td className="py-3.5 px-4 font-mono">{att.checkOut}</td>
-                    <td className="py-3.5 px-4 text-indigo-400 font-bold">{att.overtime}</td>
-                    <td className="py-3.5 px-4 text-right space-x-1">
-                      <button
-                        onClick={() => handleToggleAttendance(att.staffId, 'Present')}
-                        className="bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                      >
-                        Present
-                      </button>
-                      <button
-                        onClick={() => handleToggleAttendance(att.staffId, 'Leave')}
-                        className="bg-rose-950 text-rose-400 border border-rose-800 px-2.5 py-1 rounded-lg text-[10px] font-bold"
-                      >
-                        Leave
-                      </button>
-                    </td>
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-bold text-slate-900 text-base mb-1">Today&apos;s Staff Attendance Log</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700 mt-3">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
+                  <tr>
+                    <th className="py-3 px-4 font-semibold">Staff Member</th>
+                    <th className="py-3 px-4 font-semibold">Attendance Status</th>
+                    <th className="py-3 px-4 font-semibold">Check In</th>
+                    <th className="py-3 px-4 font-semibold">Check Out</th>
+                    <th className="py-3 px-4 font-semibold">Overtime</th>
+                    <th className="py-3 px-4 text-right font-semibold">Quick Mark</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payroll.dailyAttendance.map(att => (
+                    <tr key={att.staffId} className="hover:bg-slate-50/70">
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">{att.name}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                          att.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}>
+                          {att.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{att.checkIn}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{att.checkOut}</td>
+                      <td className="py-3.5 px-4 text-slate-900 font-semibold">{att.overtime}</td>
+                      <td className="py-3.5 px-4 text-right space-x-1">
+                        <button
+                          onClick={() => handleToggleAttendance(att.staffId, 'Present')}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors"
+                        >
+                          Present
+                        </button>
+                        <button
+                          onClick={() => handleToggleAttendance(att.staffId, 'Leave')}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors"
+                        >
+                          Leave
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <h3 className="font-bold text-white text-base mb-1">Monthly Staff Payroll & Salary Computation</h3>
-            <table className="w-full text-left text-xs text-slate-300 mt-3">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
-                <tr>
-                  <th className="py-3 px-4">Member</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Base Wage</th>
-                  <th className="py-3 px-4">Present Days</th>
-                  <th className="py-3 px-4">Net Payable</th>
-                  <th className="py-3 px-4">Disbursement</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {payroll.staffSummary.map(staff => (
-                  <tr key={staff.staffId} className="hover:bg-slate-800/40">
-                    <td className="py-3.5 px-4 font-bold text-white">{staff.name}</td>
-                    <td className="py-3.5 px-4 text-slate-400">{staff.role}</td>
-                    <td className="py-3.5 px-4 font-mono">{formatCurrency(staff.monthlySalary)}</td>
-                    <td className="py-3.5 px-4">{staff.presentDays} / {staff.workingDays}</td>
-                    <td className="py-3.5 px-4 font-extrabold text-emerald-400 font-mono">{formatCurrency(staff.netPayable)}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
-                        {staff.status}
-                      </span>
-                    </td>
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <h3 className="font-bold text-slate-900 text-base mb-1">Monthly Staff Payroll & Salary Computation</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700 mt-3">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
+                  <tr>
+                    <th className="py-3 px-4 font-semibold">Member</th>
+                    <th className="py-3 px-4 font-semibold">Role</th>
+                    <th className="py-3 px-4 font-semibold">Base Wage</th>
+                    <th className="py-3 px-4 font-semibold">Present Days</th>
+                    <th className="py-3 px-4 font-semibold">Net Payable</th>
+                    <th className="py-3 px-4 font-semibold">Disbursement</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payroll.staffSummary.map(staff => (
+                    <tr key={staff.staffId} className="hover:bg-slate-50/70">
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">{staff.name}</td>
+                      <td className="py-3.5 px-4 text-slate-500">{staff.role}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-700">{formatCurrency(staff.monthlySalary)}</td>
+                      <td className="py-3.5 px-4 text-slate-700">{staff.presentDays} / {staff.workingDays}</td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">{formatCurrency(staff.netPayable)}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {staff.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* PIECE-RATE HANDWORK (DORI & PLASTIC) PRODUCTION LEDGER */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
               <div>
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                  <span>🧵</span>
-                  <span>Piece-Rate Handwork (Dori & Plastic) Production Ledger</span>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Piece-Rate Handwork (Dori &amp; Plastic) Production Ledger
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Daily earnings accrued per completed tag batch by artisans (Standard: ₹0.20 Dori + ₹0.10 Plastic = ₹0.30/tag)
                 </p>
               </div>
-              <div className="flex items-center space-x-3 text-xs bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-slate-700">
-                <span className="text-slate-400">Total Piece Payouts:</span>
-                <span className="font-extrabold text-emerald-400 font-mono">
+              <div className="flex items-center space-x-3 text-xs bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200">
+                <span className="text-slate-500">Total Piece Payouts:</span>
+                <span className="font-bold text-slate-900 font-mono">
                   {formatCurrency((payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.earnedAmount) || 0), 0))}
                 </span>
-                <span className="text-slate-600">|</span>
-                <span className="text-slate-400">Tags Finished:</span>
-                <span className="font-bold text-white font-mono">
+                <span className="text-slate-300">|</span>
+                <span className="text-slate-500">Tags Finished:</span>
+                <span className="font-bold text-slate-900 font-mono">
                   {(payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.piecesCompleted) || 0), 0).toLocaleString()}
                 </span>
               </div>
@@ -3976,41 +3949,41 @@ function AdminPortal({
 
             {(payroll.pieceRateLedger && payroll.pieceRateLedger.length > 0) ? (
               <div className="overflow-x-auto mt-3">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
                     <tr>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Artisan</th>
-                      <th className="py-3 px-4">Job / Order Ref</th>
-                      <th className="py-3 px-4">Pieces Assembled</th>
-                      <th className="py-3 px-4">Rate / Tag</th>
-                      <th className="py-3 px-4 font-mono">Total Earned</th>
-                      <th className="py-3 px-4 text-right">Status</th>
+                      <th className="py-3 px-4 font-semibold">Date</th>
+                      <th className="py-3 px-4 font-semibold">Artisan</th>
+                      <th className="py-3 px-4 font-semibold">Job / Order Ref</th>
+                      <th className="py-3 px-4 font-semibold">Pieces Assembled</th>
+                      <th className="py-3 px-4 font-semibold">Rate / Tag</th>
+                      <th className="py-3 px-4 font-mono font-semibold">Total Earned</th>
+                      <th className="py-3 px-4 text-right font-semibold">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-slate-100">
                     {payroll.pieceRateLedger.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/40">
-                        <td className="py-3.5 px-4 font-mono text-slate-400">{item.date}</td>
+                      <tr key={idx} className="hover:bg-slate-50/70">
+                        <td className="py-3.5 px-4 font-mono text-slate-500">{item.date}</td>
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-white">{item.name}</span>
-                          <span className="block text-[10px] text-slate-500 font-mono">{item.staffId}</span>
+                          <span className="font-semibold text-slate-900">{item.name}</span>
+                          <span className="block text-[10px] text-slate-400 font-mono">{item.staffId}</span>
                         </td>
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-indigo-400">{item.jobId}</span>
+                          <span className="font-semibold text-slate-900">{item.jobId}</span>
                           <span className="text-slate-500 text-[10px] ml-1.5 font-mono">({item.orderId})</span>
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-white font-mono">
+                        <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">
                           {Number(item.piecesCompleted || 0).toLocaleString()} tags
                         </td>
-                        <td className="py-3.5 px-4 text-slate-300 font-mono">
+                        <td className="py-3.5 px-4 text-slate-600 font-mono">
                           ₹{Number(item.ratePerTag || 0.30).toFixed(2)}
                         </td>
-                        <td className="py-3.5 px-4 font-extrabold text-emerald-400 font-mono text-sm">
+                        <td className="py-3.5 px-4 font-bold text-slate-900 font-mono text-sm">
                           {formatCurrency(item.earnedAmount)}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-800">
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
                             {item.status || 'Earned'}
                           </span>
                         </td>
@@ -4020,8 +3993,8 @@ function AdminPortal({
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-500 text-xs bg-slate-950/40 rounded-2xl border border-dashed border-slate-800 mt-3">
-                No handwork batches completed yet. As soon as Sumit completes a handwork batch in the production tab, piece-rate earnings will post directly here.
+              <div className="text-center py-8 text-slate-500 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-3">
+                No handwork batches completed yet. As soon as a handwork batch is completed in the production tab, piece-rate earnings will post directly here.
               </div>
             )}
           </div>
@@ -4034,13 +4007,12 @@ function AdminPortal({
         <div className="space-y-6 animate-fade-in">
           
           {/* Top Header & Restock Action */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-800 gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-100 gap-3">
             <div>
-              <h2 className="text-xl font-extrabold text-white flex items-center space-x-2">
-                <span>🏭</span>
-                <span>Raw Materials &amp; Paper Stock Inventory</span>
+              <h2 className="text-xl font-bold text-slate-900">
+                Raw Materials &amp; Paper Stock Inventory
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Real-time stock of catalog paper boards, pre-cut dori threads, and plastic locks. Automatically depleted upon machine run completion.
               </p>
             </div>
@@ -4052,76 +4024,71 @@ function AdminPortal({
                   setRestockQty('');
                   setRestockSupplier(inventory[0]?.supplier || '');
                 }}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-4 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5 transition-all active:scale-95"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-4 rounded-xl transition-colors"
               >
-                <span>➕</span>
-                <span>Inward Stock Receipt / Restock</span>
+                Inward Stock Receipt / Restock
               </button>
             </div>
           </div>
 
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-              <div className="flex items-center justify-between text-slate-400 text-xs">
-                <span>Paper Board Stock</span>
-                <span className="text-base">📄</span>
+            <div className="bg-white border border-slate-200/90 p-4 rounded-2xl shadow-xs">
+              <div className="text-slate-500 text-xs font-medium">
+                Paper Board Stock
               </div>
-              <div className="text-xl font-black text-white mt-2 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {inventory.filter(i => i.category === 'paper').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">Available full-size press sheets</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Available full-size press sheets</div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-              <div className="flex items-center justify-between text-slate-400 text-xs">
-                <span>Dori Cords &amp; Twine</span>
-                <span className="text-base">🧵</span>
+            <div className="bg-white border border-slate-200/90 p-4 rounded-2xl shadow-xs">
+              <div className="text-slate-500 text-xs font-medium">
+                Dori Cords &amp; Twine
               </div>
-              <div className="text-xl font-black text-indigo-400 mt-2 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {inventory.filter(i => i.category === 'dori').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">Waxed cotton &amp; jute cords</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Waxed cotton &amp; jute cords</div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-              <div className="flex items-center justify-between text-slate-400 text-xs">
-                <span>Plastic Seal Locks</span>
-                <span className="text-base">🔒</span>
+            <div className="bg-white border border-slate-200/90 p-4 rounded-2xl shadow-xs">
+              <div className="text-slate-500 text-xs font-medium">
+                Plastic Seal Locks
               </div>
-              <div className="text-xl font-black text-teal-400 mt-2 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {inventory.filter(i => i.category === 'plastic').reduce((s, it) => s + (Number(it.currentStock) || 0), 0).toLocaleString()}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">Bullet &amp; square locks</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Bullet &amp; square locks</div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-              <div className="flex items-center justify-between text-slate-400 text-xs">
-                <span>Total Inventory Valuation</span>
-                <span className="text-base">💰</span>
+            <div className="bg-white border border-slate-200/90 p-4 rounded-2xl shadow-xs">
+              <div className="text-slate-500 text-xs font-medium">
+                Total Inventory Valuation
               </div>
-              <div className="text-xl font-black text-emerald-400 mt-2 font-mono">
+              <div className="text-xl font-bold text-slate-900 mt-1 font-mono">
                 {formatCurrency(inventory.reduce((s, it) => s + ((Number(it.currentStock) || 0) * (Number(it.unitCost) || 0)), 0))}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">Raw material assets on floor</div>
+              <div className="text-[11px] text-slate-400 mt-0.5">Raw material assets on floor</div>
             </div>
           </div>
 
           {/* Category Filter Tabs */}
-          <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+          <div className="flex items-center space-x-2 border-b border-slate-100 pb-2">
             {[
               { id: 'all', label: 'All Raw Materials' },
-              { id: 'paper', label: '📄 Catalog Paper Boards' },
-              { id: 'dori', label: '🧵 Dori Threads & Cords' },
-              { id: 'plastic', label: '🔒 Plastic Locks & Fasteners' }
+              { id: 'paper', label: 'Catalog Paper Boards' },
+              { id: 'dori', label: 'Dori Threads & Cords' },
+              { id: 'plastic', label: 'Plastic Locks & Fasteners' }
             ].map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setInventoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                   inventoryFilter === cat.id
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
                 {cat.label}
@@ -4130,57 +4097,57 @@ function AdminPortal({
           </div>
 
           {/* Stock Table */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/60 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4">Material / Item</th>
-                    <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Warehouse Bin</th>
-                    <th className="py-3 px-4">Current Stock</th>
-                    <th className="py-3 px-4">Reorder Level</th>
-                    <th className="py-3 px-4 font-mono">Unit Rate</th>
-                    <th className="py-3 px-4 font-mono">Stock Value</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Quick Action</th>
+                    <th className="py-3 px-4 font-semibold">Material / Item</th>
+                    <th className="py-3 px-4 font-semibold">Category</th>
+                    <th className="py-3 px-4 font-semibold">Warehouse Bin</th>
+                    <th className="py-3 px-4 font-semibold">Current Stock</th>
+                    <th className="py-3 px-4 font-semibold">Reorder Level</th>
+                    <th className="py-3 px-4 font-mono font-semibold">Unit Rate</th>
+                    <th className="py-3 px-4 font-mono font-semibold">Stock Value</th>
+                    <th className="py-3 px-4 font-semibold">Status</th>
+                    <th className="py-3 px-4 text-right font-semibold">Quick Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {inventory
                     .filter(item => inventoryFilter === 'all' || item.category === inventoryFilter)
                     .map(item => {
                       const isLow = (item.currentStock || 0) <= (item.reorderLevel || 1000);
                       const isCritical = (item.currentStock || 0) <= (item.reorderLevel || 1000) / 2;
                       return (
-                        <tr key={item.id} className="hover:bg-slate-800/40">
+                        <tr key={item.id} className="hover:bg-slate-50/70">
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-white">{item.name}</div>
+                            <div className="font-semibold text-slate-900">{item.name}</div>
                             <div className="text-[10px] text-slate-500 font-mono">{item.code || item.id}</div>
                           </td>
-                          <td className="py-3.5 px-4 capitalize text-slate-400">
-                            <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-semibold border border-slate-700">
+                          <td className="py-3.5 px-4 capitalize text-slate-600">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-700 border border-slate-200">
                               {item.category}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-slate-400">{item.location}</td>
-                          <td className="py-3.5 px-4 font-bold text-white font-mono text-sm">
-                            {(item.currentStock || 0).toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">{item.unit}</span>
+                          <td className="py-3.5 px-4 font-mono text-slate-500">{item.location}</td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900 font-mono text-sm">
+                            {(item.currentStock || 0).toLocaleString()} <span className="text-[10px] text-slate-500 font-normal">{item.unit}</span>
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-slate-400">
+                          <td className="py-3.5 px-4 font-mono text-slate-500">
                             {(item.reorderLevel || 0).toLocaleString()} {item.unit}
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-slate-300">
+                          <td className="py-3.5 px-4 font-mono text-slate-700">
                             ₹{Number(item.unitCost || 0).toFixed(2)}
                           </td>
-                          <td className="py-3.5 px-4 font-bold text-emerald-400 font-mono">
+                          <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">
                             {formatCurrency((item.currentStock || 0) * (item.unitCost || 0))}
                           </td>
                           <td className="py-3.5 px-4">
-                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
-                              isCritical ? 'bg-rose-950 text-rose-400 border border-rose-800 animate-pulse' :
-                              isLow ? 'bg-amber-950 text-amber-400 border border-amber-800' :
-                              'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase ${
+                              isCritical ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                              isLow ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                              'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             }`}>
                               {isCritical ? 'Critical Low' : isLow ? 'Reorder Soon' : 'Healthy Stock'}
                             </span>
@@ -4193,7 +4160,7 @@ function AdminPortal({
                                 setRestockQty('');
                                 setRestockSupplier(item.supplier || '');
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all"
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-[11px] font-medium transition-colors"
                             >
                               + Inward Stock
                             </button>
@@ -4215,13 +4182,13 @@ function AdminPortal({
           onClick={() => setPreviewArtworkUrl(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in cursor-zoom-out"
         >
-          <div className="relative max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-3xl p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-              <span className="text-xs font-bold text-white uppercase tracking-wider">High-Resolution Artwork Preview</span>
+          <div className="relative max-w-3xl max-h-[85vh] bg-white border border-slate-200 rounded-2xl p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <span className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Artwork Preview</span>
               <button
                 type="button"
                 onClick={() => setPreviewArtworkUrl(null)}
-                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center transition-colors"
               >
                 &times;
               </button>
@@ -4229,7 +4196,7 @@ function AdminPortal({
             <img 
               src={previewArtworkUrl} 
               alt="High Resolution Artwork" 
-              className="max-h-[70vh] w-auto max-w-full object-contain rounded-2xl mx-auto shadow-lg border border-slate-800" 
+              className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl mx-auto shadow-xs border border-slate-200" 
             />
           </div>
         </div>
@@ -4237,28 +4204,27 @@ function AdminPortal({
 
       {/* REJECTION REASON MODAL */}
       {rejectionModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">⚠️</span>
-                <h3 className="font-extrabold text-white text-base">Reject Order {rejectionModalOrder.id}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Reject Order {rejectionModalOrder.id}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setRejectionModalOrder(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Please specify why this order is being rejected. The customer will see this reason and will receive a <strong>1-Click Duplicate Re-Order</strong> option.
             </p>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 block">Select Rejection Reason:</label>
+              <label className="text-xs font-medium text-slate-700 block">Select Rejection Reason:</label>
               {[
                 'Paper Catalog temporarily out of stock',
                 'Die-line / artwork file resolution unreadable',
@@ -4270,8 +4236,8 @@ function AdminPortal({
                   key={idx} 
                   className={`flex items-center space-x-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
                     rejectionReasonChoice === reason 
-                      ? 'bg-rose-950/40 border-rose-500 text-white' 
-                      : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+                      ? 'bg-rose-50 border-rose-300 text-rose-900 font-medium' 
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   <input
@@ -4289,29 +4255,29 @@ function AdminPortal({
 
             {rejectionReasonChoice === 'Other' && (
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Custom Notes / Clarification:</label>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Custom Notes / Clarification:</label>
                 <textarea
                   rows="2"
                   placeholder="Specify custom instructions or reason..."
                   value={rejectionReasonCustom}
                   onChange={(e) => setRejectionReasonCustom(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 ></textarea>
               </div>
             )}
 
-            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setRejectionModalOrder(null)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRejection}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-rose-600/30 active:scale-95 transition-all"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
               >
                 Confirm Rejection
               </button>
@@ -4322,57 +4288,57 @@ function AdminPortal({
 
       {/* SPOILAGE / SHORTAGE THRESHOLD ALERT MODAL */}
       {shortageAlertJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-200">
-            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">
-                ⚠️
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border-2 border-amber-300 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 text-slate-800">
+            <div className="flex items-center space-x-3 pb-3 border-b border-slate-100">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center text-sm font-bold">
+                !
               </div>
               <div>
-                <h3 className="font-extrabold text-white text-base">Production Shortage Alert</h3>
-                <span className="text-xs text-amber-400 font-mono">Job: {shortageAlertJob.job.jobId} (Order: {shortageAlertJob.job.orderId})</span>
+                <h3 className="font-bold text-slate-900 text-base">Production Shortage Alert</h3>
+                <span className="text-xs text-slate-500 font-mono">Job: {shortageAlertJob.job.jobId} (Order: {shortageAlertJob.job.orderId})</span>
               </div>
             </div>
 
-            <div className="bg-amber-950/40 border border-amber-900/60 rounded-2xl p-4 space-y-2 text-xs">
+            <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Order Target:</span>
-                <span className="font-mono font-bold text-white">{(shortageAlertJob.job.targetQty || 1000).toLocaleString()} pcs</span>
+                <span className="text-slate-600">Order Target:</span>
+                <span className="font-mono font-semibold text-slate-900">{(shortageAlertJob.job.targetQty || 1000).toLocaleString()} pcs</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Minimum Allowed Floor:</span>
-                <span className="font-mono font-bold text-amber-300">{shortageAlertJob.job.minimumAllowedFloor || 960} sheets</span>
+                <span className="text-slate-600">Minimum Allowed Floor:</span>
+                <span className="font-mono font-semibold text-slate-900">{shortageAlertJob.job.minimumAllowedFloor || 960} sheets</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Sheets Actually Printed:</span>
-                <span className="font-mono font-black text-rose-400 text-sm">{shortageAlertJob.printedSheets} sheets</span>
+                <span className="text-slate-600">Sheets Actually Printed:</span>
+                <span className="font-mono font-bold text-rose-700 text-sm">{shortageAlertJob.printedSheets} sheets</span>
               </div>
-              <div className="flex justify-between items-center border-t border-amber-900/40 pt-1.5">
-                <span className="text-rose-400 font-bold">Deficit Below Floor:</span>
-                <span className="font-mono font-black text-rose-400">
+              <div className="flex justify-between items-center border-t border-amber-200 pt-1.5">
+                <span className="text-rose-700 font-semibold">Deficit Below Floor:</span>
+                <span className="font-mono font-bold text-rose-700">
                   -{(shortageAlertJob.job.minimumAllowedFloor || 960) - shortageAlertJob.printedSheets} sheets
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               The printing operator logged <strong>{shortageAlertJob.printedSheets} sheets</strong>, which falls below your tolerance threshold. Choose an action:
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t border-slate-800">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => handleResolveShortageAlert('reprint')}
-                className="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs py-2.5 px-4 rounded-xl border border-amber-500/30"
+                className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2.5 px-4 rounded-xl border border-slate-300 transition-colors"
               >
-                🔄 Trigger Rush Reprint Batch
+                Trigger Rush Reprint Batch
               </button>
               <button
                 type="button"
                 onClick={() => handleResolveShortageAlert('accept_short')}
-                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-slate-950 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-amber-600/30"
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 px-4 rounded-xl transition-colors"
               >
-                ✓ Accept Short Delivery ({shortageAlertJob.printedSheets} pcs)
+                Accept Short Delivery ({shortageAlertJob.printedSheets} pcs)
               </button>
             </div>
           </div>
@@ -4381,35 +4347,34 @@ function AdminPortal({
 
       {/* GODOWN COURIER DISPATCH MODAL */}
       {dispatchModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">🚚</span>
-                <h3 className="font-extrabold text-white text-base">Dispatch Order {dispatchModalOrder.id}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Dispatch Order {dispatchModalOrder.id}</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setDispatchModalOrder(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 space-y-1 bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+            <div className="text-xs text-slate-700 space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200">
               <div><strong>Client:</strong> {dispatchModalOrder.customerCompany || dispatchModalOrder.customerName}</div>
               <div><strong>Items:</strong> {dispatchModalOrder.items?.length || 1} tag bundle(s)</div>
-              <div><strong>Invoice Status:</strong> <span className="text-emerald-400 font-bold">Verified in Godown</span></div>
+              <div><strong>Invoice Status:</strong> <span className="text-emerald-700 font-semibold">Verified in Godown</span></div>
             </div>
 
             <form onSubmit={handleDispatchOrderSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Logistics / Courier Partner</label>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Logistics / Courier Partner</label>
                 <select
                   value={dispatchCarrier}
                   onChange={(e) => setDispatchCarrier(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 >
                   <option value="Bluedart Express">Bluedart Express</option>
                   <option value="Delhivery Logistics">Delhivery Logistics</option>
@@ -4420,30 +4385,29 @@ function AdminPortal({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Tracking Number / Lorry Receipt (LR) No.</label>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Tracking Number / Lorry Receipt (LR) No.</label>
                 <input
                   type="text"
                   placeholder="e.g. BLU-982104921 or LR-4412"
                   value={dispatchTrackingNo}
                   onChange={(e) => setDispatchTrackingNo(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setDispatchModalOrder(null)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
                 >
-                  <span>✓</span>
-                  <span>Confirm Dispatch</span>
+                  Confirm Dispatch
                 </button>
               </div>
             </form>
@@ -4453,32 +4417,31 @@ function AdminPortal({
 
       {/* INVENTORY RESTOCK MODAL */}
       {restockItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">📥</span>
-                <h3 className="font-extrabold text-white text-base">Inward Raw Material Stock</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Inward Raw Material Stock</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setRestockItem(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <div className="text-xs text-slate-300 space-y-1 bg-slate-800/60 p-3 rounded-2xl border border-slate-700">
+            <div className="text-xs text-slate-700 space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200">
               <div><strong>Material:</strong> {restockItem.name}</div>
-              <div><strong>Item Code:</strong> <span className="font-mono text-indigo-400">{restockItem.code || restockItem.id}</span></div>
+              <div><strong>Item Code:</strong> <span className="font-mono text-slate-900 font-medium">{restockItem.code || restockItem.id}</span></div>
               <div><strong>Current Stock:</strong> {(restockItem.currentStock || 0).toLocaleString()} {restockItem.unit}</div>
               <div><strong>Unit Cost:</strong> ₹{Number(restockItem.unitCost || 0).toFixed(2)}</div>
             </div>
 
             <form onSubmit={handleRestockSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">
+                <label className="text-xs font-medium text-slate-700 block mb-1">
                   Received Quantity ({restockItem.unit}) *
                 </label>
                 <input
@@ -4488,35 +4451,34 @@ function AdminPortal({
                   placeholder={`e.g. 5000 ${restockItem.unit}`}
                   value={restockQty}
                   onChange={(e) => setRestockQty(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Supplier / Mill Name</label>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Supplier / Mill Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Century Pulp & Paper Mills"
                   value={restockSupplier}
                   onChange={(e) => setRestockSupplier(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setRestockItem(null)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-emerald-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
                 >
-                  <span>✓</span>
-                  <span>Add To Inventory</span>
+                  Add To Inventory
                 </button>
               </div>
             </form>
@@ -4526,19 +4488,18 @@ function AdminPortal({
 
       {/* PAPER CATALOG ADD / EDIT MODAL */}
       {showCatalogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">📄</span>
-                <h3 className="font-extrabold text-white text-base">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
                   {editingCatalog ? `Edit Paper Catalog: ${editingCatalog.code}` : 'Add New Paper Catalog Swatch'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCatalogModal(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 &times;
               </button>
@@ -4547,33 +4508,33 @@ function AdminPortal({
             <form onSubmit={handleSaveCatalogSubmit} className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Catalog Swatch Code *</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Catalog Swatch Code *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Cat #107 - Royal Velvet 320"
                     value={catCode}
                     onChange={(e) => setCatCode(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Paper / Board Name *</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Paper / Board Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Royal Velvet Board 320 GSM"
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">GSM (Weight) *</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">GSM (Weight) *</label>
                   <input
                     type="number"
                     required
@@ -4582,24 +4543,24 @@ function AdminPortal({
                     placeholder="e.g. 350"
                     value={catGsm}
                     onChange={(e) => setCatGsm(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Surface Finish *</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Surface Finish *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Silk Matte"
                     value={catFinish}
                     onChange={(e) => setCatFinish(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Sheet Rate (₹) *</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Sheet Rate (₹) *</label>
                   <input
                     type="number"
                     step="0.10"
@@ -4608,50 +4569,49 @@ function AdminPortal({
                     placeholder="e.g. 3.50"
                     value={catRate}
                     onChange={(e) => setCatRate(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Recommended Application</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Recommended Application</label>
                   <input
                     type="text"
                     placeholder="e.g. Luxury Clothing Hangtags"
                     value={catRec}
                     onChange={(e) => setCatRec(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Opening Stock (Sheets)</label>
+                  <label className="text-xs font-medium text-slate-700 block mb-1">Opening Stock (Sheets)</label>
                   <input
                     type="number"
                     min="0"
                     placeholder="e.g. 5000"
                     value={catStock}
                     onChange={(e) => setCatStock(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowCatalogModal(false)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
                 >
-                  <span>✓</span>
-                  <span>{editingCatalog ? 'Save Changes' : 'Create Paper Catalog'}</span>
+                  {editingCatalog ? 'Save Changes' : 'Create Paper Catalog'}
                 </button>
               </div>
             </form>
@@ -4661,24 +4621,21 @@ function AdminPortal({
 
       {/* MOVE TO PRODUCTION SHEET ALLOCATION MODAL (INDIVIDUAL & BULK) */}
       {prodModalOrders && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl">🚀</span>
-                <div>
-                  <h3 className="font-extrabold text-white text-base">
-                    Send to Production &bull; Sheet Allocation ({prodModalOrders.length} Order{prodModalOrders.length > 1 ? 's' : ''})
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Order quantities are booked in <strong>pieces (pcs)</strong>. Printing is run in <strong>sheets</strong>. Enter sheet quantity below before dispatching to printing press.
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col p-6 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Send to Production &bull; Sheet Allocation ({prodModalOrders.length} Order{prodModalOrders.length > 1 ? 's' : ''})
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Order quantities are booked in <strong>pieces (pcs)</strong>. Printing is run in <strong>sheets</strong>. Enter sheet quantity below before dispatching to printing press.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setProdModalOrders(null)}
-                className="text-slate-400 hover:text-white text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
               >
                 &times;
               </button>
@@ -4686,14 +4643,14 @@ function AdminPortal({
 
             <div className="overflow-y-auto py-4 space-y-4 flex-1 pr-1">
               {prodModalOrders.map(ord => (
-                <div key={ord.id} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+                <div key={ord.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold text-xs text-white">{ord.id}</span>
+                      <span className="font-bold text-xs text-slate-900">{ord.id}</span>
                       <span className="text-slate-400 text-xs">&bull;</span>
-                      <span className="text-xs text-indigo-300 font-semibold">{ord.customerCompany || ord.customerName}</span>
+                      <span className="text-xs text-slate-700 font-medium">{ord.customerCompany || ord.customerName}</span>
                     </div>
-                    <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-md bg-indigo-950 text-indigo-300 border border-indigo-800">
+                    <span className="text-[10px] uppercase font-mono font-medium px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700">
                       Approved Order
                     </span>
                   </div>
@@ -4711,8 +4668,8 @@ function AdminPortal({
                     return (
                       <div key={itemIdx} className="space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-white">{item.name || item.itemCode}</span>
-                          <span className="font-mono text-emerald-400 font-bold">
+                          <span className="font-semibold text-slate-900">{item.name || item.itemCode}</span>
+                          <span className="font-mono text-slate-700 font-medium">
                             Order Qty: {Number(item.quantity || 1000).toLocaleString()} pcs
                           </span>
                         </div>
@@ -4726,20 +4683,19 @@ function AdminPortal({
                           const minFloor = Math.max(1, targetSheets - 40);
 
                           return (
-                            <div key={cardIdx} className="bg-slate-900/80 border border-slate-700/80 rounded-xl p-3 space-y-2">
+                            <div key={cardIdx} className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
                               <div className="flex items-center justify-between text-[11px]">
-                                <span className="font-bold text-sky-400 flex items-center space-x-1.5">
-                                  <span>📄</span>
-                                  <span>{card.title || `Card #${cardIdx + 1}`} ({card.catalogCode || item.material || 'Catalog Paper'})</span>
+                                <span className="font-semibold text-slate-900">
+                                  {card.title || `Card #${cardIdx + 1}`} ({card.catalogCode || item.material || 'Catalog Paper'})
                                 </span>
-                                <span className="text-slate-400">
+                                <span className="text-slate-500">
                                   Target: {alloc.orderPieces.toLocaleString()} tags
                                 </span>
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                                 <div>
-                                  <label className="text-[10px] text-slate-400 block font-bold mb-1">
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
                                     Ups / Tags Per Sheet (helper)
                                   </label>
                                   <input
@@ -4748,12 +4704,12 @@ function AdminPortal({
                                     max="200"
                                     value={alloc.ups || 10}
                                     onChange={(e) => handleUpdateSheetAlloc(key, 'ups', e.target.value)}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
 
                                 <div>
-                                  <label className="text-[10px] text-indigo-300 block font-bold mb-1">
+                                  <label className="text-[10px] text-slate-700 block font-medium mb-1">
                                     Required Net Sheets * (Press Target)
                                   </label>
                                   <input
@@ -4762,27 +4718,27 @@ function AdminPortal({
                                     required
                                     value={alloc.sheets || ''}
                                     onChange={(e) => handleUpdateSheetAlloc(key, 'sheets', e.target.value)}
-                                    className="w-full bg-slate-800 border border-indigo-500/80 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono font-bold focus:outline-none focus:border-indigo-400"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
                               </div>
 
                               {/* Sheet Calculation Live Summary */}
-                              <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 text-center font-mono text-xs">
+                              <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-center font-mono text-xs text-slate-800">
                                 <div>
                                   <span className="text-[9px] text-slate-500 uppercase block font-sans">Net Target</span>
-                                  <span className="font-bold text-white">{targetSheets}</span>
+                                  <span className="font-bold text-slate-900">{targetSheets}</span>
                                   <span className="text-[9px] text-slate-500 block font-sans">sheets</span>
                                 </div>
-                                <div className="border-x border-slate-800">
-                                  <span className="text-[9px] text-indigo-400 uppercase block font-sans">Issued (+40 buf)</span>
-                                  <span className="font-bold text-indigo-300">{issuedSheets}</span>
-                                  <span className="text-[9px] text-indigo-400 block font-sans">+20 prn, +20 pnc</span>
+                                <div className="border-x border-slate-200">
+                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Issued (+40 buf)</span>
+                                  <span className="font-bold text-slate-900">{issuedSheets}</span>
+                                  <span className="text-[9px] text-slate-500 block font-sans">+20 prn, +20 pnc</span>
                                 </div>
                                 <div>
-                                  <span className="text-[9px] text-amber-500 uppercase block font-sans">Floor (min)</span>
-                                  <span className="font-bold text-amber-400">{minFloor}</span>
-                                  <span className="text-[9px] text-amber-500 block font-sans">alert threshold</span>
+                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Floor (min)</span>
+                                  <span className="font-bold text-slate-900">{minFloor}</span>
+                                  <span className="text-[9px] text-slate-500 block font-sans">alert threshold</span>
                                 </div>
                               </div>
 
@@ -4797,25 +4753,24 @@ function AdminPortal({
               ))}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-800 shrink-0">
-              <div className="text-xs text-slate-400">
-                <span>Buffer Rule:</span> <span className="text-slate-300 font-bold">+20 sheets Printing + 20 sheets Punching</span>
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
+              <div className="text-xs text-slate-500">
+                <span>Buffer Rule:</span> <span className="text-slate-800 font-semibold">+20 sheets Printing + 20 sheets Punching</span>
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => setProdModalOrders(null)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs py-2 px-4 rounded-xl border border-slate-700"
+                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmMoveToProduction}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs py-2 px-5 rounded-xl shadow-lg shadow-indigo-600/30 active:scale-95 transition-all flex items-center space-x-1.5"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
                 >
-                  <span>🚀</span>
-                  <span>Confirm &amp; Move to Printing Floor</span>
+                  Confirm &amp; Move to Printing Floor
                 </button>
               </div>
             </div>

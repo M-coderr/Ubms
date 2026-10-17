@@ -1027,39 +1027,38 @@ function CustomerPortal({
 
             {/* Visual 4-Step Progress Guide */}
             <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-600 mb-2">
-                <span className="text-blue-950 font-extrabold flex items-center space-x-1.5">
-                  <span>🚀</span>
-                  <span>Order Flow Guide — Where to Start &amp; Next Steps</span>
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
+                <span className="text-slate-900 font-bold">
+                  Order Flow Guide — Follow Sequential Steps
                 </span>
                 <span className="text-slate-500 font-normal hidden sm:inline">Fill each section in order</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="bg-white border border-blue-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
+                <div className="bg-white border border-slate-300 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
                   <div>
-                    <div className="font-bold text-slate-800">1. Item &amp; Paper</div>
+                    <div className="font-bold text-slate-900">1. Item &amp; Paper</div>
                     <div className="text-[10px] text-slate-500">Brand, type &amp; catalog</div>
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">2</span>
+                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">2</span>
                   <div>
-                    <div className="font-bold text-slate-800">2. Specifications</div>
+                    <div className="font-bold text-slate-900">2. Specifications</div>
                     <div className="text-[10px] text-slate-500">Cards, dori &amp; plastic</div>
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">3</span>
+                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">3</span>
                   <div>
-                    <div className="font-bold text-slate-800">3. Artwork &amp; Crop</div>
+                    <div className="font-bold text-slate-900">3. Artwork &amp; Crop</div>
                     <div className="text-[10px] text-slate-500">Preview &amp; crop tool</div>
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs shrink-0">4</span>
+                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">4</span>
                   <div>
-                    <div className="font-bold text-slate-800">4. Qty &amp; Add</div>
+                    <div className="font-bold text-slate-900">4. Qty &amp; Add</div>
                     <div className="text-[10px] text-slate-500">Calculate &amp; add to order</div>
                   </div>
                 </div>
@@ -1071,18 +1070,18 @@ function CustomerPortal({
               {/* STEP 1: CORE IDENTIFIERS & PAPER CATALOG */}
               <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
                 <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
                     1
                   </span>
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Step 1: Item &amp; Paper Catalog Details (Start Here)
+                    Step 1: Item &amp; Paper Catalog Details
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Brand Name */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
                       Brand Name <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -1091,7 +1090,7 @@ function CustomerPortal({
                       placeholder="e.g. Urban Stitch / Denim Club"
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
                     />
                     <span className="text-[10px] text-slate-400 mt-0.5 block">Client brand or firm name</span>
                   </div>
@@ -1099,11 +1098,11 @@ function CustomerPortal({
                   {/* Item Code (Auto-assigned) */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-slate-700">Item Code</label>
-                      <span className="text-[10px] text-blue-600 font-mono font-medium">Auto-assigned</span>
+                      <label className="text-xs font-semibold text-slate-700">Item Code</label>
+                      <span className="text-[10px] text-slate-500 font-mono">Auto-assigned</span>
                     </div>
                     <div 
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-blue-700 flex items-center justify-between cursor-not-allowed select-none shadow-2xs"
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-800 flex items-center justify-between cursor-not-allowed select-none shadow-2xs"
                       title="Unique Article / Item Code is automatically generated and secured by Admin"
                     >
                       <span>{currentCustomerItemCode}</span>
@@ -1114,13 +1113,13 @@ function CustomerPortal({
 
                   {/* Type */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
                       Manufacturing Type <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedType}
                       onChange={(e) => handleTypeChange(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
                     >
                       {availableTypes.map(t => (
                         <option key={t.id} value={t.name}>{t.name}</option>
@@ -1131,14 +1130,14 @@ function CustomerPortal({
 
                   {/* Paper Catalog */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      {selectedType === 'Tag' ? '📖 Paper Catalog' : 'Material'} <span className="text-rose-500">*</span>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      {selectedType === 'Tag' ? 'Paper Catalog' : 'Material'} <span className="text-rose-500">*</span>
                     </label>
                     {selectedType === 'Tag' ? (
                       <select
                         value={selectedCatalogId}
                         onChange={(e) => setSelectedCatalogId(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
                       >
                         {availableCatalogs.map(cat => (
                           <option key={cat.id} value={cat.id}>
@@ -1150,7 +1149,7 @@ function CustomerPortal({
                       <select
                         value={selectedMaterial}
                         onChange={(e) => setSelectedMaterial(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-medium"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
                       >
                         {(currentTypeObj?.materials || []).map((mat, i) => (
                           <option key={i} value={mat}>{mat}</option>
@@ -1165,7 +1164,7 @@ function CustomerPortal({
               {/* STEP 2: TAG SPECIFICATIONS & HANDWORK */}
               <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
                 <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
                     2
                   </span>
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -1178,12 +1177,11 @@ function CustomerPortal({
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-2xs">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <span className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
-                          <span>📑</span>
-                          <span>Tag Composition</span>
+                        <span className="text-xs font-semibold text-slate-800">
+                          Tag Composition
                         </span>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          Does this tag have a single paper card or multiple cards bound together with Dori &amp; Plastic?
+                          Single paper card or multiple cards bound together with Dori &amp; Plastic.
                         </p>
                       </div>
 
@@ -1191,20 +1189,20 @@ function CustomerPortal({
                         <button
                           type="button"
                           onClick={() => setIsMultiCard(false)}
-                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                            !isMultiCard ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                            !isMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
-                          📄 Single Card Tag
+                          Single Card Tag
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsMultiCard(true)}
-                          className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                            isMultiCard ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+                            isMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
-                          📑 Multi-Card Tag Set ({tagCards.length} Cards)
+                          Multi-Card Tag Set ({tagCards.length} Cards)
                         </button>
                       </div>
                     </div>
@@ -1215,25 +1213,25 @@ function CustomerPortal({
                           {tagCards.map((card, idx) => (
                             <div key={card.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
                               <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-bold text-blue-700">
+                                <span className="text-[11px] font-semibold text-slate-900">
                                   Card #{idx + 1}: {card.title}
                                 </span>
                                 {idx === 2 && (
                                   <button
                                     type="button"
                                     onClick={handleRemoveThirdCard}
-                                    className="text-rose-600 hover:text-rose-700 text-xs font-bold"
+                                    className="text-rose-600 hover:text-rose-700 text-xs font-semibold"
                                     title="Remove 3rd Card"
                                   >
                                     &times; Remove
                                   </button>
                                 )}
                               </div>
-                              <label className="text-[10px] text-slate-500 block font-semibold">Select Paper Catalog:</label>
+                              <label className="text-[10px] text-slate-500 block font-medium">Select Paper Catalog:</label>
                               <select
                                 value={card.catalogId}
                                 onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
                               >
                                 {availableCatalogs.map(cat => (
                                   <option key={cat.id} value={cat.id}>
@@ -1249,15 +1247,14 @@ function CustomerPortal({
                           <button
                             type="button"
                             onClick={handleAddThirdCard}
-                            className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center space-x-1 mt-2"
+                            className="text-xs text-slate-800 hover:text-slate-900 font-medium flex items-center space-x-1 mt-2"
                           >
-                            <span>➕ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
+                            <span>+ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
                           </button>
                         )}
                         
-                        <div className="text-[11px] text-blue-800 bg-blue-50/80 border border-blue-200 rounded-xl p-2.5 flex items-center space-x-2">
-                          <span>ℹ️</span>
-                          <span>Each card will receive its own printing &amp; punching form, and will merge at the Handwork (Dori &amp; Plastic) stage.</span>
+                        <div className="text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                          Each card will receive its own printing &amp; punching form, and will merge at the Handwork (Dori &amp; Plastic) stage.
                         </div>
                       </div>
                     )}
@@ -1269,13 +1266,13 @@ function CustomerPortal({
                   {/* Dori */}
                   <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-800">🧵 Dori (String)</label>
+                      <label className="text-xs font-semibold text-slate-800">Dori (String)</label>
                       <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
                         <button
                           type="button"
                           onClick={() => { setDoriOption('reg'); setDoriCustom(''); }}
-                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                            doriOption === 'reg' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1 rounded-md font-medium transition-all ${
+                            doriOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           Reg. (₹0.20)
@@ -1283,8 +1280,8 @@ function CustomerPortal({
                         <button
                           type="button"
                           onClick={() => setDoriOption('custom')}
-                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                            doriOption === 'custom' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1 rounded-md font-medium transition-all ${
+                            doriOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           Custom
@@ -1299,7 +1296,7 @@ function CustomerPortal({
                         placeholder="Specify custom dori (e.g. Waxed Cotton cord / Satin string)"
                         value={doriCustom}
                         onChange={(e) => setDoriCustom(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                       />
                     ) : (
                       <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
@@ -1311,13 +1308,13 @@ function CustomerPortal({
                   {/* Plastic Lock */}
                   <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-800">🔒 Plastic Lock / Seal</label>
+                      <label className="text-xs font-semibold text-slate-800">Plastic Lock / Seal</label>
                       <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
                         <button
                           type="button"
                           onClick={() => { setPlasticOption('reg'); setPlasticCustom(''); }}
-                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                            plasticOption === 'reg' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1 rounded-md font-medium transition-all ${
+                            plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           Reg. (₹0.10)
@@ -1325,8 +1322,8 @@ function CustomerPortal({
                         <button
                           type="button"
                           onClick={() => setPlasticOption('custom')}
-                          className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                            plasticOption === 'custom' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          className={`px-3 py-1 rounded-md font-medium transition-all ${
+                            plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           Custom
@@ -1341,7 +1338,7 @@ function CustomerPortal({
                         placeholder="Specify custom plastic (e.g. Embossed Square Seal)"
                         value={plasticCustom}
                         onChange={(e) => setPlasticCustom(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
                       />
                     ) : (
                       <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
@@ -1356,7 +1353,7 @@ function CustomerPortal({
               <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
                 <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
                   <div className="flex items-center space-x-2">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
                       3
                     </span>
                     <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -1367,7 +1364,7 @@ function CustomerPortal({
                 </div>
 
                 {!orderImage ? (
-                  <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/30 transition-all rounded-2xl p-5 text-center cursor-pointer relative group shadow-2xs">
+                  <div className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-white transition-all rounded-2xl p-5 text-center cursor-pointer relative group shadow-2xs">
                     <input
                       id="customer-file-upload"
                       type="file"
@@ -1376,10 +1373,7 @@ function CustomerPortal({
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <div className="flex flex-col items-center justify-center space-y-2 py-2">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform border border-blue-100">
-                        🖼️
-                      </div>
-                      <div className="text-xs font-extrabold text-slate-800">
+                      <div className="text-xs font-bold text-slate-800">
                         Click or drag tag design / artwork here to upload
                       </div>
                       <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
@@ -1398,14 +1392,14 @@ function CustomerPortal({
                       >
                         <img src={orderImage} alt="Artwork Preview" className="w-full h-full object-contain" />
                         <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-                          🔍
+                          View
                         </div>
                       </div>
 
                       <div className="space-y-1">
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-bold text-slate-900">Artwork Uploaded &amp; Ready</span>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-md border border-emerald-200">
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-md border border-emerald-200">
                             ✓ Ready
                           </span>
                         </div>
@@ -1418,18 +1412,16 @@ function CustomerPortal({
                           <button
                             type="button"
                             onClick={() => setShowCropModal(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center space-x-1.5"
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
                           >
-                            <span>✂️</span>
-                            <span>Crop Image</span>
+                            Crop Image
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowFullImageModal(true)}
-                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1"
+                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
                           >
-                            <span>🔍</span>
-                            <span>View Full</span>
+                            View Full
                           </button>
                           <button
                             type="button"
@@ -1438,7 +1430,7 @@ function CustomerPortal({
                               const el = document.getElementById('customer-file-upload');
                               if (el) el.value = '';
                             }}
-                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
                           >
                             Remove
                           </button>
@@ -1452,7 +1444,7 @@ function CustomerPortal({
               {/* STEP 4: COMMERCIALS & ADD TO ORDER */}
               <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
                 <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
                     4
                   </span>
                   <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -1462,7 +1454,7 @@ function CustomerPortal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-1">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
                       Quantity (Pcs) <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -1473,7 +1465,7 @@ function CustomerPortal({
                       onFocus={() => { if (Number(qty) === 0) setQty(''); }}
                       onBlur={() => { if (qty === '' || isNaN(qty)) setQty(0); }}
                       onChange={(e) => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-mono font-bold"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-mono font-bold"
                     />
                     {/* Quick Presets */}
                     <div className="flex items-center space-x-1 mt-1.5">
@@ -1483,7 +1475,7 @@ function CustomerPortal({
                           key={val}
                           type="button"
                           onClick={() => setQty(val)}
-                          className="text-[10px] bg-white border border-slate-200 hover:border-blue-400 text-slate-600 hover:text-blue-600 px-1.5 py-0.5 rounded shadow-2xs font-mono"
+                          className="text-[10px] bg-white border border-slate-200 hover:border-slate-400 text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded shadow-2xs font-mono transition-colors"
                         >
                           {val >= 1000 ? `${val / 1000}k` : val}
                         </button>
@@ -1492,7 +1484,7 @@ function CustomerPortal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
                       Rate per Pc (₹) <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -1504,22 +1496,21 @@ function CustomerPortal({
                       onFocus={() => { if (Number(rate) === 0) setRate(''); }}
                       onBlur={() => { if (rate === '' || isNaN(rate)) setRate(0); }}
                       onChange={(e) => setRate(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs font-mono font-bold"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-mono font-bold"
                     />
                     <span className="text-[10px] text-slate-400 mt-1 block">Agreed piece manufacturing rate</span>
                   </div>
 
-                  <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex flex-col justify-center">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold">Item Subtotal</span>
-                    <span className="text-emerald-700 font-black text-lg font-mono">{formatCurrency(qty * rate)}</span>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Item Subtotal</span>
+                    <span className="text-slate-900 font-bold text-lg font-mono">{formatCurrency(qty * rate)}</span>
                   </div>
 
                   <div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3 rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center space-x-1.5"
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-3 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
                     >
-                      <span>➕</span>
                       <span>Add Item to Order</span>
                     </button>
                   </div>
@@ -1530,19 +1521,18 @@ function CustomerPortal({
 
             {/* Configured Line Items Table */}
             <div className="space-y-3 pt-3">
-              <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-                <span>🛒</span>
-                <span>Configured Order Line Items ({orderItems.length})</span>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                Configured Order Line Items ({orderItems.length})
               </h4>
 
               {orderItems.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl text-slate-500 text-xs bg-slate-50/50">
-                  No items added yet. Complete the 4 steps above and click &quot;+ Add Item to Order&quot;.
+                <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-500 text-xs bg-slate-50">
+                  No items added yet. Complete the 4 steps above and click &quot;Add Item to Order&quot;.
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
                   <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-bold">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-semibold">
                       <tr>
                         <th className="py-3 px-4">Item &amp; Artwork</th>
                         <th className="py-3 px-4">Brand</th>
@@ -1562,23 +1552,23 @@ function CustomerPortal({
                             <div className="flex items-center space-x-2.5">
                               <img src={item.image} alt={item.type} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
                               <div className="flex flex-col">
-                                <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded inline-block w-fit">
+                                <span className="font-mono font-semibold text-xs text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded inline-block w-fit">
                                   {item.itemCode || item.name}
                                 </span>
                                 <span className="font-mono text-[10px] text-slate-400 mt-0.5">#{idx + 1}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-4 font-bold text-slate-900">{item.brandName}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-900">{item.brandName}</td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 mr-1.5 font-semibold">{item.type}</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 mr-1.5 font-medium">{item.type}</span>
                             <span className="text-slate-600 font-medium">{item.material}</span>
                           </td>
                           <td className="py-3 px-4 text-slate-600">{item.dori}</td>
                           <td className="py-3 px-4 text-slate-600">{item.plastic}</td>
-                          <td className="py-3 px-4 text-center font-mono font-bold text-slate-800">{item.quantity.toLocaleString()}</td>
+                          <td className="py-3 px-4 text-center font-mono font-medium text-slate-900">{item.quantity.toLocaleString()}</td>
                           <td className="py-3 px-4 text-right font-mono text-slate-700">{formatCurrency(item.unitPrice)}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">{formatCurrency(item.total)}</td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(item.total)}</td>
                           <td className="py-3 px-4 text-center">
                             <button
                               type="button"
@@ -1600,33 +1590,33 @@ function CustomerPortal({
           </div>
 
           {/* Right Summary: Total & Submit */}
-          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4 self-start sticky top-24">
-            <h3 className="font-extrabold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
+          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4 self-start sticky top-24">
+            <h3 className="font-bold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
               <span>Order Summary</span>
-              <span className="text-xs text-blue-600 font-mono font-bold">({orderItems.length} items)</span>
+              <span className="text-xs text-slate-500 font-mono font-medium">({orderItems.length} items)</span>
             </h3>
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">Special Order Remarks</label>
+                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Special Order Remarks</label>
                 <textarea
                   rows="3"
                   placeholder="e.g. Cut &amp; fold preference, packaging instructions, urgent dispatch note..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 shadow-2xs"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs"
                 />
               </div>
 
               {/* Total Calculation (Pure Subtotal, NO TAXES) */}
               <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                <div className="flex justify-between items-center text-sm font-bold text-slate-600">
+                <div className="flex justify-between items-center text-sm font-medium text-slate-600">
                   <span>Subtotal:</span>
                   <span className="font-mono text-slate-800">{formatCurrency(grandTotal)}</span>
                 </div>
-                <div className="flex justify-between items-center text-base font-black text-slate-900 pt-2 border-t border-dashed border-slate-200">
+                <div className="flex justify-between items-center text-base font-bold text-slate-900 pt-2 border-t border-dashed border-slate-200">
                   <span>Grand Total:</span>
-                  <span className="text-emerald-700 text-xl font-mono">{formatCurrency(grandTotal)}</span>
+                  <span className="text-slate-900 text-xl font-mono">{formatCurrency(grandTotal)}</span>
                 </div>
                 <p className="text-[10px] text-slate-400">Zero additional taxes applied.</p>
               </div>
@@ -1635,9 +1625,9 @@ function CustomerPortal({
                 type="button"
                 onClick={handleSubmitFinalOrder}
                 disabled={orderItems.length === 0}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white font-extrabold text-xs py-3.5 rounded-xl shadow-md transition-all mt-2 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-xs py-3.5 rounded-xl transition-colors mt-2 cursor-pointer disabled:cursor-not-allowed"
               >
-                🚀 Confirm &amp; Book Manufacturing Order
+                Confirm &amp; Book Manufacturing Order
               </button>
 
               <div className="text-[11px] text-slate-500 text-center leading-relaxed">
@@ -1668,13 +1658,13 @@ function CustomerPortal({
                     className="bg-transparent text-xs text-slate-800 font-semibold outline-none cursor-pointer pr-1"
                   >
                     <option value="all" className="bg-white text-slate-800">All Statuses ({customerOrders.length})</option>
-                    <option value="pending" className="bg-white text-amber-700">⏳ Pending Approval ({customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
-                    <option value="approved" className="bg-white text-emerald-700">✓ Approved ({customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
-                    <option value="in_production" className="bg-white text-sky-700">⚙️ In Production ({customerOrders.filter(o => o.status === 'in_production').length})</option>
-                    <option value="ready_dispatch" className="bg-white text-purple-700">📦 Ready / QC ({customerOrders.filter(o => o.status === 'ready_dispatch').length})</option>
-                    <option value="shipped" className="bg-white text-indigo-700">🚚 Dispatched ({customerOrders.filter(o => o.status === 'shipped').length})</option>
-                    <option value="delivered" className="bg-white text-emerald-700">🎉 Delivered ({customerOrders.filter(o => o.status === 'delivered').length})</option>
-                    <option value="rejected" className="bg-white text-rose-700">✕ Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
+                    <option value="pending" className="bg-white text-slate-800">Pending Approval ({customerOrders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
+                    <option value="approved" className="bg-white text-slate-800">Approved ({customerOrders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
+                    <option value="in_production" className="bg-white text-slate-800">In Production ({customerOrders.filter(o => o.status === 'in_production').length})</option>
+                    <option value="ready_dispatch" className="bg-white text-slate-800">Ready / QC ({customerOrders.filter(o => o.status === 'ready_dispatch').length})</option>
+                    <option value="shipped" className="bg-white text-slate-800">Dispatched ({customerOrders.filter(o => o.status === 'shipped').length})</option>
+                    <option value="delivered" className="bg-white text-slate-800">Delivered ({customerOrders.filter(o => o.status === 'delivered').length})</option>
+                    <option value="rejected" className="bg-white text-slate-800">Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
                   </select>
                 </div>
 
@@ -1687,15 +1677,14 @@ function CustomerPortal({
                       setSearchQty('');
                       setSearchRate('');
                     }}
-                    className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl border border-amber-200 transition-all font-semibold flex items-center space-x-1"
+                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors font-medium flex items-center space-x-1"
                     title="Reset all search and status filters"
                   >
-                    <span>✕</span>
                     <span>Clear Filters</span>
                   </button>
                 )}
 
-                <span className="text-xs text-blue-700 font-mono bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl font-bold">
+                <span className="text-xs text-slate-700 font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
                   {filteredCustomerOrders.length} of {customerOrders.length} Order(s)
                 </span>
               </div>
@@ -1703,16 +1692,16 @@ function CustomerPortal({
 
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-y border-slate-200 rounded-xl">
                   <tr>
-                    <th className="py-3 px-4 font-bold">Order ID</th>
-                    <th className="py-3 px-4 font-bold">Artwork</th>
-                    <th className="py-3 px-4 font-bold">Brand &amp; Item Specs</th>
-                    <th className="py-3 px-4 font-bold">Dori Plastic</th>
-                    <th className="py-3 px-4 font-bold">Qty</th>
-                    <th className="py-3 px-4 font-bold">Rate</th>
-                    <th className="py-3 px-4 text-right font-bold">Amt</th>
-                    <th className="py-3 px-4 text-center font-bold">Action</th>
+                    <th className="py-3 px-4 font-semibold">Order ID</th>
+                    <th className="py-3 px-4 font-semibold">Artwork</th>
+                    <th className="py-3 px-4 font-semibold">Brand &amp; Item Specs</th>
+                    <th className="py-3 px-4 font-semibold">Dori &amp; Plastic</th>
+                    <th className="py-3 px-4 font-semibold">Qty</th>
+                    <th className="py-3 px-4 font-semibold">Rate</th>
+                    <th className="py-3 px-4 text-right font-semibold">Amt</th>
+                    <th className="py-3 px-4 text-center font-semibold">Action</th>
                   </tr>
                   {/* Individual search bar below brand and item spec | dori plastic | qty | rate */}
                   <tr className="bg-slate-50/70 border-b border-slate-200">
@@ -1725,8 +1714,8 @@ function CustomerPortal({
                           type="text"
                           value={searchBrandSpecs}
                           onChange={(e) => setSearchBrandSpecs(e.target.value)}
-                          placeholder="🔍 Search specs..."
-                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
+                          placeholder="Search specs..."
+                          className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                         />
                         {searchBrandSpecs && (
                           <button
@@ -1734,7 +1723,7 @@ function CustomerPortal({
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
-                            ✕
+                            &times;
                           </button>
                         )}
                       </div>
@@ -1746,8 +1735,8 @@ function CustomerPortal({
                           type="text"
                           value={searchDoriPlastic}
                           onChange={(e) => setSearchDoriPlastic(e.target.value)}
-                          placeholder="🔍 Search dori / plastic..."
-                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
+                          placeholder="Search dori / plastic..."
+                          className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                         />
                         {searchDoriPlastic && (
                           <button
@@ -1755,7 +1744,7 @@ function CustomerPortal({
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
-                            ✕
+                            &times;
                           </button>
                         )}
                       </div>
@@ -1767,8 +1756,8 @@ function CustomerPortal({
                           type="text"
                           value={searchQty}
                           onChange={(e) => setSearchQty(e.target.value)}
-                          placeholder="🔍 Filter qty..."
-                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
+                          placeholder="Filter qty..."
+                          className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                         />
                         {searchQty && (
                           <button
@@ -1776,7 +1765,7 @@ function CustomerPortal({
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
-                            ✕
+                            &times;
                           </button>
                         )}
                       </div>
@@ -1788,8 +1777,8 @@ function CustomerPortal({
                           type="text"
                           value={searchRate}
                           onChange={(e) => setSearchRate(e.target.value)}
-                          placeholder="🔍 Filter rate..."
-                          className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-all normal-case font-normal"
+                          placeholder="Filter rate..."
+                          className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                         />
                         {searchRate && (
                           <button
@@ -1797,7 +1786,7 @@ function CustomerPortal({
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                             title="Clear"
                           >
-                            ✕
+                            &times;
                           </button>
                         )}
                       </div>
@@ -1812,7 +1801,7 @@ function CustomerPortal({
                             setSearchQty('');
                             setSearchRate('');
                           }}
-                          className="text-[11px] text-amber-700 hover:text-amber-800 font-semibold underline"
+                          className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold underline"
                           title="Reset search fields"
                         >
                           Clear
@@ -1830,19 +1819,18 @@ function CustomerPortal({
                       <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                         {/* 1. ORDER ID */}
                         <td className="py-4 px-4 align-top">
-                          <div className="font-mono font-bold text-blue-600 text-sm">{order.id}</div>
+                          <div className="font-mono font-semibold text-slate-900 text-sm">{order.id}</div>
                           <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(order.createdAt)}</div>
                           <div className="mt-1.5">
-                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase inline-flex items-center space-x-1 ${
                               order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                               order.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                              order.status === 'in_production' ? 'bg-sky-50 text-sky-700 border border-sky-200' :
+                              order.status === 'in_production' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
                               order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
                               order.status === 'shipped' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
                               order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
                               'bg-amber-50 text-amber-700 border border-amber-200'
                             }`}>
-                              <span>{order.status === 'approved' || order.status === 'confirmed' ? '✓' : order.status === 'rejected' ? '✕' : '⏳'}</span>
                               <span>
                                 {order.status === 'pending' || order.status === 'placed' ? 'Pending' :
                                  order.status === 'approved' || order.status === 'confirmed' ? 'Approved' :
@@ -1864,15 +1852,15 @@ function CustomerPortal({
                               <img 
                                 src={firstItem.image} 
                                 alt="Artwork" 
-                                className="w-16 h-16 object-cover rounded-2xl border border-slate-200 shadow-xs group-hover:border-blue-500 group-hover:scale-105 transition-all bg-slate-50" 
+                                className="w-16 h-16 object-cover rounded-xl border border-slate-200 shadow-xs group-hover:border-slate-400 transition-all bg-slate-50" 
                               />
-                              <div className="absolute inset-0 bg-slate-900/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
-                                🔍 Zoom
+                              <div className="absolute inset-0 bg-slate-900/40 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition-opacity">
+                                Zoom
                               </div>
                             </div>
                           ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg text-slate-400">
-                              🏷️
+                            <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs text-slate-400">
+                              No Art
                             </div>
                           )}
                         </td>
@@ -1880,32 +1868,32 @@ function CustomerPortal({
                         {/* 3. BRAND AND ITEM SPECS */}
                         <td className="py-4 px-4 align-top">
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                               {firstItem.itemCode || firstItem.name || 'ITEM'}
                             </span>
-                            <span className="font-extrabold text-slate-900 text-sm">
+                            <span className="font-bold text-slate-900 text-sm">
                               {firstItem.brandName || order.customerCompany}
                             </span>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
-                            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[11px]">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200 font-medium text-[11px]">
                               {firstItem.type || 'Tag'}
                             </span>
-                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-medium">
                               {firstItem.material || 'Standard'}
                             </span>
                           </div>
 
                           {firstItem.isMultiCard && firstItem.cards && firstItem.cards.length > 0 && (
                             <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded inline-block">
-                                📑 {firstItem.cards.length}-Card Set
+                              <span className="text-[10px] font-semibold text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded inline-block">
+                                {firstItem.cards.length}-Card Set
                               </span>
                               <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-blue-600 font-semibold">• {c.title}:</span>
-                                    <span className="text-slate-800">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
+                                    <span className="text-slate-900 font-medium">• {c.title}:</span>
+                                    <span className="text-slate-700">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
                               </div>
@@ -1914,12 +1902,12 @@ function CustomerPortal({
 
                           {order.status === 'rejected' && (
                             <div className="mt-2 bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-rose-800 text-xs">
-                              <span className="font-bold text-rose-700">⚠️ Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
+                              <span className="font-bold text-rose-700">Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
                             </div>
                           )}
 
                           {order.items.length > 1 && (
-                            <span className="inline-block mt-1 text-[10px] bg-slate-100 text-blue-700 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
+                            <span className="inline-block mt-1 text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 font-medium">
                               + {order.items.length - 1} more item(s)
                             </span>
                           )}
@@ -1928,10 +1916,10 @@ function CustomerPortal({
                         {/* 4. DORI PLASTIC */}
                         <td className="py-4 px-4 align-top text-xs space-y-1">
                           <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
-                            🧵 Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
+                            Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
                           </div>
                           <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
-                            🔒 Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
+                            Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
                           </div>
                         </td>
 
@@ -1944,13 +1932,13 @@ function CustomerPortal({
                         </td>
 
                         {/* 6. RATE */}
-                        <td className="py-4 px-4 align-top font-mono font-semibold text-slate-700 text-sm whitespace-nowrap">
+                        <td className="py-4 px-4 align-top font-mono font-medium text-slate-700 text-sm whitespace-nowrap">
                           {formatCurrency(firstItem.unitPrice || 0)}
                         </td>
 
                         {/* 7. AMT */}
                         <td className="py-4 px-4 align-top text-right">
-                          <span className="font-extrabold text-emerald-600 text-base font-mono whitespace-nowrap">
+                          <span className="font-bold text-slate-900 text-base font-mono whitespace-nowrap">
                             {formatCurrency(order.total)}
                           </span>
                         </td>
@@ -1961,37 +1949,33 @@ function CustomerPortal({
                             {order.status === 'rejected' ? (
                               <button
                                 onClick={() => handleDuplicateOrder(order)}
-                                className="w-full bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center space-x-1"
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-xs flex items-center justify-center space-x-1"
                                 title="Duplicate order details into a new draft with new order number"
                               >
-                                <span>🔁</span>
                                 <span>Place New Order</span>
                               </button>
                             ) : isEditable ? (
                               <button
                                 onClick={() => handleOpenEditModal(order)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center space-x-1"
+                                className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-xs flex items-center space-x-1"
                                 title="Edit order specifications"
                               >
-                                <span>✏️</span>
                                 <span>Edit</span>
                               </button>
                             ) : (
                               <span 
-                                className="text-[11px] text-slate-400 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200" 
+                                className="text-[11px] text-slate-500 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200" 
                                 title="Order approved by admin. Editing locked."
                               >
-                                <span>🔒</span>
                                 <span>Locked</span>
                               </span>
                             )}
 
                             <button
                               onClick={() => onOpenInvoice(order)}
-                              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs border border-slate-200 transition-colors flex items-center justify-center space-x-1 font-medium"
+                              className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs border border-slate-300 transition-colors flex items-center justify-center space-x-1 font-medium"
                               title="View Invoice & Receipt"
                             >
-                              <span>📄</span>
                               <span>Invoice</span>
                             </button>
                           </div>
@@ -2002,8 +1986,7 @@ function CustomerPortal({
                   {filteredCustomerOrders.length === 0 && (
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
-                        <div className="text-3xl mb-2">🔍</div>
-                        <div className="font-semibold text-slate-600">No orders match your filter criteria</div>
+                        <div className="font-medium text-slate-700">No orders match your filter criteria</div>
                         <p className="text-xs text-slate-400 mt-1">Try clearing or adjusting the search bars or status filter.</p>
                         <button
                           onClick={() => {
@@ -2013,7 +1996,7 @@ function CustomerPortal({
                             setSearchQty('');
                             setSearchRate('');
                           }}
-                          className="mt-3 inline-block px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-blue-600 text-xs font-semibold rounded-xl border border-slate-200"
+                          className="mt-3 inline-block px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium rounded-xl border border-slate-200"
                         >
                           Clear all filters
                         </button>
@@ -2071,7 +2054,7 @@ function CustomerPortal({
                             const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
                             onOpenInvoice(linkedOrder);
                           }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-xl text-xs font-semibold shadow-xs"
+                          className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors"
                         >
                           Print / PDF
                         </button>
@@ -2122,7 +2105,7 @@ function CustomerPortal({
               <tbody className="divide-y divide-slate-100">
                 {outstandingLedger.bills.map(b => (
                   <tr key={b.id} className="hover:bg-slate-50/70">
-                    <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{b.id}</td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{b.id}</td>
                     <td className="py-3.5 px-4">{formatDate(b.issueDate)}</td>
                     <td className="py-3.5 px-4">{formatDate(b.dueDate)}</td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(b.total)}</td>
@@ -2171,7 +2154,7 @@ function CustomerPortal({
                   <tr key={idx} className="hover:bg-slate-50/70">
                     <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
-                    <td className="py-3 px-4 font-mono text-blue-600">{j.refNo}</td>
+                    <td className="py-3 px-4 font-mono text-slate-700">{j.refNo}</td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
                     <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
                     <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
@@ -2188,7 +2171,7 @@ function CustomerPortal({
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 animate-fade-in max-w-4xl mx-auto flex flex-col h-[650px]">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center font-bold text-white shadow-xs">
                 PS
               </div>
               <div>
@@ -2207,7 +2190,7 @@ function CustomerPortal({
               <div key={msg.id} className={`flex flex-col ${msg.isCustomer ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed ${
                   msg.isCustomer
-                    ? 'bg-blue-600 text-white rounded-br-none shadow-xs'
+                    ? 'bg-slate-900 text-white rounded-br-none shadow-xs'
                     : 'bg-slate-100 text-slate-800 border border-slate-200 rounded-bl-none shadow-xs'
                 }`}>
                   <p>{msg.text}</p>
@@ -2223,11 +2206,11 @@ function CustomerPortal({
               placeholder={`Message ${customerThread.accountManager}...`}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white"
+              className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white"
             />
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-colors"
             >
               Send &rarr;
             </button>
@@ -2242,9 +2225,8 @@ function CustomerPortal({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">
-                  <span>✏️</span>
                   <span>Edit Manufacturing Order</span>
-                  <span className="font-mono text-blue-600 text-sm ml-2">({editingOrder.id})</span>
+                  <span className="font-mono text-slate-600 text-sm ml-2">({editingOrder.id})</span>
                 </h3>
                 <p className="text-xs text-slate-500">Order is awaiting admin approval. You can modify any specifications below.</p>
               </div>
@@ -2267,7 +2249,7 @@ function CustomerPortal({
                     required
                     value={editBrandName}
                     onChange={(e) => setEditBrandName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
                 <div>
@@ -2279,7 +2261,7 @@ function CustomerPortal({
                       const tObj = availableTypes.find(t => t.name === e.target.value);
                       if (tObj) setEditSelectedMaterial(tObj.materials[0] || '');
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   >
                     {availableTypes.map(t => (
                       <option key={t.id} value={t.name}>{t.name}</option>
@@ -2291,7 +2273,7 @@ function CustomerPortal({
                   <select
                     value={editSelectedMaterial}
                     onChange={(e) => setEditSelectedMaterial(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   >
                     {(availableTypes.find(t => t.name === editSelectedType)?.materials || []).map((m, idx) => (
                       <option key={idx} value={m}>{m}</option>
@@ -2305,19 +2287,19 @@ function CustomerPortal({
                 {/* DORI */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">🧵 Dori</label>
+                    <label className="text-xs font-bold text-slate-700">Dori</label>
                     <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setEditDoriOption('reg'); setEditDoriCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editDoriOption === 'reg' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
                       >
                         Reg.
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditDoriOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold ${editDoriOption === 'custom' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editDoriOption === 'custom' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
                       >
                         Custom
                       </button>
@@ -2330,7 +2312,7 @@ function CustomerPortal({
                       placeholder="Specify custom dori"
                       value={editDoriCustom}
                       onChange={(e) => setEditDoriCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
                     />
                   ) : (
                     <div className="text-[11px] text-slate-500 italic">Standard / Regular Dori</div>
@@ -2340,19 +2322,19 @@ function CustomerPortal({
                 {/* PLASTIC */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">🔒 Plastic</label>
+                    <label className="text-xs font-bold text-slate-700">Plastic</label>
                     <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
                       <button
                         type="button"
                         onClick={() => { setEditPlasticOption('reg'); setEditPlasticCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'reg' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editPlasticOption === 'reg' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
                       >
                         Reg.
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditPlasticOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold ${editPlasticOption === 'custom' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editPlasticOption === 'custom' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
                       >
                         Custom
                       </button>
@@ -2365,7 +2347,7 @@ function CustomerPortal({
                       placeholder="Specify custom plastic"
                       value={editPlasticCustom}
                       onChange={(e) => setEditPlasticCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-800"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
                     />
                   ) : (
                     <div className="text-[11px] text-slate-500 italic">Standard / Regular Plastic lock</div>
@@ -2374,13 +2356,13 @@ function CustomerPortal({
 
                 {/* ARTWORK */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">📎 Artwork Image</label>
+                  <label className="text-xs font-bold text-slate-700 block">Artwork Image</label>
                   <div className="flex items-center space-x-2">
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleEditImageUpload}
-                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-blue-600 file:text-white cursor-pointer"
+                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-slate-900 file:text-white cursor-pointer"
                     />
                     {editOrderImage && (
                       <img src={editOrderImage} alt="Artwork" className="w-8 h-8 rounded object-cover border border-slate-200" />
@@ -2399,7 +2381,7 @@ function CustomerPortal({
                     required
                     value={editQty}
                     onChange={(e) => setEditQty(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
                 <div>
@@ -2411,7 +2393,7 @@ function CustomerPortal({
                     required
                     value={editRate}
                     onChange={(e) => setEditRate(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                   />
                 </div>
                 <div className="bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 flex flex-col justify-center">
@@ -2427,7 +2409,7 @@ function CustomerPortal({
                   placeholder="Additional order instructions"
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                 />
               </div>
 
@@ -2435,15 +2417,15 @@ function CustomerPortal({
                 <button
                   type="button"
                   onClick={() => setEditingOrder(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
                 >
-                  ✓ Save Order Changes
+                  Save Order Changes
                 </button>
               </div>
             </form>
@@ -2514,9 +2496,8 @@ function CustomerPortal({
               <button
                 type="button"
                 onClick={() => { setShowFullImageModal(false); setShowCropModal(true); }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs flex items-center space-x-1.5 transition-colors"
               >
-                <span>✂️</span>
                 <span>Crop Artwork</span>
               </button>
             </div>

@@ -246,18 +246,13 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/60">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg border border-blue-100">
-              ✂️
-            </div>
-            <div>
-              <h3 className="font-extrabold text-slate-800 text-sm sm:text-base">Crop &amp; Frame Tag Artwork</h3>
-              <p className="text-[11px] text-slate-500">Pan, zoom, or select a tag ratio to frame your tag design accurately</p>
-            </div>
+          <div>
+            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">Crop &amp; Frame Tag Artwork</h3>
+            <p className="text-[11px] text-slate-500">Pan, zoom, or select a tag ratio to frame your tag design accurately</p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center text-sm font-bold transition-all"
+            className="w-8 h-8 rounded-full bg-white border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-700 flex items-center justify-center text-sm font-bold transition-colors"
             title="Close"
           >
             ✕
@@ -270,22 +265,22 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
           {/* Aspect Ratio Selector Pills */}
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-2">
-              📐 Select Tag Aspect Ratio
+              Select Tag Aspect Ratio
             </label>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: '2:3', label: '🏷️ 2:3 Standard Hangtag (2" × 3")', desc: 'Most popular price/brand tag' },
-                { id: '1:1', label: '⏹️ 1:1 Square (2" × 2")', desc: 'Square tags & garment badges' },
-                { id: '1:2', label: '📏 1:2 Slim Tag (1.5" × 3")', desc: 'Long bookmark / slim label' },
-                { id: '3:4', label: '📑 3:4 Card Tag', desc: 'Larger multi-care card' },
+                { id: '2:3', label: '2:3 Standard Hangtag (2" × 3")', desc: 'Most popular price/brand tag' },
+                { id: '1:1', label: '1:1 Square (2" × 2")', desc: 'Square tags & garment badges' },
+                { id: '1:2', label: '1:2 Slim Tag (1.5" × 3")', desc: 'Long bookmark / slim label' },
+                { id: '3:4', label: '3:4 Card Tag', desc: 'Larger multi-care card' },
               ].map((ratio) => (
                 <button
                   key={ratio.id}
                   type="button"
                   onClick={() => setAspectRatio(ratio.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border ${
                     aspectRatio === ratio.id
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs font-bold'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                   title={ratio.desc}
@@ -315,7 +310,7 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
                 <canvas ref={canvasRef} width={360} height={360} className="block" />
                 
                 <div className="absolute bottom-2 left-2 bg-slate-900/70 text-white text-[10px] px-2 py-0.5 rounded-full pointer-events-none backdrop-blur-sm">
-                  ✋ Drag to pan artwork
+                  Drag to pan artwork
                 </div>
               </div>
             </div>
@@ -326,19 +321,19 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
                 <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Live Tag Preview
                 </div>
-                <div className="flex items-center justify-center p-2 bg-white rounded-xl border border-slate-200 shadow-sm min-h-[160px]">
+                <div className="flex items-center justify-center p-2 bg-white rounded-xl border border-slate-200 shadow-xs min-h-[160px]">
                   {previewUrl ? (
                     <img 
                       src={previewUrl} 
                       alt="Cropped Preview" 
-                      className="max-h-40 max-w-full object-contain rounded shadow-sm border border-slate-100" 
+                      className="max-h-40 max-w-full object-contain rounded shadow-xs border border-slate-100" 
                     />
                   ) : (
                     <span className="text-xs text-slate-400">Rendering preview...</span>
                   )}
                 </div>
                 <div className="text-[11px] text-slate-500 font-mono">
-                  Aspect Ratio: <span className="font-bold text-blue-600">{aspectRatio}</span>
+                  Aspect Ratio: <span className="font-bold text-slate-900">{aspectRatio}</span>
                 </div>
               </div>
 
@@ -347,8 +342,8 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
                 {/* Zoom Slider */}
                 <div>
                   <div className="flex items-center justify-between text-xs text-slate-700 font-semibold mb-1">
-                    <span>🔍 Zoom</span>
-                    <span className="font-mono text-blue-600">{Math.round(zoom * 100)}%</span>
+                    <span>Zoom</span>
+                    <span className="font-mono text-slate-900">{Math.round(zoom * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -357,7 +352,7 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
                     step="0.05"
                     value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="w-full accent-blue-600 cursor-pointer"
+                    className="w-full accent-slate-900 cursor-pointer"
                   />
                 </div>
 
@@ -366,15 +361,14 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
                   <button
                     type="button"
                     onClick={handleRotate}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 px-2.5 rounded-xl transition-all flex items-center justify-center space-x-1"
+                    className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-medium py-2 px-2.5 rounded-xl transition-colors flex items-center justify-center"
                   >
-                    <span>🔄</span>
                     <span>Rotate 90°</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold py-2 px-3 rounded-xl transition-all"
+                    className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-600 text-xs font-medium py-2 px-3 rounded-xl transition-colors"
                     title="Reset all adjustments"
                   >
                     Reset
@@ -396,7 +390,7 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 transition-all"
+            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
           >
             Cancel
           </button>
@@ -405,9 +399,8 @@ function ImageCropModal({ imageSrc, onSave, onClose }) {
             <button
               type="button"
               onClick={handleApply}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-md shadow-blue-500/20 transition-all flex items-center space-x-1.5"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-medium shadow-xs transition-colors flex items-center space-x-1.5"
             >
-              <span>✓</span>
               <span>Apply &amp; Save Cropped Tag</span>
             </button>
           </div>
