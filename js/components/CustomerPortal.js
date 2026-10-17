@@ -594,7 +594,7 @@ function CustomerPortal({
       
       {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
       {bannerMinimized ? (
-        <div className="bg-white rounded-2xl px-4 py-2.5 text-slate-800 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30">
+        <div className="bg-white/95 rounded-2xl px-4 py-2.5 text-stone-800 shadow-xs border border-[#e8e5de] flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
           {/* Navigation Tabs (Sleek row) */}
           <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
             {customerTabs.map(tab => (
@@ -603,8 +603,8 @@ function CustomerPortal({
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-sm font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-[#F9F8F5]'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -632,7 +632,7 @@ function CustomerPortal({
 
             <button
               onClick={() => setBannerMinimized(false)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
+              className="bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-stone-200 transition-all flex items-center space-x-1"
               title="Expand full customer banner"
             >
               <span>▼</span>
@@ -642,12 +642,12 @@ function CustomerPortal({
         </div>
       ) : (
         /* Full Hero Banner (on Dashboard or when manually expanded) */
-        <div className="bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white rounded-3xl p-6 sm:p-8 text-slate-900 shadow-sm border border-blue-100 relative animate-fade-in">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 text-stone-800 shadow-xs border border-[#e8e5de] relative animate-fade-in">
           {/* Minimize Toggle in Top Right */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
               onClick={() => setBannerMinimized(true)}
-              className="bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-200 shadow-2xs transition-all flex items-center space-x-1"
+              className="bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 px-2.5 py-1 rounded-xl text-xs font-medium border border-stone-200 transition-all flex items-center space-x-1"
               title="Minimize header banner to save screen space"
             >
               <span>▲</span>
@@ -657,21 +657,21 @@ function CustomerPortal({
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-2 border border-blue-200">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2 border border-blue-200">
                 <span>🏷️</span>
                 <span>Tags &amp; Labels Client Portal</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900">
                 {customer.company}
               </h1>
-              <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                Client: {customer.name} &bull; Acc Manager: <span className="text-indigo-600 font-bold">{customerThread.accountManager}</span>
+              <p className="text-stone-500 text-xs sm:text-sm mt-1">
+                Client: {customer.name} &bull; Acc Manager: <span className="text-blue-600 font-bold">{customerThread.accountManager}</span>
               </p>
             </div>
 
-            <div className="flex items-center space-x-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+            <div className="flex items-center space-x-3 bg-[#F9F8F5] p-3.5 rounded-2xl border border-[#e8e5de] shadow-xs">
               <div>
-                <span className="text-[10px] text-slate-500 block uppercase font-bold">Outstanding Balance</span>
+                <span className="text-[10px] text-stone-500 block uppercase font-bold">Outstanding Balance</span>
                 <span className="text-lg font-black text-amber-700">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
               </div>
               <button
@@ -684,7 +684,7 @@ function CustomerPortal({
           </div>
 
           {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-200/80 overflow-x-auto">
+          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-[#e8e5de] overflow-x-auto">
             {customerTabs.map(tab => (
               <button
                 key={tab.key}
@@ -692,7 +692,7 @@ function CustomerPortal({
                 className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                   activeTab === tab.key
                     ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-[#F9F8F5]'
                 }`}
               >
                 <span>{tab.icon}</span>

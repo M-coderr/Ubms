@@ -1424,43 +1424,43 @@ function AdminPortal({
             {/* 1. Total Orders */}
             <div 
               onClick={() => setActiveTab('all_orders')}
-              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-[#e8e5de] hover:border-blue-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</span>
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Orders</span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
                   📦
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-3 font-mono">
                 {adminStats.totalOrdersCount}
               </div>
-              <div className="text-xs mt-1 flex items-center space-x-1">
+              <div className="text-xs mt-1 flex items-center space-x-1 font-medium">
                 {adminStats.pendingCount > 0 ? (
-                  <span className="text-amber-400 font-bold animate-pulse">⚠️ {adminStats.pendingCount} Pending Approval</span>
+                  <span className="text-amber-700 font-bold animate-pulse">⚠️ {adminStats.pendingCount} Pending Approval</span>
                 ) : (
-                  <span className="text-emerald-400 font-semibold">All Orders Approved ✓</span>
+                  <span className="text-emerald-700 font-semibold">All Orders Approved ✓</span>
                 )}
-                <span className="text-slate-500">&bull;</span>
-                <span className="text-slate-400">{adminStats.deliveredOrdersCount} Delivered</span>
+                <span className="text-stone-400">&bull;</span>
+                <span className="text-stone-500">{adminStats.deliveredOrdersCount} Delivered</span>
               </div>
             </div>
 
             {/* 2. Total Invoiced Volume */}
             <div 
               onClick={() => setActiveTab('all_invoices')}
-              className="bg-slate-900 border border-slate-800 hover:border-blue-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-[#e8e5de] hover:border-blue-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Invoiced</span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Invoiced</span>
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
                   🧾
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-blue-400 mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-3 font-mono">
                 {formatCurrency(adminStats.totalInvoiced)}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-stone-500 mt-1">
                 Gross billed value across {invoices.length} invoice(s)
               </div>
             </div>
@@ -1468,18 +1468,18 @@ function AdminPortal({
             {/* 3. Total Collections / Cash Inflow */}
             <div 
               onClick={() => setActiveTab('payments')}
-              className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-[#e8e5de] hover:border-emerald-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Payments Collected</span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Payments Collected</span>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-emerald-100">
                   💵
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-3 font-mono">
                 {formatCurrency(adminStats.totalCollected)}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-stone-500 mt-1">
                 Realized revenue from {payments.length} payment voucher(s)
               </div>
             </div>
@@ -1487,18 +1487,18 @@ function AdminPortal({
             {/* 4. Total Accounts Receivable / Outstanding */}
             <div 
               onClick={() => setActiveTab('ledgers')}
-              className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-5 rounded-3xl shadow-xl transition-all cursor-pointer group"
+              className="bg-white border border-[#e8e5de] hover:border-amber-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Receivables</span>
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Receivables</span>
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-amber-200">
                   ⚖️
                 </div>
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-amber-400 mt-3 font-mono">
+              <div className="text-2xl sm:text-3xl font-extrabold text-amber-800 mt-3 font-mono">
                 {formatCurrency(adminStats.totalOutstanding)}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-stone-500 mt-1">
                 Unpaid dues across {adminStats.totalClientsCount} registered client(s)
               </div>
             </div>
@@ -1506,17 +1506,17 @@ function AdminPortal({
 
           {/* Attention Required: Orders Awaiting Admin Approval */}
           {adminStats.pendingCount > 0 && (
-            <div className="bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 shadow-2xl space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-500/30">
+            <div className="bg-amber-50/80 border border-amber-300 rounded-3xl p-6 shadow-xs space-y-4 text-stone-800">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl animate-bounce">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl animate-bounce border border-amber-200">
                     ⚠️
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-white text-base">
+                    <h3 className="font-extrabold text-amber-900 text-base">
                       Action Required: {adminStats.pendingCount} Order(s) Awaiting Approval
                     </h3>
-                    <p className="text-xs text-amber-200/80">Review client specifications, artwork, and confirm or reject.</p>
+                    <p className="text-xs text-amber-800">Review client specifications, artwork, and confirm or reject.</p>
                   </div>
                 </div>
                 <button

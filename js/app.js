@@ -197,17 +197,17 @@ function App() {
 
   if (loading || !activePersona) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600 animate-spin flex items-center justify-center font-bold text-lg mb-4">
+      <div className="min-h-screen flex flex-col items-center justify-center text-stone-800" style={{ backgroundColor: '#F9F8F5' }}>
+        <div className="w-12 h-12 rounded-2xl bg-blue-600 animate-spin flex items-center justify-center font-bold text-lg mb-4 text-white shadow-md shadow-blue-500/20">
           Ω
         </div>
-        <p className="text-sm font-semibold tracking-wide text-slate-300">Loading uBMS Enterprise Suite...</p>
+        <p className="text-sm font-semibold tracking-wide text-stone-600">Loading uBMS Enterprise Suite...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen flex flex-col text-stone-800 selection:bg-blue-600 selection:text-white" style={{ backgroundColor: '#F9F8F5' }}>
       
       {/* Toast Notification Container */}
       <div className="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none">
