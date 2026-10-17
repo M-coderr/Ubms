@@ -41,49 +41,47 @@ function Header({
     : { name: 'Customer', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
 
   return (
-    <header className="bg-white border-b border-slate-200 text-slate-800 sticky top-0 z-40 shadow-sm">
+    <header className="bg-white border-b border-slate-200 text-slate-800 sticky top-0 z-40 shadow-xs">
       <div className="max-w-[1750px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
           {/* Logo & System Brand */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20 text-lg">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center font-bold text-white shadow-xs text-base">
               Ω
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-lg tracking-tight text-slate-900">uBMS</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+                <span className="font-extrabold text-base tracking-tight text-slate-900">uBMS</span>
+                <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200">
                   OMS Suite
                 </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block font-medium">Unified Business &amp; Order Tracking</p>
+              <p className="text-xs text-slate-500 hidden sm:block font-normal">Order Management System</p>
             </div>
           </div>
 
           {/* Portal Switcher (Customer vs Team/Admin) */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => handlePortalSwitch('customer')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm transition-all ${
                 currentPortal === 'customer'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  ? 'bg-white text-slate-900 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
             >
-              <span>🛍️</span>
-              <span>Customer Portal</span>
+              Customer Portal
             </button>
             <button
               onClick={() => handlePortalSwitch('admin')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm transition-all ${
                 currentPortal === 'admin'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  ? 'bg-white text-slate-900 shadow-xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
             >
-              <span>⚡</span>
-              <span>Team &amp; Admin Portal</span>
+              Team &amp; Admin
             </button>
           </div>
 
@@ -94,10 +92,9 @@ function Header({
             {currentPortal === 'customer' ? (
               <button
                 onClick={onNewOrderClick}
-                className="hidden md:flex items-center space-x-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition-all transform hover:scale-[1.02]"
+                className="hidden md:flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all"
               >
-                <span>➕</span>
-                <span>Place Order</span>
+                <span>+ Place Order</span>
               </button>
             ) : null}
 
@@ -105,14 +102,14 @@ function Header({
             <div className="relative">
               <button
                 onClick={() => setShowPersonaMenu(!showPersonaMenu)}
-                className="flex items-center space-x-2.5 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-all text-left shadow-sm"
+                className="flex items-center space-x-2.5 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 transition-all text-left shadow-xs"
               >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-xs font-bold">
                   {activePersona.avatar || activePersona.name.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="hidden lg:block text-xs leading-tight">
-                  <div className="font-semibold text-slate-800">{activePersona.name}</div>
-                  <div className="text-[10px] text-slate-500 font-medium">
+                  <div className="font-semibold text-slate-900">{activePersona.name}</div>
+                  <div className="text-[10px] text-slate-500 font-normal">
                     {activePersona.isCustomer ? (activePersona.company || 'Customer') : currentRoleInfo.name}
                   </div>
                 </div>

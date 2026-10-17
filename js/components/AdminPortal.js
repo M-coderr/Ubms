@@ -1291,17 +1291,17 @@ function AdminPortal({
 
   // 11 Admin Navigation Tabs
   const adminTabs = [
-    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { key: 'place_order', label: 'Place Order', icon: '🛒' },
-    { key: 'all_orders', label: 'View All Orders', icon: '📦' },
-    { key: 'production', label: 'Production Flow', icon: '⚙️' },
-    { key: 'inventory', label: 'Raw Materials & Stock', icon: '🏭' },
-    { key: 'payroll', label: 'Attendance & Payroll', icon: '👥' },
-    { key: 'create_invoice', label: 'Create Invoice', icon: '🧾' },
-    { key: 'all_invoices', label: 'View All Invoices', icon: '📑' },
-    { key: 'ledgers', label: 'Ledgers Hub', icon: '⚖️' },
-    { key: 'payments', label: 'Payment Entries', icon: '💵' },
-    { key: 'label_config', label: 'Paper Catalogs & Types', icon: '📄' }
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'place_order', label: 'Place Order' },
+    { key: 'all_orders', label: 'All Orders' },
+    { key: 'production', label: 'Production Flow' },
+    { key: 'inventory', label: 'Raw Materials & Stock' },
+    { key: 'payroll', label: 'Attendance & Payroll' },
+    { key: 'create_invoice', label: 'Create Invoice' },
+    { key: 'all_invoices', label: 'All Invoices' },
+    { key: 'ledgers', label: 'Ledgers Hub' },
+    { key: 'payments', label: 'Payment Entries' },
+    { key: 'label_config', label: 'Paper Catalogs & Types' }
   ];
 
   return (
@@ -1316,13 +1316,12 @@ function AdminPortal({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-slate-900 text-white font-medium shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-normal'
                 }`}
               >
-                <span>{tab.icon}</span>
                 <span>{tab.label}</span>
               </button>
             ))}
@@ -1332,45 +1331,41 @@ function AdminPortal({
           <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center space-x-1"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-xs transition-all flex items-center space-x-1"
               title="Book Order"
             >
-              <span>➕</span>
-              <span className="hidden md:inline">Order</span>
+              <span>+ Order</span>
             </button>
 
             <button
               onClick={() => setBannerMinimized(false)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
               title="Expand full operations banner"
             >
-              <span>▼</span>
-              <span className="text-[11px] hidden sm:inline">Expand</span>
+              <span className="text-[11px]">Expand &darr;</span>
             </button>
           </div>
         </div>
       ) : (
         /* Full Hero Banner (on Dashboard or when manually expanded) */
-        <div className="bg-white rounded-3xl p-6 sm:p-8 text-slate-800 shadow-xs border border-slate-200 relative animate-fade-in">
+        <div className="bg-white rounded-2xl p-6 sm:p-7 text-slate-800 shadow-xs border border-slate-200 relative animate-fade-in">
           {/* Minimize Toggle in Top Right */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
               onClick={() => setBannerMinimized(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-xl text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all flex items-center space-x-1"
               title="Minimize header banner to save screen space"
             >
-              <span>▲</span>
-              <span className="text-[11px]">Minimize</span>
+              <span className="text-[11px]">Minimize &uarr;</span>
             </button>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2 border border-blue-200">
-                <span>🛡️</span>
+              <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium mb-2 border border-slate-200">
                 <span>Tags &amp; Labels Operations Console</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
                 Enterprise Operations Control
               </h1>
               <p className="text-slate-500 text-xs sm:text-sm mt-1">
@@ -1381,17 +1376,15 @@ function AdminPortal({
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setActiveTab('place_order')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
               >
-                <span>➕</span>
-                <span>Book Order</span>
+                <span>+ Book Order</span>
               </button>
               <button
                 onClick={() => setActiveTab('label_config')}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1 border border-slate-200"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1 border border-slate-200"
               >
-                <span>🏷️</span>
-                <span>Manage Types</span>
+                <span>Paper &amp; Types</span>
               </button>
             </div>
           </div>
@@ -1402,13 +1395,12 @@ function AdminPortal({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-slate-900 text-white font-medium shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-normal'
                 }`}
               >
-                <span>{tab.icon}</span>
                 <span>{tab.label}</span>
               </button>
             ))}
@@ -1424,104 +1416,81 @@ function AdminPortal({
             {/* 1. Total Orders */}
             <div 
               onClick={() => setActiveTab('all_orders')}
-              className="bg-white border border-[#e8e5de] hover:border-blue-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Orders</span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
-                  📦
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-stone-900 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Orders</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {adminStats.totalOrdersCount}
               </div>
-              <div className="text-xs mt-1 flex items-center space-x-1 font-medium">
+              <div className="text-xs mt-1 flex items-center space-x-1 font-medium text-slate-500">
                 {adminStats.pendingCount > 0 ? (
-                  <span className="text-amber-700 font-bold animate-pulse">⚠️ {adminStats.pendingCount} Pending Approval</span>
+                  <span className="text-amber-700 font-semibold">{adminStats.pendingCount} Pending Approval</span>
                 ) : (
-                  <span className="text-emerald-700 font-semibold">All Orders Approved ✓</span>
+                  <span className="text-slate-600 font-medium">All Orders Approved</span>
                 )}
-                <span className="text-stone-400">&bull;</span>
-                <span className="text-stone-500">{adminStats.deliveredOrdersCount} Delivered</span>
+                <span>&bull;</span>
+                <span>{adminStats.deliveredOrdersCount} Delivered</span>
               </div>
             </div>
 
             {/* 2. Total Invoiced Volume */}
             <div 
               onClick={() => setActiveTab('all_invoices')}
-              className="bg-white border border-[#e8e5de] hover:border-blue-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Invoiced</span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
-                  🧾
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-blue-700 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invoiced</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {formatCurrency(adminStats.totalInvoiced)}
               </div>
-              <div className="text-xs text-stone-500 mt-1">
-                Gross billed value across {invoices.length} invoice(s)
+              <div className="text-xs text-slate-500 mt-1">
+                Gross billed across {invoices.length} invoice(s)
               </div>
             </div>
 
             {/* 3. Total Collections / Cash Inflow */}
             <div 
               onClick={() => setActiveTab('payments')}
-              className="bg-white border border-[#e8e5de] hover:border-emerald-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Payments Collected</span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-emerald-100">
-                  💵
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Payments Collected</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {formatCurrency(adminStats.totalCollected)}
               </div>
-              <div className="text-xs text-stone-500 mt-1">
-                Realized revenue from {payments.length} payment voucher(s)
+              <div className="text-xs text-slate-500 mt-1">
+                Revenue from {payments.length} payment voucher(s)
               </div>
             </div>
 
             {/* 4. Total Accounts Receivable / Outstanding */}
             <div 
               onClick={() => setActiveTab('ledgers')}
-              className="bg-white border border-[#e8e5de] hover:border-amber-400 p-5 rounded-3xl shadow-xs transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Receivables</span>
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-amber-200">
-                  ⚖️
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-amber-800 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Receivables</div>
+              <div className={`text-2xl sm:text-3xl font-extrabold mt-2 font-mono ${
+                adminStats.totalOutstanding > 0 ? 'text-amber-700' : 'text-slate-900'
+              }`}>
                 {formatCurrency(adminStats.totalOutstanding)}
               </div>
-              <div className="text-xs text-stone-500 mt-1">
-                Unpaid dues across {adminStats.totalClientsCount} registered client(s)
+              <div className="text-xs text-slate-500 mt-1">
+                Across {adminStats.totalClientsCount} registered client(s)
               </div>
             </div>
           </div>
 
           {/* Attention Required: Orders Awaiting Admin Approval */}
           {adminStats.pendingCount > 0 && (
-            <div className="bg-amber-50/80 border border-amber-300 rounded-3xl p-6 shadow-xs space-y-4 text-stone-800">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl animate-bounce border border-amber-200">
-                    ⚠️
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-amber-900 text-base">
-                      Action Required: {adminStats.pendingCount} Order(s) Awaiting Approval
-                    </h3>
-                    <p className="text-xs text-amber-800">Review client specifications, artwork, and confirm or reject.</p>
-                  </div>
+            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-4 text-slate-800">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200/70">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    Action Required: {adminStats.pendingCount} Order(s) Awaiting Approval
+                  </h3>
+                  <p className="text-xs text-slate-600">Review client specifications, artwork, and confirm or reject.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('all_orders')}
-                  className="text-xs text-amber-300 hover:text-white font-bold bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1.5 rounded-xl border border-amber-500/30 transition-all"
+                  className="text-xs text-slate-800 hover:text-black font-semibold bg-white border border-amber-200 px-3 py-1.5 rounded-lg transition-all shadow-2xs"
                 >
                   Manage in Order Register &rarr;
                 </button>
@@ -1531,17 +1500,17 @@ function AdminPortal({
                 {adminStats.pendingOrders.slice(0, 3).map(po => {
                   const firstItem = po.items[0] || {};
                   return (
-                    <div key={po.id} className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div key={po.id} className="bg-white border border-amber-200/80 rounded-xl p-4 space-y-3 shadow-2xs">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="font-mono font-bold text-blue-400 text-xs">{po.id}</span>
-                          <h4 className="font-extrabold text-white text-sm mt-0.5">{po.customerCompany}</h4>
-                          <p className="text-[11px] text-slate-400">{po.customerName}</p>
+                          <span className="font-mono font-bold text-slate-900 text-xs">{po.id}</span>
+                          <h4 className="font-bold text-slate-900 text-sm mt-0.5">{po.customerCompany}</h4>
+                          <p className="text-[11px] text-slate-500">{po.customerName}</p>
                         </div>
-                        <span className="text-xs font-mono font-bold text-emerald-400">{formatCurrency(po.total)}</span>
+                        <span className="text-xs font-mono font-bold text-slate-900">{formatCurrency(po.total)}</span>
                       </div>
 
-                      <div className="bg-slate-800/80 p-2.5 rounded-xl text-xs space-y-1 text-slate-300">
+                      <div className="bg-slate-50 p-2.5 rounded-lg text-xs space-y-1 text-slate-600 border border-slate-100">
                         <div><strong>Item:</strong> {firstItem.itemCode || firstItem.name || 'Custom'} &bull; {firstItem.type || 'Tag'}</div>
                         <div><strong>Qty:</strong> {Number(firstItem.quantity || 0).toLocaleString()} pcs &bull; <strong>Rate:</strong> {formatCurrency(firstItem.unitPrice || 0)}</div>
                       </div>
@@ -1549,15 +1518,15 @@ function AdminPortal({
                       <div className="flex items-center space-x-2 pt-1">
                         <button
                           onClick={() => handleApproveOrder(po)}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-1.5 rounded-xl transition-all shadow-md shadow-emerald-600/20"
+                          className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-1.5 rounded-lg transition-all"
                         >
-                          ✓ Approve
+                          Approve
                         </button>
                         <button
                           onClick={() => handleRejectOrder(po)}
-                          className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs py-1.5 rounded-xl transition-all shadow-md shadow-rose-600/20"
+                          className="flex-1 bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-200 font-medium text-xs py-1.5 rounded-lg transition-all"
                         >
-                          ✕ Reject
+                          Reject
                         </button>
                       </div>
                     </div>
@@ -1568,37 +1537,38 @@ function AdminPortal({
           )}
 
           {/* Live Operational Pipeline */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-800 gap-2">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
               <div>
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                  <span>🏭</span>
-                  <span>Live Manufacturing &amp; Fulfillment Flow</span>
+                <h3 className="font-bold text-slate-900 text-base">
+                  Live Manufacturing &amp; Fulfillment Flow
                 </h3>
-                <p className="text-xs text-slate-400">Order distribution across factory production workstations.</p>
+                <p className="text-xs text-slate-500">Order distribution across factory production workstations.</p>
               </div>
-              <span className="text-xs text-indigo-400 font-mono">
+              <span className="text-xs text-slate-600 font-mono font-semibold bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
                 {orders.length} Active System Orders
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
               {[
-                { key: 'pending', label: 'Pending Approval', count: adminStats.pendingCount, icon: '⏳', color: 'amber' },
-                { key: 'approved', label: 'Approved & Scheduled', count: adminStats.approvedOrdersCount, icon: '✓', color: 'emerald' },
-                { key: 'in_production', label: 'In Production', count: adminStats.inProdOrdersCount, icon: '⚙️', color: 'sky' },
-                { key: 'ready_dispatch', label: 'QC / Packaging', count: adminStats.readyOrdersCount, icon: '📦', color: 'purple' },
-                { key: 'shipped', label: 'In Transit', count: adminStats.shippedOrdersCount, icon: '🚚', color: 'orange' },
-                { key: 'delivered', label: 'Delivered', count: adminStats.deliveredOrdersCount, icon: '🎉', color: 'emerald' }
+                { step: '01', key: 'pending', label: 'Pending Approval', count: adminStats.pendingCount },
+                { step: '02', key: 'approved', label: 'Approved & Scheduled', count: adminStats.approvedOrdersCount },
+                { step: '03', key: 'in_production', label: 'In Production', count: adminStats.inProdOrdersCount },
+                { step: '04', key: 'ready_dispatch', label: 'QC / Packaging', count: adminStats.readyOrdersCount },
+                { step: '05', key: 'shipped', label: 'In Transit', count: adminStats.shippedOrdersCount },
+                { step: '06', key: 'delivered', label: 'Delivered', count: adminStats.deliveredOrdersCount }
               ].map(stg => (
                 <div
                   key={stg.key}
                   onClick={() => setActiveTab('all_orders')}
-                  className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 hover:border-indigo-500/60 rounded-2xl p-3.5 transition-all cursor-pointer group text-center"
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-400 rounded-xl p-3 transition-all cursor-pointer group text-left"
                 >
-                  <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stg.icon}</div>
-                  <div className="text-lg font-bold text-white font-mono">{stg.count}</div>
-                  <div className="text-[11px] text-slate-400 font-medium leading-tight mt-0.5">{stg.label}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-slate-400 font-bold">{stg.step}</span>
+                    <span className="text-base font-bold text-slate-900 font-mono">{stg.count}</span>
+                  </div>
+                  <div className="text-xs text-slate-700 font-medium mt-1 leading-snug">{stg.label}</div>
                 </div>
               ))}
             </div>
@@ -1608,27 +1578,26 @@ function AdminPortal({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left 2 Cols: Recent Manufacturing Orders */}
-            <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <div>
-                  <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                    <span>📋</span>
-                    <span>Recent Orders Across All Clients</span>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Recent Orders Across All Clients
                   </h3>
-                  <p className="text-xs text-slate-400">Real-time incoming client orders feed.</p>
+                  <p className="text-xs text-slate-500">Real-time incoming client orders feed.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('all_orders')}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold hover:underline flex items-center space-x-1"
+                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline flex items-center space-x-1"
                 >
                   <span>View Full Register ({orders.length})</span>
                   <span>&rarr;</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-300">
-                  <thead className="text-[11px] uppercase tracking-wider text-slate-400 bg-slate-800/80 rounded-xl">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                     <tr>
                       <th className="py-3 px-3">Order ID</th>
                       <th className="py-3 px-3">Client</th>
@@ -1640,20 +1609,20 @@ function AdminPortal({
                       <th className="py-3 px-3 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800">
+                  <tbody className="divide-y divide-slate-100">
                     {orders.slice(0, 5).map(o => {
                       const firstItem = o.items[0] || {};
                       const isApproved = o.status === 'approved';
 
                       return (
-                        <tr key={o.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3 px-3 font-mono font-bold text-blue-400">
+                        <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">
                             {o.id}
-                            <div className="text-[10px] text-slate-500 font-normal">{formatDate(o.createdAt)}</div>
+                            <div className="text-[10px] text-slate-400 font-normal">{formatDate(o.createdAt)}</div>
                           </td>
                           <td className="py-3 px-3">
-                            <div className="font-bold text-white text-xs">{o.customerCompany}</div>
-                            <div className="text-[10px] text-slate-400">{o.customerName}</div>
+                            <div className="font-bold text-slate-900 text-xs">{o.customerCompany}</div>
+                            <div className="text-[10px] text-slate-500">{o.customerName}</div>
                           </td>
                           <td className="py-3 px-3">
                             {firstItem.image ? (
@@ -1661,40 +1630,42 @@ function AdminPortal({
                                 src={firstItem.image} 
                                 alt="Artwork" 
                                 onClick={() => setPreviewArtworkUrl(firstItem.image)}
-                                className="w-10 h-10 object-cover rounded-xl border border-slate-700 cursor-pointer hover:scale-105 transition-transform" 
+                                className="w-10 h-10 object-contain rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition-transform bg-white shadow-2xs" 
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm">
-                                🏷️
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                                ART
                               </div>
                             )}
                           </td>
                           <td className="py-3 px-3">
-                            <div className="font-bold text-white text-xs">{firstItem.brandName || o.customerCompany}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">{firstItem.itemCode || firstItem.type}</div>
+                            <div className="font-bold text-slate-900 text-xs">{firstItem.brandName || o.customerCompany}</div>
+                            <div className="text-[11px] text-slate-500 font-mono">{firstItem.itemCode || firstItem.type}</div>
                           </td>
-                          <td className="py-3 px-3 font-mono font-semibold text-white">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-800">
                             {Number(firstItem.quantity || 0).toLocaleString()} pcs
                           </td>
                           <td className="py-3 px-3">
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                              o.status === 'approved' || o.status === 'confirmed' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                              o.status === 'rejected' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                              o.status === 'in_production' ? 'bg-sky-950 text-sky-400 border border-sky-800' :
-                              o.status === 'delivered' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
-                              'bg-amber-950 text-amber-300 border border-amber-800'
+                              o.status === 'approved' || o.status === 'confirmed' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                              o.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                              o.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
+                              o.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                              o.status === 'shipped' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
+                              o.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                              'bg-amber-50 text-amber-800 border border-amber-200'
                             }`}>
                               <span>{o.status === 'pending' || o.status === 'placed' ? 'Pending' : o.status.replace(/_/g, ' ')}</span>
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                          <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
                             {formatCurrency(o.total)}
                           </td>
                           <td className="py-3 px-3 text-center">
                             {!isApproved ? (
                               <button
                                 onClick={() => handleApproveOrder(o)}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-lg text-[11px] font-bold shadow transition-all"
+                                className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-medium shadow-xs transition-all"
                               >
                                 Approve
                               </button>
@@ -1704,7 +1675,7 @@ function AdminPortal({
                                   const linkedOrder = orders.find(ord => ord.id === o.id) || o;
                                   onOpenInvoice(linkedOrder);
                                 }}
-                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1 rounded-lg text-[11px] border border-slate-700 transition-colors"
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-medium"
                               >
                                 Invoice
                               </button>
@@ -1722,92 +1693,85 @@ function AdminPortal({
             <div className="space-y-6">
               
               {/* Operations Launchpad */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-3">
-                <h3 className="font-bold text-white text-base flex items-center space-x-2">
-                  <span>⚡</span>
-                  <span>Operations Launchpad</span>
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Operations Launchpad
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <button
                     onClick={() => setActiveTab('place_order')}
-                    className="bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white p-3.5 rounded-2xl text-left shadow-lg transition-all group"
+                    className="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-xl text-left transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🛒</div>
-                    <div className="font-bold text-xs">Book Order</div>
-                    <div className="text-[10px] text-indigo-200 mt-0.5 leading-tight">On-behalf client entry</div>
+                    <div className="font-semibold text-xs">+ Book Order</div>
+                    <div className="text-[10px] text-slate-300 mt-0.5 leading-tight">On-behalf client entry</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('all_orders')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</div>
-                    <div className="font-bold text-xs text-white">Order Register</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Inspect, approve, move</div>
+                    <div className="font-semibold text-xs text-slate-900">Order Register</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Inspect, approve, move</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('create_invoice')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🧾</div>
-                    <div className="font-bold text-xs text-white">New Invoice</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Bill completed orders</div>
+                    <div className="font-semibold text-xs text-slate-900">New Invoice</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Bill completed orders</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('payments')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">💵</div>
-                    <div className="font-bold text-xs text-white">Record Payment</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Post NEFT / Cash voucher</div>
+                    <div className="font-semibold text-xs text-slate-900">Record Payment</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Post NEFT / Cash voucher</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('production')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">⚙️</div>
-                    <div className="font-bold text-xs text-white">Production Floor</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Machine cards &amp; flow</div>
+                    <div className="font-semibold text-xs text-slate-900">Production Floor</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Machine cards &amp; flow</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('payroll')}
-                    className="bg-slate-800 hover:bg-slate-750 text-slate-200 p-3.5 rounded-2xl text-left border border-slate-700 transition-all group"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">👥</div>
-                    <div className="font-bold text-xs text-white">Payroll &amp; Staff</div>
-                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">Attendance &amp; wages</div>
+                    <div className="font-semibold text-xs text-slate-900">Payroll &amp; Staff</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Attendance &amp; wages</div>
                   </button>
                 </div>
               </div>
 
               {/* Factory Status Summary */}
-              <div className="bg-gradient-to-br from-slate-900 to-indigo-950/60 border border-slate-800 rounded-3xl p-6 shadow-xl text-slate-200 space-y-4">
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-xl text-indigo-400">
-                    🏭
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
+                    MFG
                   </div>
                   <div>
-                    <div className="text-xs text-indigo-400 font-semibold uppercase tracking-wider">Facility Status</div>
-                    <div className="font-bold text-white text-sm">Industrial Apparel Park Hub</div>
-                    <div className="text-[11px] text-emerald-400 flex items-center space-x-1 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>High-Speed Weaving &amp; Die Press Active</span>
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Facility Status</div>
+                    <div className="font-bold text-slate-900 text-sm">Industrial Apparel Park Hub</div>
+                    <div className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Weaving &amp; Die Press Active</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Active Workers</span>
-                    <span className="text-lg font-bold text-white font-mono">{adminStats.activeStaffCount} on Shift</span>
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">Active Workers</span>
+                    <span className="text-base font-bold text-slate-900 font-mono">{adminStats.activeStaffCount} on Shift</span>
                   </div>
-                  <div className="bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Client Accounts</span>
-                    <span className="text-lg font-bold text-white font-mono">{adminStats.totalClientsCount} Registered</span>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">Client Accounts</span>
+                    <span className="text-base font-bold text-slate-900 font-mono">{adminStats.totalClientsCount} Registered</span>
                   </div>
                 </div>
               </div>

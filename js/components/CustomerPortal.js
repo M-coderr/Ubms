@@ -580,13 +580,13 @@ function CustomerPortal({
 
   // 7 Customer Tabs
   const customerTabs = [
-    { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { key: 'place_order', label: 'Place Order', icon: '🛒' },
-    { key: 'order_register', label: 'Order Register', icon: '📦' },
-    { key: 'invoice_register', label: 'Invoice Register', icon: '📄' },
-    { key: 'outstanding_ledger', label: 'Outstanding Ledger', icon: '⏳' },
-    { key: 'general_ledger', label: 'General Ledger', icon: '📑' },
-    { key: 'chat', label: 'Chat with Acc Manager', icon: '💬' }
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'place_order', label: 'Place Order' },
+    { key: 'order_register', label: 'Order Register' },
+    { key: 'invoice_register', label: 'Invoice Register' },
+    { key: 'outstanding_ledger', label: 'Outstanding Ledger' },
+    { key: 'general_ledger', label: 'General Ledger' },
+    { key: 'chat', label: 'Chat with Acc Manager' }
   ];
 
   return (
@@ -594,109 +594,94 @@ function CustomerPortal({
       
       {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
       {bannerMinimized ? (
-        <div className="bg-white/95 rounded-2xl px-4 py-2.5 text-stone-800 shadow-xs border border-[#e8e5de] flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
+        <div className="bg-white rounded-2xl px-4 py-2.5 text-slate-800 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30">
           {/* Navigation Tabs (Sleek row) */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
+          <div className="flex items-center space-x-1 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
             {customerTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-[#F9F8F5]'
+                    ? 'bg-slate-900 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Right: Balance & quick action & expand toggle */}
+          {/* Right: Balance & expand toggle */}
           <div className="flex items-center space-x-2 shrink-0">
             {outstandingLedger.totalOutstanding > 0 && (
-              <span className="text-[11px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg font-mono font-bold hidden sm:inline">
+              <span className="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded-lg font-mono font-semibold hidden sm:inline">
                 Due: {formatCurrency(outstandingLedger.totalOutstanding)}
               </span>
             )}
 
             <button
               onClick={() => setActiveTab('place_order')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all flex items-center space-x-1"
-              title="Place New Order"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all"
             >
-              <span>➕</span>
-              <span className="hidden md:inline">Order</span>
+              + Place Order
             </button>
 
             <button
               onClick={() => setBannerMinimized(false)}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-stone-200 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all"
               title="Expand full customer banner"
             >
-              <span>▼</span>
-              <span className="text-[11px] hidden sm:inline">Expand</span>
+              Expand
             </button>
           </div>
         </div>
       ) : (
         /* Full Hero Banner (on Dashboard or when manually expanded) */
-        <div className="bg-white rounded-3xl p-6 sm:p-8 text-stone-800 shadow-xs border border-[#e8e5de] relative animate-fade-in">
+        <div className="bg-white rounded-2xl p-6 text-slate-800 shadow-xs border border-slate-200 relative animate-fade-in">
           {/* Minimize Toggle in Top Right */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
             <button
               onClick={() => setBannerMinimized(true)}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 px-2.5 py-1 rounded-xl text-xs font-medium border border-stone-200 transition-all flex items-center space-x-1"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all"
               title="Minimize header banner to save screen space"
             >
-              <span>▲</span>
-              <span className="text-[11px]">Minimize</span>
+              Minimize
             </button>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2 border border-blue-200">
-                <span>🏷️</span>
-                <span>Tags &amp; Labels Client Portal</span>
+              <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-1">
+                Client Portal
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                 {customer.company}
               </h1>
-              <p className="text-stone-500 text-xs sm:text-sm mt-1">
-                Client: {customer.name} &bull; Acc Manager: <span className="text-blue-600 font-bold">{customerThread.accountManager}</span>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                Client: {customer.name} &bull; Account Manager: <span className="text-slate-800 font-semibold">{customerThread.accountManager}</span>
               </p>
             </div>
 
-            <div className="flex items-center space-x-3 bg-[#F9F8F5] p-3.5 rounded-2xl border border-[#e8e5de] shadow-xs">
-              <div>
-                <span className="text-[10px] text-stone-500 block uppercase font-bold">Outstanding Balance</span>
-                <span className="text-lg font-black text-amber-700">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
-              </div>
-              <button
-                onClick={() => setActiveTab('place_order')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all ml-2"
-              >
-                + Place Order
-              </button>
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-right">
+              <span className="text-[10px] text-slate-500 block uppercase font-semibold">Outstanding Balance</span>
+              <span className="text-lg font-bold font-mono text-slate-900">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
             </div>
           </div>
 
           {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-[#e8e5de] overflow-x-auto">
+          <div className="flex items-center space-x-1.5 mt-5 pt-4 border-t border-slate-100 overflow-x-auto">
             {customerTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-xs font-bold'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-[#F9F8F5]'
+                    ? 'bg-slate-900 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                {tab.label}
               </button>
             ))}
           </div>
@@ -714,67 +699,44 @@ function CustomerPortal({
                 setOrderStatusFilter('all');
                 setActiveTab('order_register');
               }}
-              className="bg-white border border-slate-200/90 hover:border-blue-400 p-5 rounded-3xl shadow-sm transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Orders</span>
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-blue-100">
-                  📦
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Orders</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {customerStats.totalOrders}
               </div>
-              <div className="text-xs text-slate-500 mt-1 flex items-center space-x-1 font-medium">
-                <span className="text-amber-700 font-semibold">{customerStats.pendingOrders} Pending</span>
-                <span>&bull;</span>
-                <span className="text-emerald-700 font-semibold">{customerStats.deliveredOrders} Delivered</span>
+              <div className="text-xs text-slate-500 mt-1 font-medium">
+                <span>{customerStats.pendingOrders} Pending</span> &bull; <span>{customerStats.deliveredOrders} Delivered</span>
               </div>
             </div>
 
             {/* 2. Total Business Spend */}
-            <div className="bg-white border border-slate-200/90 p-5 rounded-3xl shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Order Value</span>
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg border border-emerald-100">
-                  💰
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-emerald-700 mt-3 font-mono">
+            <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Order Value</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {formatCurrency(customerStats.totalSpend)}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Total manufacturing volume booked
+                Manufacturing volume booked
               </div>
             </div>
 
             {/* 3. Outstanding Dues */}
             <div 
               onClick={() => setActiveTab('outstanding_ledger')}
-              className={`border p-5 rounded-3xl shadow-sm transition-all cursor-pointer group ${
-                customerStats.totalOutstanding > 0 
-                  ? 'bg-amber-50/60 border-amber-200 hover:border-amber-400' 
-                  : 'bg-white border-slate-200/90 hover:border-emerald-400'
-              }`}
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Outstanding Dues</span>
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform ${
-                  customerStats.totalOutstanding > 0 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                }`}>
-                  ⏳
-                </div>
-              </div>
-              <div className={`text-2xl sm:text-3xl font-extrabold mt-3 font-mono ${
-                customerStats.totalOutstanding > 0 ? 'text-amber-800' : 'text-emerald-700'
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outstanding Dues</div>
+              <div className={`text-2xl sm:text-3xl font-extrabold mt-2 font-mono ${
+                customerStats.totalOutstanding > 0 ? 'text-amber-700' : 'text-slate-900'
               }`}>
                 {formatCurrency(customerStats.totalOutstanding)}
               </div>
               <div className="text-xs mt-1">
                 {customerStats.totalOutstanding > 0 ? (
-                  <span className="text-amber-800 font-bold">{customerStats.unpaidInvoicesCount} unpaid bill(s) due &rarr;</span>
+                  <span className="text-amber-700 font-semibold">{customerStats.unpaidInvoicesCount} unpaid bill(s) &rarr;</span>
                 ) : (
-                  <span className="text-emerald-700 font-semibold">Account fully settled ✓</span>
+                  <span className="text-slate-500 font-medium">Account fully settled</span>
                 )}
               </div>
             </div>
@@ -785,15 +747,10 @@ function CustomerPortal({
                 setOrderStatusFilter('in_production');
                 setActiveTab('order_register');
               }}
-              className="bg-white border border-slate-200/90 hover:border-sky-400 p-5 rounded-3xl shadow-sm transition-all cursor-pointer group"
+              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">In Production / Transit</span>
-                <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform border border-sky-100">
-                  ⚙️
-                </div>
-              </div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-sky-700 mt-3 font-mono">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Production / Transit</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
                 {customerStats.activeOrders}
               </div>
               <div className="text-xs text-slate-500 mt-1">
@@ -803,28 +760,27 @@ function CustomerPortal({
           </div>
 
           {/* Interactive Manufacturing Pipeline Status Tracker */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-2">
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
               <div>
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
-                  <span>🏭</span>
-                  <span>Manufacturing Stage Tracker</span>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Manufacturing Stage Tracker
                 </h3>
-                <p className="text-xs text-slate-500">Click any stage below to jump to the Order Register filtered by that status.</p>
+                <p className="text-xs text-slate-500">Click any stage to filter the Order Register.</p>
               </div>
-              <span className="text-xs text-blue-700 font-mono font-bold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+              <span className="text-xs text-slate-600 font-mono font-semibold bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
                 {customerOrders.length} Total Orders Tracked
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
               {[
-                { key: 'pending', label: 'Pending Approval', count: customerStats.pendingOrders, icon: '⏳', color: 'amber' },
-                { key: 'approved', label: 'Approved', count: customerStats.approvedOrders, icon: '✓', color: 'emerald' },
-                { key: 'in_production', label: 'In Production', count: customerStats.inProdOrders, icon: '⚙️', color: 'sky' },
-                { key: 'ready_dispatch', label: 'Ready / QC', count: customerStats.readyOrders, icon: '📦', color: 'purple' },
-                { key: 'shipped', label: 'Dispatched', count: customerStats.shippedOrders, icon: '🚚', color: 'orange' },
-                { key: 'delivered', label: 'Delivered', count: customerStats.deliveredOrders, icon: '🎉', color: 'emerald' }
+                { step: '01', key: 'pending', label: 'Pending Approval', count: customerStats.pendingOrders },
+                { step: '02', key: 'approved', label: 'Approved', count: customerStats.approvedOrders },
+                { step: '03', key: 'in_production', label: 'In Production', count: customerStats.inProdOrders },
+                { step: '04', key: 'ready_dispatch', label: 'Ready / QC', count: customerStats.readyOrders },
+                { step: '05', key: 'shipped', label: 'Dispatched', count: customerStats.shippedOrders },
+                { step: '06', key: 'delivered', label: 'Delivered', count: customerStats.deliveredOrders }
               ].map(stg => (
                 <div
                   key={stg.key}
@@ -832,11 +788,13 @@ function CustomerPortal({
                     setOrderStatusFilter(stg.key);
                     setActiveTab('order_register');
                   }}
-                  className="bg-slate-50 hover:bg-white border border-slate-200/80 hover:border-blue-400 rounded-2xl p-3.5 transition-all cursor-pointer group text-center shadow-2xs hover:shadow-sm"
+                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-400 rounded-xl p-3 transition-all cursor-pointer group text-left"
                 >
-                  <div className="text-xl mb-1 group-hover:scale-110 transition-transform">{stg.icon}</div>
-                  <div className="text-lg font-bold text-slate-900 font-mono">{stg.count}</div>
-                  <div className="text-[11px] text-slate-600 font-medium leading-tight mt-0.5">{stg.label}</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-slate-400 font-bold">{stg.step}</span>
+                    <span className="text-base font-bold text-slate-900 font-mono">{stg.count}</span>
+                  </div>
+                  <div className="text-xs text-slate-700 font-medium mt-1 leading-snug">{stg.label}</div>
                 </div>
               ))}
             </div>
@@ -846,12 +804,11 @@ function CustomerPortal({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Left 2 Cols: Recent Manufacturing Orders */}
-            <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4">
+            <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
-                    <span>📋</span>
-                    <span>Recent Orders</span>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Recent Orders
                   </h3>
                   <p className="text-xs text-slate-500">Latest manufacturing orders submitted by your company.</p>
                 </div>
@@ -860,7 +817,7 @@ function CustomerPortal({
                     setOrderStatusFilter('all');
                     setActiveTab('order_register');
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-bold hover:underline flex items-center space-x-1"
+                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline flex items-center space-x-1"
                 >
                   <span>View Full Register ({customerOrders.length})</span>
                   <span>&rarr;</span>
@@ -869,11 +826,10 @@ function CustomerPortal({
 
               {customerOrders.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
-                  <div className="text-3xl mb-2">🛒</div>
-                  <p className="text-sm font-semibold text-slate-600">No orders placed yet.</p>
+                  <p className="text-sm font-medium text-slate-600">No orders placed yet.</p>
                   <button
                     onClick={() => setActiveTab('place_order')}
-                    className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20"
+                    className="mt-3 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium transition-all shadow-xs"
                   >
                     + Place Your First Order
                   </button>
@@ -899,7 +855,7 @@ function CustomerPortal({
 
                         return (
                           <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-3 px-3 font-mono font-bold text-blue-700">
+                            <td className="py-3 px-3 font-mono font-bold text-slate-900">
                               {order.id}
                               <div className="text-[10px] text-slate-400 font-normal">{formatDate(order.createdAt)}</div>
                             </td>
@@ -912,8 +868,8 @@ function CustomerPortal({
                                   className="w-10 h-10 object-contain rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition-transform bg-white shadow-2xs" 
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-sm">
-                                  🏷️
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                                  ART
                                 </div>
                               )}
                             </td>
@@ -937,21 +893,21 @@ function CustomerPortal({
                                 <span>{order.status === 'pending' || order.status === 'placed' ? 'Pending' : order.status.replace(/_/g, ' ')}</span>
                               </span>
                             </td>
-                            <td className="py-3 px-3 text-right font-mono font-extrabold text-emerald-700">
+                            <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
                               {formatCurrency(order.total)}
                             </td>
                             <td className="py-3 px-3 text-center">
                               {isEditable ? (
                                 <button
                                   onClick={() => handleOpenEditModal(order)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-xs transition-all"
+                                  className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-medium shadow-xs transition-all"
                                 >
                                   Edit
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => onOpenInvoice(order)}
-                                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-semibold"
+                                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-medium"
                                 >
                                   Invoice
                                 </button>
@@ -970,19 +926,17 @@ function CustomerPortal({
             <div className="space-y-6">
               
               {/* Quick Actions Hub */}
-              <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm text-slate-800 space-y-3">
-                <h3 className="font-extrabold text-slate-900 text-base flex items-center space-x-2">
-                  <span>⚡</span>
-                  <span>Quick Shortcuts</span>
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Quick Shortcuts
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <button
                     onClick={() => setActiveTab('place_order')}
-                    className="bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white p-3.5 rounded-2xl text-left shadow-sm transition-all group"
+                    className="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-xl text-left transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">🛒</div>
-                    <div className="font-bold text-xs">New Order</div>
-                    <div className="text-[10px] text-blue-100 mt-0.5 leading-tight">Configure tags &amp; labels</div>
+                    <div className="font-semibold text-xs">+ New Order</div>
+                    <div className="text-[10px] text-slate-300 mt-0.5 leading-tight">Configure tags &amp; labels</div>
                   </button>
 
                   <button
@@ -990,44 +944,41 @@ function CustomerPortal({
                       setOrderStatusFilter('all');
                       setActiveTab('order_register');
                     }}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📦</div>
-                    <div className="font-bold text-xs text-slate-900">Order Register</div>
+                    <div className="font-semibold text-xs text-slate-900">Order Register</div>
                     <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Search &amp; edit orders</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('invoice_register')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📄</div>
-                    <div className="font-bold text-xs text-slate-900">Invoices</div>
+                    <div className="font-semibold text-xs text-slate-900">Invoices</div>
                     <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('general_ledger')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3.5 rounded-2xl text-left border border-slate-200 transition-all group shadow-2xs"
+                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
                   >
-                    <div className="text-xl mb-1 group-hover:scale-110 transition-transform">📑</div>
-                    <div className="font-bold text-xs text-slate-900">Ledger (SOA)</div>
+                    <div className="font-semibold text-xs text-slate-900">Ledger (SOA)</div>
                     <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Statement of account</div>
                   </button>
                 </div>
               </div>
 
               {/* Dedicated Support Card */}
-              <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/40 border border-indigo-100 rounded-3xl p-6 shadow-sm text-slate-800 space-y-4">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl border border-indigo-200">
-                    👩‍💼
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs border border-slate-200">
+                    AM
                   </div>
                   <div>
-                    <div className="text-xs text-indigo-700 font-bold uppercase tracking-wider">Account Manager</div>
-                    <div className="font-extrabold text-slate-900 text-sm">{customerThread.accountManager || 'Parth'}</div>
-                    <div className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 mt-0.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Account Manager</div>
+                    <div className="font-bold text-slate-900 text-sm">{customerThread.accountManager || 'Parth'}</div>
+                    <div className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                       <span>Active &bull; Factory Support</span>
                     </div>
                   </div>
@@ -1039,9 +990,8 @@ function CustomerPortal({
 
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2"
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2 rounded-lg border border-slate-200 transition-all flex items-center justify-center space-x-1"
                 >
-                  <span>💬</span>
                   <span>Open Dedicated Chat</span>
                 </button>
               </div>
