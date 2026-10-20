@@ -3,6 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
+**Version**: 2.3  
 **Last Updated**: October 20, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -11,7 +12,7 @@
 ## Standing Maintenance Policy
 
 > [!IMPORTANT]
-> **Commit & Push Requirement**: Every push to the Git repository **must** include an update to both `README.md` and `STATUS.md`. Any new features, component adjustments, bug fixes, or schema alterations must be documented here in the changelog and reflected in the feature matrix.
+> **Commit & Push Requirement**: Every push to the Git repository **must** include an update to both `README.md` and `STATUS.md`, and synchronize with `LOG.md`. Any new features, component adjustments, bug fixes, or schema alterations must be documented here in the changelog and reflected in the feature matrix.
 
 ---
 
@@ -25,7 +26,7 @@
 | **Persona & Auth** | Real Internal Personas | ✅ Complete | Meet (Super Admin), Parth (Admin), Niraj (Admin), Kanu (Printing), Shivakant (Punching), Sumit (Dori Plastic) |
 | | Real Customer Accounts | ✅ Complete | MG Creation (Mohit), Aariya Creation (Umesh), TagX (Parth), D Tag (Niraj) |
 | | Switcher Header | ✅ Complete | One-click role/customer profile switching without re-login |
-| **Customer Portal** | 4-Step Order Placement | ✅ Complete | Guided wizard: tag selection, dori/plastic options, artwork upload, quantity & rates |
+| **Customer Portal** | Modern Sales Order UI (TagX Style) | ✅ Complete | Unified single-screen layout: General Info, Items, Default Artwork, live commercials |
 | | In-Browser Artwork Cropper | ✅ Complete | Interactive image framing with aspect ratio presets (`2:3`, `1:1`, `1:2`, `3:4`), zoom, and rotation |
 | | Artwork Lightbox | ✅ Complete | High-resolution popover preview for all uploaded artworks |
 | | Order Register & Filter | ✅ Complete | Order status tracking, editing pending orders, priority badges |
@@ -46,6 +47,32 @@
 ---
 
 ## Recent Milestones & Changelog
+
+*(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 2.3 — October 20, 2026
+- **Customer Order Creation Redesign (TagX Modern Sales Order Layout)**:
+  - Transformed order entry into a clean, calm, single-screen layout modeled directly after modern SaaS benchmarks (TagX reference design).
+  - Eliminated mental overload and cognitive friction from multi-step wizard barriers.
+  - **Top Header & Document Status Bar**: Added `New Sales Order` heading with subtitle `SO — place a customer order`, document status badge `📄 New Sales Order` • `✓ Draft saved just now` • `discard`, and top-right `Place Order` button.
+  - **Left Section (Main Form)**:
+    - `🗂 General Information`: Soft-filled inputs for Transaction Type, Order Type, Order No, Date, Agent Name, Brand Name with `+ Add Brand`, and GST No.
+    - `🏷 Items`: `ITEM 1` container, Article Picker (`Type or pick item...`), compact thumbnail / upload button (`+ Add item image` / preview with crop), Category, Pieces/Format (1 PC / 2 PC / 3 PC), Paper Catalog Stock & Dimensions, Handwork attachments (Dori & Plastic lock), Commercials (Quantity with `1k`, `2.5k`, `5k`, `10k` presets, Rate, Subtotal), and Special Remarks.
+  - **Right Section (Companion Cards)**:
+    - `🖼 Default Artwork`: Clean dropzone with centered floating white `+` square, helper text (`Used for any item that doesn't have its own image...`), artwork preview, and `Crop / Frame`, `View Full`, `Replace`, `Remove` actions.
+    - `Commercial Summary`: Live item breakdown, handwork charges, Grand Total in prominent bold font-mono, and secondary `Place Order` button.
+  - **Header Cleanup**: Removed redundant `+ Place Order` button in minimized header bar when on the order placement tab.
+  - **Validation & Persistence**: Full inline validation, instant subtotal calculation, duplicate submission prevention (`isSubmitting` flag), and automatic redirect to Order Register.
+
+### Version 2.2 — October 20, 2026
+- **Customer Order Creation Flow Redesign (Revised 4-Step Wizard)**:
+  - Re-architected customer order creation into the updated four sequential steps:
+    - **Step 1 — Product Details & Artwork**: Brand Name (with inline validation), auto-assigned Item Code, Manufacturing Type selector, and primary artwork/image upload dropzone with thumbnail preview, crop lightbox, replace, and remove capabilities. Paper catalog selection removed from Step 1.
+    - **Step 2 — Specifications & Accessories**: Relocated paper catalog selection here. Includes visible artwork preview displaying the uploaded artwork from Step 1 with quick crop/framing shortcuts. Single-card and multi-card selection with updated nomenclature: **Tag 1 (Base Tag)**, **Tag 2 (Upper Tag)**, and optional **Tag 3 (Overlay Tag)**. Standard and custom Dori (string) and Plastic Lock options.
+    - **Step 3 — Quantity & Rate**: Replaced old standalone artwork step. Focused purely on commercial metrics: order quantity in pieces (pcs) with quick presets (`1k`, `2.5k`, `5k`, `10k`), agreed rate per unit (₹), and clearly distinguished auto-calculated subtotal (`qty × rate`).
+    - **Step 4 — Review & Place Order**: Complete order specifications review table displaying brand, item code, manufacturing category, uploaded artwork thumbnail, each tag's paper and dimensions, accessory specifications, volume, rates, subtotals, and packaging remarks. Single primary **Confirm & Place Order** action with duplicate submission prevention.
+  - Interactive stepper with compact summaries for completed steps, including one-click `[Edit]` shortcuts and Back/Continue navigation preserving all entered data and uploaded files.
+  - Responsive live order summary sidebar on desktop and bottom sticky drawer on mobile viewports.
 
 ### Version 2.1 — October 20, 2026
 - **Documentation & Tracking**: Initialized `README.md` and `STATUS.md` with full architectural guides and standing push policies.

@@ -22,7 +22,7 @@
 │                  (React 18 + Babel + Tailwind CSS CDN)                 │
 ├───────────────────────────────────┬────────────────────────────────────┤
 │          Customer Portal          │            Admin Portal            │
-│  • 4-Step Order Placement Wizard  │  • Executive Dashboard (KPIs)      │
+│  • Modern Sales Order UI (TagX)   │  • Executive Dashboard (KPIs)      │
 │  • In-Browser Image Cropper       │  • Kanban & Order Register         │
 │  • Order Status & Timeline        │  • Production Pipeline (Sheets/Pcs)│
 │  • Invoices & Payment Status      │  • Paper Catalog & Inventory       │
@@ -73,7 +73,7 @@ uBMS comes pre-configured with operational team members and customer accounts:
 ## Core Features & Workflow
 
 ### 1. Customer Ordering & Artwork Processing
-- **4-Step Wizard**: Select tag category & material -> Specify Dori & Plastic lock details -> Upload & crop artwork -> Enter quantities and review price.
+- **Modern Sales Order UI (TagX Style)**: A clean, calm single-screen interface eliminating cognitive overload. Features General Information (Transaction Type, Order Type, Order No, Date, Agent, Brand with `+ Add Brand`, GST), Items (Article picker, compact image thumbnail, category, pieces, paper catalog, dimensions, Dori & Plastic lock, volume presets `1k/2.5k/5k/10k`, rate, subtotal), Default Artwork dropzone, and live Commercial Summary with instant confirmation.
 - **In-Browser Image Cropping**: Interactive cropping tool with presets (`2:3`, `1:1`, `1:2`, `3:4`), rotate 90°, zoom, and drag-to-pan.
 - **Approval Lifecycle**: Orders submitted by customers enter `pending_approval` status before committing raw materials.
 
@@ -157,4 +157,6 @@ Once running, access the portal at:
 ## Maintenance & Contribution Policy
 
 > [!IMPORTANT]
-> **Mandatory Update on Push**: For every future Git push, both `README.md` and `STATUS.md` **must be updated** to reflect any newly implemented features, fixed bugs, architectural adjustments, or updated milestone progress.
+> **Mandatory Update on Push**: For every future Git push, `README.md`, `STATUS.md`, and `LOG.md` **must be updated** to reflect any newly implemented features, fixed bugs, architectural adjustments, or updated milestone progress.
+
+For the detailed date-wise changelog of all revisions, see [LOG.md](LOG.md).

@@ -1,4 +1,4 @@
-// Customer Portal: Tags & Labels Manufacturing Order System
+﻿// Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
 
 function CustomerPortal({ 
@@ -103,7 +103,7 @@ function CustomerPortal({
 
       // 5. Individual Search: Rate
       if (searchRate.trim()) {
-        const query = searchRate.trim().replace(/[₹,\s]/g, '').toLowerCase();
+        const query = searchRate.trim().replace(/[â‚¹,\s]/g, '').toLowerCase();
         const matchesRate = items.some(item => {
           const rStr = String(item.unitPrice || '');
           const rFmt = (typeof formatCurrency === 'function' ? formatCurrency(item.unitPrice || 0) : '').toLowerCase();
@@ -197,9 +197,10 @@ function CustomerPortal({
   
   // Multi-Card Tag composition: A tag can have 2 or 3 separate cards
   const [isMultiCard, setIsMultiCard] = React.useState(false);
+  const [singleCardDimension, setSingleCardDimension] = React.useState('');
   const [tagCards, setTagCards] = React.useState([
-    { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
-    { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+    { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+    { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
   ]);
 
   const [qty, setQty] = React.useState(0);
@@ -212,12 +213,26 @@ function CustomerPortal({
   const [plasticOption, setPlasticOption] = React.useState('reg'); // 'reg' or 'custom'
   const [plasticCustom, setPlasticCustom] = React.useState('');
 
+  // General Information States (Matching TagX online reference layout)
+  const [transactionType, setTransactionType] = React.useState('Sales Order');
+  const [orderType, setOrderType] = React.useState('New Order');
+  const [gstNo, setGstNo] = React.useState(customer?.gstNo || '');
+
+  // Order Flow Navigation & Validation States
+  const [currentStep, setCurrentStep] = React.useState(1);
+  const [stepValidationErrors, setStepValidationErrors] = React.useState({});
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
+
   // Update material when type changes
   const handleTypeChange = (newType) => {
     setSelectedType(newType);
     const typeObj = availableTypes.find(t => t.name === newType);
     if (typeObj) {
       setSelectedMaterial(typeObj.materials[0] || '');
+      if (typeObj.defaultRate && (!rate || Number(rate) === 0)) {
+        setRate(typeObj.defaultRate);
+      }
     }
   };
 
@@ -225,11 +240,15 @@ function CustomerPortal({
     setTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, catalogId: newCatId } : c));
   };
 
+  const handleUpdateCardDimension = (cardIndex, newDim) => {
+    setTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, dimension: newDim } : c));
+  };
+
   const handleAddThirdCard = () => {
     if (tagCards.length >= 3) return;
     setTagCards(prev => [
       ...prev,
-      { id: 3, title: 'Card 3 (Story / Overlay Card)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115' }
+      { id: 3, title: 'Tag 3 (Overlay Tag)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115', dimension: '' }
     ]);
   };
 
@@ -269,18 +288,130 @@ function CustomerPortal({
   const customerAbbr = window.uBMS.generateCustomerAbbr(customerPartyName);
   const currentCustomerItemCode = window.uBMS.getNextItemCode(customerAbbr, orders, orderItems);
 
-  // Add Item to Order and CLEAR ALL FIELDS
-  const handleAddItemToOrder = (e) => {
-    e.preventDefault();
-    if (!brandName.trim()) return alert('Please enter a Brand Name.');
-    if (!qty || Number(qty) <= 0) return alert('Please enter a valid quantity.');
-    if (!rate || Number(rate) <= 0) return alert('Please enter a valid rate.');
-    if (doriOption === 'custom' && !doriCustom.trim()) return alert('Please enter the custom Dori specification.');
-    if (plasticOption === 'custom' && !plasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
+  // Unified Form Validation (Matching modern single-view layout)
+  const validateOrderForm = () => {
+    const errors = {};
+    if (!brandName || !brandName.trim()) {
+      errors.brandName = 'Please enter a brand name.';
+    }
+    if (!selectedType) {
+      errors.selectedType = 'Please select a category.';
+    }
+    if (selectedType === 'Tag') {
+      if (!isMultiCard && !selectedCatalogId) {
+        errors.selectedCatalogId = 'Please select a paper catalog.';
+      }
+    } else if (selectedType !== 'Tag' && !selectedMaterial) {
+      errors.selectedMaterial = 'Please select a material gauge.';
+    }
+    if (doriOption === 'custom' && (!doriCustom || !doriCustom.trim())) {
+      errors.doriCustom = 'Please specify custom dori details.';
+    }
+    if (plasticOption === 'custom' && (!plasticCustom || !plasticCustom.trim())) {
+      errors.plasticCustom = 'Please specify custom plastic lock details.';
+    }
+    if (!qty || Number(qty) <= 0) {
+      errors.qty = 'Please enter a valid quantity in pieces (greater than 0).';
+    }
+    if (!rate || Number(rate) <= 0) {
+      errors.rate = 'Please enter a valid rate per piece (greater than 0).';
+    }
 
-    const doriValue = doriOption === 'custom' ? `Custom: ${doriCustom.trim()}` : 'Reg. (₹0.20/pc)';
-    const plasticValue = plasticOption === 'custom' ? `Custom: ${plasticCustom.trim()}` : 'Reg. (₹0.10/pc)';
+    setStepValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
+  const handleDiscardDraft = () => {
+    if (window.confirm('Discard current order draft and reset all inputs?')) {
+      setBrandName('');
+      setOrderImage('');
+      setSingleCardDimension('');
+      setQty(0);
+      setRate(0);
+      setDoriOption('reg');
+      setDoriCustom('');
+      setPlasticOption('reg');
+      setPlasticCustom('');
+      setOrderItems([]);
+      setOrderNotes('');
+      setStepValidationErrors({});
+    }
+  };
+
+  // 4-Step Flow Validation
+  const validateStep = (step) => {
+    const errors = {};
+    if (step === 1) {
+      if (!brandName || !brandName.trim()) {
+        errors.brandName = 'Please enter a brand name.';
+      }
+      if (!selectedType) {
+        errors.selectedType = 'Please select a manufacturing type.';
+      }
+    } else if (step === 2) {
+      if (selectedType === 'Tag') {
+        if (!isMultiCard && !selectedCatalogId) {
+          errors.selectedCatalogId = 'Please select a paper catalog.';
+        }
+      } else if (selectedType !== 'Tag' && !selectedMaterial) {
+        errors.selectedMaterial = 'Please select a material gauge.';
+      }
+      if (doriOption === 'custom' && (!doriCustom || !doriCustom.trim())) {
+        errors.doriCustom = 'Please specify your custom dori details.';
+      }
+      if (plasticOption === 'custom' && (!plasticCustom || !plasticCustom.trim())) {
+        errors.plasticCustom = 'Please specify your custom plastic lock details.';
+      }
+    } else if (step === 3) {
+      if (!qty || Number(qty) <= 0) {
+        errors.qty = 'Please enter a valid quantity in pieces (greater than 0).';
+      }
+      if (!rate || Number(rate) <= 0) {
+        errors.rate = 'Please enter a valid rate per piece (greater than 0).';
+      }
+    }
+
+    setStepValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleContinue = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (validateStep(currentStep)) {
+      setStepValidationErrors({});
+      setCurrentStep(prev => Math.min(4, prev + 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBack = () => {
+    setStepValidationErrors({});
+    setCurrentStep(prev => Math.max(1, prev - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGoToStep = (targetStep) => {
+    if (targetStep < currentStep) {
+      setStepValidationErrors({});
+      setCurrentStep(targetStep);
+    } else if (targetStep > currentStep) {
+      let canProceed = true;
+      for (let s = 1; s < targetStep; s++) {
+        if (!validateStep(s)) {
+          setCurrentStep(s);
+          canProceed = false;
+          break;
+        }
+      }
+      if (canProceed) {
+        setStepValidationErrors({});
+        setCurrentStep(targetStep);
+      }
+    }
+  };
+
+  // Live Current Draft Item Object
+  const currentDraftItem = React.useMemo(() => {
     let finalMaterial = selectedMaterial;
     let chosenCards = [];
     let primaryCatalogId = null;
@@ -297,7 +428,8 @@ function CustomerPortal({
             catalogCode: cat.code,
             name: cat.name,
             gsm: cat.gsm,
-            finish: cat.finish
+            finish: cat.finish,
+            dimension: c.dimension || ''
           };
         });
         finalMaterial = `${tagCards.length}-Card Set: ` + chosenCards.map(c => c.catalogCode.split(' - ')[1] || c.catalogCode).join(' + ');
@@ -312,7 +444,8 @@ function CustomerPortal({
           catalogCode: cat.code,
           name: cat.name,
           gsm: cat.gsm,
-          finish: cat.finish
+          finish: cat.finish,
+          dimension: singleCardDimension || ''
         }];
         finalMaterial = `${cat.code} (${cat.finish})`;
         primaryCatalogId = cat.id;
@@ -320,7 +453,13 @@ function CustomerPortal({
       }
     }
 
-    const newItem = {
+    const doriValue = doriOption === 'custom' ? `Custom: ${doriCustom.trim()}` : 'Reg. (â‚¹0.20/pc)';
+    const plasticValue = plasticOption === 'custom' ? `Custom: ${plasticCustom.trim()}` : 'Reg. (â‚¹0.10/pc)';
+    const quantityNum = Number(qty) || 0;
+    const rateNum = Number(rate) || 0;
+    const itemTotal = quantityNum * rateNum;
+
+    return {
       id: 'ITEM-' + Date.now().toString().slice(-4),
       itemCode: currentCustomerItemCode,
       name: currentCustomerItemCode,
@@ -332,28 +471,54 @@ function CustomerPortal({
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: doriOption === 'reg' ? 0.20 : 0.20,
+      doriRate: 0.20,
       plastic: plasticValue,
-      plasticRate: plasticOption === 'reg' ? 0.10 : 0.10,
+      plasticRate: 0.10,
       image: orderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(selectedType),
-      quantity: Number(qty),
-      unitPrice: Number(rate),
-      total: Number(qty) * Number(rate)
+      quantity: quantityNum,
+      unitPrice: rateNum,
+      total: itemTotal
     };
+  }, [
+    selectedType,
+    selectedMaterial,
+    selectedCatalogId,
+    isMultiCard,
+    tagCards,
+    singleCardDimension,
+    availableCatalogs,
+    doriOption,
+    doriCustom,
+    plasticOption,
+    plasticCustom,
+    qty,
+    rate,
+    brandName,
+    currentCustomerItemCode,
+    orderImage
+  ]);
 
-    setOrderItems(prev => [...prev, newItem]);
+  // Add Item to Staged Items (Optional for multi-item orders)
+  const handleAddItemToOrder = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!validateOrderForm()) {
+      return;
+    }
 
-    // CLEAR ALL FIELDS AFTER ADDING AN ITEM
+    setOrderItems(prev => [...prev, currentDraftItem]);
+
+    // Reset fields for the next item
     setBrandName('');
     setOrderImage('');
+    setSingleCardDimension('');
     const defaultType = availableTypes[0];
     setSelectedType(defaultType?.name || 'Tag');
     setSelectedMaterial(defaultType?.materials[0] || '100 GSM');
     setSelectedCatalogId(availableCatalogs[0]?.id || 'CAT-IV350');
     setIsMultiCard(false);
     setTagCards([
-      { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
-      { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+      { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+      { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
     ]);
     setQty(0);
     setRate(0);
@@ -361,8 +526,9 @@ function CustomerPortal({
     setDoriCustom('');
     setPlasticOption('reg');
     setPlasticCustom('');
+    setCurrentStep(1);
+    setStepValidationErrors({});
 
-    // Clear file input element if any
     const fileInput = document.getElementById('customer-file-upload');
     if (fileInput) fileInput.value = '';
   };
@@ -381,81 +547,156 @@ function CustomerPortal({
     setOrderItems(clonedItems);
     setBrandName(rejectedOrder.items[0]?.brandName || rejectedOrder.customerCompany || '');
     setOrderNotes(`Re-order following rejected order #${rejectedOrder.id}`);
+
+    const first = rejectedOrder.items[0];
+    if (first) {
+      setSelectedType(first.type || 'Tag');
+      setSelectedMaterial(first.material || '');
+      if (first.catalogId) setSelectedCatalogId(first.catalogId);
+      setIsMultiCard(!!first.isMultiCard);
+      if (first.cards && first.cards.length > 0) {
+        setTagCards(first.cards.map((c, i) => ({
+          id: i + 1,
+          title: i === 0 ? 'Tag 1 (Base Tag)' : i === 1 ? 'Tag 2 (Upper Tag)' : (c.title || `Tag ${i + 1} (Overlay Tag)`),
+          catalogId: c.catalogId,
+          dimension: c.dimension || ''
+        })));
+      }
+      if (first.dori && first.dori.startsWith('Custom:')) {
+        setDoriOption('custom');
+        setDoriCustom(first.dori.replace('Custom:', '').trim());
+      } else {
+        setDoriOption('reg');
+        setDoriCustom('');
+      }
+      if (first.plastic && first.plastic.startsWith('Custom:')) {
+        setPlasticOption('custom');
+        setPlasticCustom(first.plastic.replace('Custom:', '').trim());
+      } else {
+        setPlasticOption('reg');
+        setPlasticCustom('');
+      }
+      setQty(first.quantity || 0);
+      setRate(first.unitPrice || 0);
+      setOrderImage(first.image || '');
+    }
+
+    setCurrentStep(4);
     setActiveTab('place_order');
   };
 
   // Calculations (NO TAXES, Subtotal = Grand Total)
-  const grandTotal = orderItems.reduce((acc, i) => acc + i.total, 0);
+  const stagedTotal = orderItems.reduce((acc, i) => acc + i.total, 0);
+  const draftTotal = (Number(qty) || 0) * (Number(rate) || 0);
+  const grandTotal = stagedTotal + (orderItems.length > 0 && (!brandName.trim() || Number(qty) <= 0) ? 0 : draftTotal);
 
-  // Submit Final Order
+  // Submit Final Order (Prevent duplicates with isSubmitting)
   const handleSubmitFinalOrder = (e) => {
-    e.preventDefault();
-    if (orderItems.length === 0) return alert('Please add at least one tag or label item to your order.');
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSubmitting) return;
 
-    const orderId = 'ORD-2026-' + Math.floor(1000 + Math.random() * 9000);
-    const nowIso = new Date().toISOString();
-    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    if (!validateOrderForm()) {
+      return;
+    }
 
-    const newOrder = {
-      id: orderId,
-      customerId: customer.id,
-      customerName: customer.name,
-      customerCompany: customer.company || orderItems[0]?.brandName,
-      customerEmail: customer.email,
-      customerPhone: customer.phone,
-      status: 'pending',
-      paymentStatus: 'pending',
-      createdAt: nowIso,
-      expectedDelivery: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-      assignedTo: 'Unassigned',
-      items: orderItems.map(i => ({
-        id: i.id,
-        itemCode: i.itemCode || i.name,
-        name: i.itemCode || i.name,
-        brandName: i.brandName,
-        type: i.type,
-        isMultiCard: !!i.isMultiCard,
-        cards: i.cards || [],
-        catalogId: i.catalogId || null,
-        catalogCode: i.catalogCode || null,
-        material: i.material,
-        dori: i.dori,
-        doriRate: i.doriRate || 0.20,
-        plastic: i.plastic,
-        plasticRate: i.plasticRate || 0.10,
-        image: i.image,
-        unitPrice: i.unitPrice,
-        quantity: i.quantity,
-        total: i.total
-      })),
-      subtotal: grandTotal,
-      tax: 0,
-      shipping: 0,
-      total: grandTotal,
-      tracking: {
-        carrier: 'Courier Pending',
-        trackingNumber: 'Awaiting Manufacturing Approval',
-        status: 'Order Placed - Awaiting Confirmation',
-        lastUpdate: formattedDate
-      },
-      timeline: [
-        {
-          stage: 'pending',
-          title: 'Order Placed',
-          description: `Manufacturing order booked by ${customer.name} (${orderItems.length} item(s)).`,
-          timestamp: formattedDate,
-          author: customer.name
-        }
-      ],
-      internalNotes: [],
-      customerNotes: orderNotes
-    };
+    let itemsToSubmit = [...orderItems];
+    if (brandName.trim() && Number(qty) > 0 && Number(rate) > 0) {
+      itemsToSubmit.push(currentDraftItem);
+    }
 
-    onSaveOrder(newOrder);
-    setOrderItems([]);
-    setOrderNotes('');
-    alert(`Order ${orderId} placed successfully!`);
-    setActiveTab('order_register');
+    if (itemsToSubmit.length === 0) {
+      setStepValidationErrors({ qty: 'Please specify quantity and rate before placing order.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const orderId = 'ORD-2026-' + Math.floor(1000 + Math.random() * 9000);
+      const nowIso = new Date().toISOString();
+      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const orderGrandTotal = itemsToSubmit.reduce((acc, i) => acc + i.total, 0);
+
+      const newOrder = {
+        id: orderId,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerCompany: customer.company || itemsToSubmit[0]?.brandName || brandName.trim(),
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        status: 'pending',
+        paymentStatus: 'pending',
+        createdAt: nowIso,
+        expectedDelivery: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+        assignedTo: 'Unassigned',
+        items: itemsToSubmit.map(i => ({
+          id: i.id || ('ITEM-' + Date.now().toString().slice(-4)),
+          itemCode: i.itemCode || i.name,
+          name: i.itemCode || i.name,
+          brandName: i.brandName,
+          type: i.type,
+          isMultiCard: !!i.isMultiCard,
+          cards: i.cards || [],
+          catalogId: i.catalogId || null,
+          catalogCode: i.catalogCode || null,
+          material: i.material,
+          dori: i.dori,
+          doriRate: i.doriRate || 0.20,
+          plastic: i.plastic,
+          plasticRate: i.plasticRate || 0.10,
+          image: i.image,
+          unitPrice: i.unitPrice,
+          quantity: i.quantity,
+          total: i.total
+        })),
+        subtotal: orderGrandTotal,
+        tax: 0,
+        shipping: 0,
+        total: orderGrandTotal,
+        tracking: {
+          carrier: 'Courier Pending',
+          trackingNumber: 'Awaiting Manufacturing Approval',
+          status: 'Order Placed - Awaiting Confirmation',
+          lastUpdate: formattedDate
+        },
+        timeline: [
+          {
+            stage: 'pending',
+            title: 'Order Placed',
+            description: `Manufacturing order booked by ${customer.name} (${itemsToSubmit.length} item(s)).`,
+            timestamp: formattedDate,
+            author: customer.name
+          }
+        ],
+        internalNotes: [],
+        customerNotes: orderNotes
+      };
+
+      onSaveOrder(newOrder);
+
+      // Reset state after successful submission
+      setOrderItems([]);
+      setOrderNotes('');
+      setBrandName('');
+      setOrderImage('');
+      setSingleCardDimension('');
+      setQty(0);
+      setRate(0);
+      setDoriOption('reg');
+      setDoriCustom('');
+      setPlasticOption('reg');
+      setPlasticCustom('');
+      setCurrentStep(1);
+      setStepValidationErrors({});
+
+      alert(`Order ${orderId} placed successfully!`);
+      setActiveTab('order_register');
+    } catch (err) {
+      console.error('Error placing order:', err);
+      alert('An error occurred while placing your order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Open Edit Order Modal (Allowed before admin approval)
@@ -541,7 +782,7 @@ function CustomerPortal({
         {
           stage: editingOrder.status,
           title: 'Order Edited by Customer',
-          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: ₹${editRate}).`,
+          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: â‚¹${editRate}).`,
           timestamp: formattedDate,
           author: customer.name
         }
@@ -620,12 +861,14 @@ function CustomerPortal({
               </span>
             )}
 
-            <button
-              onClick={() => setActiveTab('place_order')}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all"
-            >
-              + Place Order
-            </button>
+            {activeTab !== 'place_order' && (
+              <button
+                onClick={() => setActiveTab('place_order')}
+                className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow-xs transition-all"
+              >
+                + Place Order
+              </button>
+            )}
 
             <button
               onClick={() => setBannerMinimized(false)}
@@ -1002,369 +1245,679 @@ function CustomerPortal({
         </div>
       )}
 
-      {/* MODULE 1: PLACE ORDER (TAGS & LABELS SPECIFICATION) */}
+      {/* MODULE 1: PLACE ORDER (MODERN SALES ORDER UI - INLINE WITH TAGX REFERENCE) */}
       {activeTab === 'place_order' && (
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in">
+        <div className="max-w-7xl mx-auto space-y-5 animate-fade-in pb-16">
           
-          {/* Left Form: Tag & Label Creation Fields */}
-          <div className="xl:col-span-3 bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-sm text-slate-800 space-y-6">
+          {/* Top Page Header (Matching TagX reference: New Sales Order / SO â€” place a customer order) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                  New Sales Order
+                </h1>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                SO â€” place a customer order
+              </p>
+            </div>
             
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="font-extrabold text-slate-900 text-lg flex items-center space-x-2">
-                  <span>🏷️</span>
-                  <span>Create Tag / Label Manufacturing Item</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Follow the 4 simple steps below to specify details, preview/crop artwork, and book your production order.
-                </p>
-              </div>
-              <span className="text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
-                Customer Ordering Portal
-              </span>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={handleSubmitFinalOrder}
+                disabled={isSubmitting}
+                className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white px-6 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <span>Placing Order...</span>
+                ) : (
+                  <>
+                    <span>Place Order</span>
+                    <span>âœ“</span>
+                  </>
+                )}
+              </button>
             </div>
+          </div>
 
-            {/* Visual 4-Step Progress Guide */}
-            <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
-                <span className="text-slate-900 font-bold">
-                  Order Flow Guide — Follow Sequential Steps
-                </span>
-                <span className="text-slate-500 font-normal hidden sm:inline">Fill each section in order</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="bg-white border border-slate-300 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0">1</span>
-                  <div>
-                    <div className="font-bold text-slate-900">1. Item &amp; Paper</div>
-                    <div className="text-[10px] text-slate-500">Brand, type &amp; catalog</div>
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">2</span>
-                  <div>
-                    <div className="font-bold text-slate-900">2. Specifications</div>
-                    <div className="text-[10px] text-slate-500">Cards, dori &amp; plastic</div>
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">3</span>
-                  <div>
-                    <div className="font-bold text-slate-900">3. Artwork &amp; Crop</div>
-                    <div className="text-[10px] text-slate-500">Preview &amp; crop tool</div>
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 p-2.5 rounded-xl shadow-2xs flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">4</span>
-                  <div>
-                    <div className="font-bold text-slate-900">4. Qty &amp; Add</div>
-                    <div className="text-[10px] text-slate-500">Calculate &amp; add to order</div>
-                  </div>
-                </div>
-              </div>
+          {/* Document Status / Draft Pill Bar */}
+          <div className="flex items-center space-x-3 text-xs bg-white border border-slate-200/80 rounded-xl px-4 py-2.5 shadow-2xs">
+            <div className="flex items-center space-x-1.5 font-medium text-slate-800">
+              <span className="text-slate-400">ðŸ“„</span>
+              <span className="font-semibold">New Sales Order</span>
             </div>
+            <span className="text-slate-300">â€¢</span>
+            <span className="text-emerald-700 font-medium flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>Draft saved just now</span>
+            </span>
+            <span className="text-slate-300">â€¢</span>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-slate-400 hover:text-rose-600 font-medium transition-colors cursor-pointer"
+            >
+              discard
+            </button>
+          </div>
 
-            <form onSubmit={handleAddItemToOrder} className="space-y-6">
+          {/* Main 2-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Left Column (8 cols): General Information & Items */}
+            <div className="lg:col-span-8 space-y-6">
               
-              {/* STEP 1: CORE IDENTIFIERS & PAPER CATALOG */}
-              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
-                    1
-                  </span>
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Step 1: Item &amp; Paper Catalog Details
+              {/* Card 1: General Information */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
+                <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                  <span className="text-base text-slate-400">ðŸ—‚</span>
+                  <h3 className="font-bold text-slate-900 text-sm">General Information</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Row 1: Transaction Type, Order Type, Order No */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Transaction Type
+                      </label>
+                      <select
+                        value={transactionType}
+                        onChange={(e) => setTransactionType(e.target.value)}
+                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
+                      >
+                        <option value="Sales Order">Sales Order</option>
+                        <option value="Sample / Job Work">Sample / Job Work</option>
+                        <option value="Direct Export">Direct Export</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Order Type
+                      </label>
+                      <select
+                        value={orderType}
+                        onChange={(e) => setOrderType(e.target.value)}
+                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
+                      >
+                        <option value="New Order">New Order</option>
+                        <option value="Repeat Order">Repeat Order</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Order No
+                      </label>
+                      <div className="w-full bg-slate-100/70 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-800 flex items-center justify-between cursor-not-allowed select-none shadow-2xs">
+                        <span>{currentCustomerItemCode}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Auto-assigned</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Date, Agent Name, Brand Name */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Date
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          readOnly
+                          value={new Date().toLocaleDateString('en-GB')}
+                          className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium pr-8 cursor-not-allowed"
+                        />
+                        <span className="absolute right-3 top-2 text-slate-400 text-xs">ðŸ“…</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Agent Name
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={customer.company || customer.name || 'TagX Customer'}
+                        className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-semibold text-slate-700">
+                          Brand Name <span className="text-rose-500">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setBrandName(customer.company || 'Urban Stitch')}
+                          className="text-[10px] text-brand-600 hover:text-brand-700 font-semibold cursor-pointer"
+                        >
+                          + Add Brand
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Type to search brand or mobile.."
+                        value={brandName}
+                        onChange={(e) => {
+                          setBrandName(e.target.value);
+                          if (stepValidationErrors.brandName) {
+                            setStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                          }
+                        }}
+                        className={`w-full bg-slate-50/80 hover:bg-white focus:bg-white border ${stepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200/80 focus:ring-slate-400'} rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium transition-all`}
+                      />
+                      {stepValidationErrors.brandName && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1">
+                          âš  {stepValidationErrors.brandName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Row 3: GST No (optional) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        GST No (optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter GST No"
+                        value={gstNo}
+                        onChange={(e) => setGstNo(e.target.value)}
+                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Items */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base text-slate-400">ðŸ·</span>
+                    <h3 className="font-bold text-slate-900 text-sm">Items</h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500 font-medium">
+                    {orderItems.length + 1} Item(s) in Order
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Brand Name */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Brand Name <span className="text-rose-500">*</span>
-                    </label>
+                {/* ITEM 1 Container (Matching TagX reference) */}
+                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                      ITEM 1
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Ref: {currentCustomerItemCode}
+                    </span>
+                  </div>
+
+                  {/* Article Picker Input */}
+                  <div className="relative">
                     <input
                       type="text"
-                      required
-                      placeholder="e.g. Urban Stitch / Denim Club"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
+                      readOnly
+                      value={brandName ? `${brandName} â€” ${currentCustomerItemCode} (${selectedType})` : `Pick item: ${currentCustomerItemCode} (${selectedType})`}
+                      placeholder="Type or pick item..."
+                      className="w-full bg-white border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold cursor-not-allowed pr-8 shadow-2xs"
                     />
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Client brand or firm name</span>
+                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs">ðŸ“‹</span>
                   </div>
 
-                  {/* Item Code (Auto-assigned) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold text-slate-700">Item Code</label>
-                      <span className="text-[10px] text-slate-500 font-mono">Auto-assigned</span>
+                  {/* Item Image Thumbnail + Category + Pieces */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    {/* Compact Image Button / Thumbnail */}
+                    <div className="sm:col-span-3">
+                      {orderImage ? (
+                        <div className="flex items-center space-x-2 bg-white border border-slate-200/90 rounded-xl p-1.5 shadow-2xs">
+                          <img
+                            src={orderImage}
+                            alt="Item Artwork"
+                            className="w-10 h-10 object-contain rounded-lg bg-slate-50 border border-slate-200 cursor-pointer"
+                            onClick={() => setShowFullImageModal(true)}
+                            title="Click to view full image"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-bold text-slate-800 truncate">Artwork</div>
+                            <div className="flex items-center space-x-1.5 mt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowCropModal(true)}
+                                className="text-[10px] text-slate-600 hover:text-slate-900 font-semibold underline cursor-pointer"
+                              >
+                                Crop
+                              </button>
+                              <span className="text-slate-300">â€¢</span>
+                              <button
+                                type="button"
+                                onClick={() => setOrderImage('')}
+                                className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                              >
+                                Ã—
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="flex items-center justify-center space-x-2 bg-white hover:bg-slate-50 border border-dashed border-slate-300 rounded-xl p-2 cursor-pointer transition-colors shadow-2xs h-[42px]">
+                          <span className="text-slate-400 text-sm font-bold">+</span>
+                          <span className="text-[11px] font-semibold text-slate-600 truncate">+ Add item image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
                     </div>
-                    <div 
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-slate-800 flex items-center justify-between cursor-not-allowed select-none shadow-2xs"
-                      title="Unique Article / Item Code is automatically generated and secured by Admin"
-                    >
-                      <span>{currentCustomerItemCode}</span>
-                      <span className="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">Auto</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Unique catalog reference code</span>
-                  </div>
 
-                  {/* Type */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Manufacturing Type <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={selectedType}
-                      onChange={(e) => handleTypeChange(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
-                    >
-                      {availableTypes.map(t => (
-                        <option key={t.id} value={t.name}>{t.name}</option>
-                      ))}
-                    </select>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Select product category</span>
-                  </div>
-
-                  {/* Paper Catalog */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      {selectedType === 'Tag' ? 'Paper Catalog' : 'Material'} <span className="text-rose-500">*</span>
-                    </label>
-                    {selectedType === 'Tag' ? (
+                    {/* Category Select */}
+                    <div className="sm:col-span-4">
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                        Category
+                      </label>
                       <select
-                        value={selectedCatalogId}
-                        onChange={(e) => setSelectedCatalogId(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
+                        value={selectedType}
+                        onChange={(e) => handleTypeChange(e.target.value)}
+                        className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
                       >
-                        {availableCatalogs.map(cat => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.code} ({cat.gsm} GSM - {cat.finish})
-                          </option>
+                        {availableTypes.map(t => (
+                          <option key={t.id} value={t.name}>{t.name}</option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Pieces / Format Select */}
+                    <div className="sm:col-span-5">
+                      <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                        Pieces / Format
+                      </label>
+                      <select
+                        value={isMultiCard ? (tagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '1 PC') {
+                            setIsMultiCard(false);
+                          } else if (val === '2 PC') {
+                            setIsMultiCard(true);
+                            if (tagCards.length > 2) handleRemoveThirdCard();
+                          } else if (val === '3 PC') {
+                            setIsMultiCard(true);
+                            if (tagCards.length < 3) handleAddThirdCard();
+                          }
+                        }}
+                        className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                      >
+                        <option value="1 PC">1 PC (Single Card Tag)</option>
+                        <option value="2 PC">2 PC (Multi-Card Tag Set)</option>
+                        <option value="3 PC">3 PC (3-Card Tag Set)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Specifications (Paper & Dimensions) */}
+                  <div className="pt-2 border-t border-slate-200/60">
+                    {!isMultiCard ? (
+                      /* Single Card Tag */
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                            Paper Catalog Stock <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            value={selectedCatalogId}
+                            onChange={(e) => {
+                              setSelectedCatalogId(e.target.value);
+                              if (stepValidationErrors.selectedCatalogId) {
+                                setStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
+                              }
+                            }}
+                            className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                          >
+                            {availableCatalogs.map(cat => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.code} â€” {cat.gsm} GSM ({cat.finish})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                            Tag Dimensions / Finished Size (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
+                            value={singleCardDimension}
+                            onChange={(e) => setSingleCardDimension(e.target.value)}
+                            className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                          />
+                        </div>
+                      </div>
                     ) : (
-                      <select
-                        value={selectedMaterial}
-                        onChange={(e) => setSelectedMaterial(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-medium"
-                      >
-                        {(currentTypeObj?.materials || []).map((mat, i) => (
-                          <option key={i} value={mat}>{mat}</option>
-                        ))}
-                      </select>
-                    )}
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Weight (GSM) &amp; paper finish</span>
-                  </div>
-                </div>
-              </div>
+                      /* Multi-Card Tag Configuration */
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">
+                            Multi-Tag Configuration ({tagCards.length} Tags)
+                          </span>
+                          {tagCards.length < 3 && (
+                            <button
+                              type="button"
+                              onClick={handleAddThirdCard}
+                              className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 cursor-pointer"
+                            >
+                              + Add 3rd Tag
+                            </button>
+                          )}
+                        </div>
 
-              {/* STEP 2: TAG SPECIFICATIONS & HANDWORK */}
-              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-4">
-                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
-                    2
-                  </span>
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Step 2: Tag Specifications &amp; Handwork Accessories
-                  </span>
-                </div>
-
-                {/* Tag Composition: Single vs Multi-Card */}
-                {selectedType === 'Tag' && (
-                  <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-2xs">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <span className="text-xs font-semibold text-slate-800">
-                          Tag Composition
-                        </span>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Single paper card or multiple cards bound together with Dori &amp; Plastic.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setIsMultiCard(false)}
-                          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                            !isMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Single Card Tag
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsMultiCard(true)}
-                          className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                            isMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Multi-Card Tag Set ({tagCards.length} Cards)
-                        </button>
-                      </div>
-                    </div>
-
-                    {isMultiCard && (
-                      <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-100">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 gap-3">
                           {tagCards.map((card, idx) => (
-                            <div key={card.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+                            <div key={card.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
                               <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-semibold text-slate-900">
-                                  Card #{idx + 1}: {card.title}
+                                <span className="text-xs font-bold text-slate-800">
+                                  {card.title}
                                 </span>
                                 {idx === 2 && (
                                   <button
                                     type="button"
                                     onClick={handleRemoveThirdCard}
-                                    className="text-rose-600 hover:text-rose-700 text-xs font-semibold"
-                                    title="Remove 3rd Card"
+                                    className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
                                   >
                                     &times; Remove
                                   </button>
                                 )}
                               </div>
-                              <label className="text-[10px] text-slate-500 block font-medium">Select Paper Catalog:</label>
-                              <select
-                                value={card.catalogId}
-                                onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                                className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                              >
-                                {availableCatalogs.map(cat => (
-                                  <option key={cat.id} value={cat.id}>
-                                    {cat.code} - {cat.gsm} GSM ({cat.finish})
-                                  </option>
-                                ))}
-                              </select>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                    Paper Catalog Stock
+                                  </label>
+                                  <select
+                                    value={card.catalogId}
+                                    onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
+                                  >
+                                    {availableCatalogs.map(cat => (
+                                      <option key={cat.id} value={cat.id}>
+                                        {cat.code} â€” {cat.gsm} GSM
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                    Finished Dimensions
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
+                                    value={card.dimension}
+                                    onChange={(e) => handleUpdateCardDimension(idx, e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
-
-                        {tagCards.length < 3 && (
-                          <button
-                            type="button"
-                            onClick={handleAddThirdCard}
-                            className="text-xs text-slate-800 hover:text-slate-900 font-medium flex items-center space-x-1 mt-2"
-                          >
-                            <span>+ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
-                          </button>
-                        )}
-                        
-                        <div className="text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-                          Each card will receive its own printing &amp; punching form, and will merge at the Handwork (Dori &amp; Plastic) stage.
-                        </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Handwork Attachments (Dori & Plastic Lock) */}
+                  <div className="pt-2 border-t border-slate-200/60">
+                    <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block mb-2">
+                      Handwork Attachments
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Dori */}
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
+                          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDoriOption('reg');
+                                setDoriCustom('');
+                              }}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Reg. (â‚¹0.20)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDoriOption('custom')}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                doriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Custom
+                            </button>
+                          </div>
+                        </div>
+                        {doriOption === 'custom' ? (
+                          <input
+                            type="text"
+                            placeholder="Specify custom dori (e.g. Waxed Cotton / Satin string)"
+                            value={doriCustom}
+                            onChange={(e) => setDoriCustom(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          />
+                        ) : (
+                          <div className="text-[11px] text-slate-500">Standard / Regular Cotton Dori assigned (â‚¹0.20/pc included)</div>
+                        )}
+                      </div>
+
+                      {/* Plastic Lock */}
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-800">Plastic Lock / Seal</span>
+                          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlasticOption('reg');
+                                setPlasticCustom('');
+                              }}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Reg. (â‚¹0.10)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPlasticOption('custom')}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Custom
+                            </button>
+                          </div>
+                        </div>
+                        {plasticOption === 'custom' ? (
+                          <input
+                            type="text"
+                            placeholder="Specify custom plastic (e.g. Embossed Square Seal / Black matte)"
+                            value={plasticCustom}
+                            onChange={(e) => setPlasticCustom(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          />
+                        ) : (
+                          <div className="text-[11px] text-slate-500">Standard / Regular Plastic Lock assigned (â‚¹0.10/pc included)</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Commercials: Quantity, Rate, Subtotal */}
+                  <div className="pt-2 border-t border-slate-200/60">
+                    <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block mb-2">
+                      Commercials
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs items-end">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[11px] font-semibold text-slate-700">
+                            Quantity (Pcs) <span className="text-rose-500">*</span>
+                          </label>
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 5000"
+                          value={qty || ''}
+                          onChange={(e) => {
+                            setQty(e.target.value);
+                            if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
+                          }}
+                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                        />
+                        {/* Quick Presets */}
+                        <div className="flex items-center space-x-1 mt-1.5">
+                          {[1000, 2500, 5000, 10000].map(val => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => {
+                                setQty(val);
+                                if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
+                              }}
+                              className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                                Number(qty) === val
+                                  ? 'bg-slate-900 text-white border-slate-900 font-bold'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                              }`}
+                            >
+                              {val >= 1000 ? `${val / 1000}k` : val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                          Applicable Rate (â‚¹/pc) <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          placeholder="e.g. 3.50"
+                          value={rate || ''}
+                          onChange={(e) => {
+                            setRate(e.target.value);
+                            if (stepValidationErrors.rate) setStepValidationErrors(prev => ({ ...prev, rate: null }));
+                          }}
+                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">Production agreed unit price</span>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Subtotal</span>
+                        <span className="text-sm font-mono font-bold text-slate-900">
+                          {formatCurrency((Number(qty) || 0) * (Number(rate) || 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Special Order Remarks */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Special Order Remarks / Packaging Instructions (Optional)
+                    </label>
+                    <textarea
+                      rows="2"
+                      placeholder="e.g. Cut & fold preference, bundle packaging in 100s, urgent dispatch deadline..."
+                      value={orderNotes}
+                      onChange={(e) => setOrderNotes(e.target.value)}
+                      className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Staged Additional Items Table (if any) */}
+                {orderItems.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Previously Staged Items ({orderItems.length})
+                    </h4>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
+                      {orderItems.map((item, idx) => (
+                        <div key={idx} className="p-3 border-b border-slate-100 last:border-0 flex items-center justify-between">
+                          <div>
+                            <span className="font-mono font-bold text-slate-900 mr-2">{item.itemCode || item.name}</span>
+                            <span className="font-semibold text-slate-800 mr-2">{item.brandName}</span>
+                            <span className="text-slate-500 font-mono">({item.quantity} pcs @ {formatCurrency(item.unitPrice)})</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className="font-mono font-bold text-slate-900">{formatCurrency(item.total)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOrderItem(item.id)}
+                              className="text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Handwork Accessories: Dori & Plastic */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Dori */}
-                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-800">Dori (String)</label>
-                      <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                        <button
-                          type="button"
-                          onClick={() => { setDoriOption('reg'); setDoriCustom(''); }}
-                          className={`px-3 py-1 rounded-md font-medium transition-all ${
-                            doriOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Reg. (₹0.20)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDoriOption('custom')}
-                          className={`px-3 py-1 rounded-md font-medium transition-all ${
-                            doriOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                    </div>
-
-                    {doriOption === 'custom' ? (
-                      <input
-                        type="text"
-                        required
-                        placeholder="Specify custom dori (e.g. Waxed Cotton cord / Satin string)"
-                        value={doriCustom}
-                        onChange={(e) => setDoriCustom(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
-                      />
-                    ) : (
-                      <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
-                        Standard / Regular Cotton Dori assigned (₹0.20/pc included)
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Plastic Lock */}
-                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-800">Plastic Lock / Seal</label>
-                      <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                        <button
-                          type="button"
-                          onClick={() => { setPlasticOption('reg'); setPlasticCustom(''); }}
-                          className={`px-3 py-1 rounded-md font-medium transition-all ${
-                            plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Reg. (₹0.10)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPlasticOption('custom')}
-                          className={`px-3 py-1 rounded-md font-medium transition-all ${
-                            plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                    </div>
-
-                    {plasticOption === 'custom' ? (
-                      <input
-                        type="text"
-                        required
-                        placeholder="Specify custom plastic (e.g. Embossed Square Seal)"
-                        value={plasticCustom}
-                        onChange={(e) => setPlasticCustom(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium"
-                      />
-                    ) : (
-                      <div className="text-xs text-slate-500 py-1.5 px-2.5 bg-slate-50 rounded-xl border border-slate-200/60 font-medium">
-                        Standard / Regular Plastic Lock assigned (₹0.10/pc included)
-                      </div>
-                    )}
-                  </div>
+                {/* Add Another Item Button */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAddItemToOrder}
+                    className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <span>+ Add Another Item to this Order</span>
+                  </button>
+                  <span className="text-[11px] text-slate-400">
+                    Add multiple hangtags or woven labels to one order
+                  </span>
                 </div>
               </div>
 
-              {/* STEP 3: ARTWORK & DESIGN (PREVIEW & CROP) */}
-              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
-                  <div className="flex items-center space-x-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
-                      3
-                    </span>
-                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      Step 3: Tag Artwork &amp; Design (Preview &amp; Crop)
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-slate-500">Supports JPG, PNG, WEBP</span>
-                </div>
+            </div>
 
+            {/* Right Column (4 cols): Default Artwork & Commercial Summary */}
+            <div className="lg:col-span-4 space-y-6 sticky top-20">
+              
+              {/* Card 1: Default Artwork (Exact match to TagX reference) */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base text-slate-400">ðŸ–¼</span>
+                  <h3 className="font-bold text-slate-900 text-sm">Default Artwork</h3>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Used for any item that doesn't have its own image. Add a per-item image on each item above to override this.
+                </p>
+
+                {/* Minimalist Dropzone */}
                 {!orderImage ? (
-                  <div className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-white transition-all rounded-2xl p-5 text-center cursor-pointer relative group shadow-2xs">
+                  <div className="bg-slate-50/70 hover:bg-slate-50 border-2 border-dashed border-slate-200/80 rounded-2xl p-8 min-h-[220px] flex flex-col items-center justify-center text-center relative group transition-all cursor-pointer">
                     <input
                       id="customer-file-upload"
                       type="file"
@@ -1372,268 +1925,140 @@ function CustomerPortal({
                       onChange={handleImageUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
-                    <div className="flex flex-col items-center justify-center space-y-2 py-2">
-                      <div className="text-xs font-bold text-slate-800">
-                        Click or drag tag design / artwork here to upload
-                      </div>
-                      <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                        Upload your file to get an instant live preview and use our built-in tag crop &amp; frame tool before adding to order.
-                      </p>
+                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-slate-700 text-2xl font-light mb-2 group-hover:scale-105 transition-transform">
+                      +
                     </div>
+                    <div className="text-xs font-semibold text-slate-800">
+                      Upload or drag &amp; drop
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Supports JPG, PNG, WEBP (Max 25MB)
+                    </p>
                   </div>
                 ) : (
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
-                    {/* Thumbnail & Info */}
-                    <div className="flex items-center space-x-4 w-full sm:w-auto">
-                      <div 
-                        onClick={() => setShowFullImageModal(true)}
-                        className="relative group w-20 h-28 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
-                        title="Click to view full image"
-                      >
-                        <img src={orderImage} alt="Artwork Preview" className="w-full h-full object-contain" />
-                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                  <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                    <div className="relative group max-h-48 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
+                      <img
+                        src={orderImage}
+                        alt="Order Artwork"
+                        className="max-h-44 w-full object-contain p-2"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <span className="text-[11px] font-semibold text-emerald-700">âœ“ Uploaded &amp; Ready</span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCropModal(true)}
+                          className="text-slate-700 hover:text-slate-900 font-semibold underline text-[11px] cursor-pointer"
+                        >
+                          Crop
+                        </button>
+                        <span className="text-slate-300">â€¢</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFullImageModal(true)}
+                          className="text-slate-700 hover:text-slate-900 font-semibold text-[11px] cursor-pointer"
+                        >
                           View
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs font-bold text-slate-900">Artwork Uploaded &amp; Ready</span>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-semibold px-2 py-0.5 rounded-md border border-emerald-200">
-                            ✓ Ready
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 leading-relaxed">
-                          Want to adjust the framing or aspect ratio? Use the crop tool below.
-                        </p>
-                        
-                        {/* Action buttons */}
-                        <div className="flex flex-wrap items-center gap-2 pt-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setShowCropModal(true)}
-                            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                          >
-                            Crop Image
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowFullImageModal(true)}
-                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                          >
-                            View Full
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOrderImage('');
-                              const el = document.getElementById('customer-file-upload');
-                              if (el) el.value = '';
-                            }}
-                            className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-colors"
-                          >
-                            Remove
-                          </button>
-                        </div>
+                        </button>
+                        <span className="text-slate-300">â€¢</span>
+                        <button
+                          type="button"
+                          onClick={() => setOrderImage('')}
+                          className="text-rose-600 hover:text-rose-700 font-semibold text-[11px] cursor-pointer"
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* STEP 4: COMMERCIALS & ADD TO ORDER */}
-              <div className="bg-slate-50/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center space-x-2 pb-1 border-b border-slate-200/60">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
-                    4
-                  </span>
-                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Step 4: Quantity (in Pieces) &amp; Pricing
+              {/* Card 2: Commercial Summary & Submit */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="font-bold text-slate-900 text-sm">Commercial Summary</h3>
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-medium">
+                    {currentCustomerItemCode}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-1">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Quantity (Pcs) <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      required
-                      value={qty}
-                      onFocus={() => { if (Number(qty) === 0) setQty(''); }}
-                      onBlur={() => { if (qty === '' || isNaN(qty)) setQty(0); }}
-                      onChange={(e) => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-mono font-bold"
-                    />
-                    {/* Quick Presets */}
-                    <div className="flex items-center space-x-1 mt-1.5">
-                      <span className="text-[10px] text-slate-400 font-medium mr-0.5">Quick:</span>
-                      {[1000, 2500, 5000, 10000].map(val => (
-                        <button
-                          key={val}
-                          type="button"
-                          onClick={() => setQty(val)}
-                          className="text-[10px] bg-white border border-slate-200 hover:border-slate-400 text-slate-600 hover:text-slate-900 px-1.5 py-0.5 rounded shadow-2xs font-mono transition-colors"
-                        >
-                          {val >= 1000 ? `${val / 1000}k` : val}
-                        </button>
-                      ))}
-                    </div>
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Brand:</span>
+                    <span className="font-semibold text-slate-900 text-right">{brandName || 'â€”'}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Item Code:</span>
+                    <span className="font-semibold text-slate-900 text-right font-mono">{currentCustomerItemCode}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Product:</span>
+                    <span className="font-semibold text-slate-900 text-right">{selectedType}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Format:</span>
+                    <span className="font-semibold text-slate-900 text-right">
+                      {selectedType === 'Tag' ? (isMultiCard ? `${tagCards.length}-Tag Set` : 'Single Card Tag') : 'Standard'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Quantity:</span>
+                    <span className="font-semibold font-mono text-slate-900 text-right">{Number(qty || 0).toLocaleString()} pcs</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Rate:</span>
+                    <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency(Number(rate || 0))}/pc</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Subtotal:</span>
+                    <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency((Number(qty) || 0) * (Number(rate) || 0))}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Handwork:</span>
+                    <span className="text-[11px] text-slate-600 text-right">
+                      Dori ({doriOption === 'custom' ? 'Custom' : 'â‚¹0.20'}) | Plastic ({plasticOption === 'custom' ? 'Custom' : 'â‚¹0.10'})
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Taxes &amp; Surcharges:</span>
+                    <span className="text-[11px] text-emerald-700 font-semibold text-right">â‚¹0.00 (Zero Added)</span>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Rate per Pc (₹) <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      value={rate}
-                      onFocus={() => { if (Number(rate) === 0) setRate(''); }}
-                      onBlur={() => { if (rate === '' || isNaN(rate)) setRate(0); }}
-                      onChange={(e) => setRate(e.target.value === '' ? '' : Number(e.target.value))}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs font-mono font-bold"
-                    />
-                    <span className="text-[10px] text-slate-400 mt-1 block">Agreed piece manufacturing rate</span>
-                  </div>
-
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col justify-center">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Item Subtotal</span>
-                    <span className="text-slate-900 font-bold text-lg font-mono">{formatCurrency(qty * rate)}</span>
-                  </div>
-
-                  <div>
-                    <button
-                      type="submit"
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-3 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
-                    >
-                      <span>Add Item to Order</span>
-                    </button>
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
+                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">Grand Total:</span>
+                    <span className="text-xl font-bold font-mono text-slate-900">
+                      {formatCurrency(grandTotal)}
+                    </span>
                   </div>
                 </div>
+
+                {/* Final Submit Button */}
+                <button
+                  type="button"
+                  onClick={handleSubmitFinalOrder}
+                  disabled={isSubmitting}
+                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <span>Placing Order...</span>
+                  ) : (
+                    <>
+                      <span>Place Order</span>
+                      <span>âœ“</span>
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                  Orders are instantly transmitted for factory scheduling and prepress proofing.
+                </p>
               </div>
 
-            </form>
-
-            {/* Configured Line Items Table */}
-            <div className="space-y-3 pt-3">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
-                Configured Order Line Items ({orderItems.length})
-              </h4>
-
-              {orderItems.length === 0 ? (
-                <div className="text-center py-8 border border-dashed border-slate-200 rounded-2xl text-slate-500 text-xs bg-slate-50">
-                  No items added yet. Complete the 4 steps above and click &quot;Add Item to Order&quot;.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-semibold">
-                      <tr>
-                        <th className="py-3 px-4">Item &amp; Artwork</th>
-                        <th className="py-3 px-4">Brand</th>
-                        <th className="py-3 px-4">Type &amp; Material</th>
-                        <th className="py-3 px-4">Dori</th>
-                        <th className="py-3 px-4">Plastic Lock</th>
-                        <th className="py-3 px-4 text-center">Qty</th>
-                        <th className="py-3 px-4 text-right">Rate</th>
-                        <th className="py-3 px-4 text-right">Total</th>
-                        <th className="py-3 px-4 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {orderItems.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-2.5">
-                              <img src={item.image} alt={item.type} className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
-                              <div className="flex flex-col">
-                                <span className="font-mono font-semibold text-xs text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded inline-block w-fit">
-                                  {item.itemCode || item.name}
-                                </span>
-                                <span className="font-mono text-[10px] text-slate-400 mt-0.5">#{idx + 1}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-slate-900">{item.brandName}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 mr-1.5 font-medium">{item.type}</span>
-                            <span className="text-slate-600 font-medium">{item.material}</span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-600">{item.dori}</td>
-                          <td className="py-3 px-4 text-slate-600">{item.plastic}</td>
-                          <td className="py-3 px-4 text-center font-mono font-medium text-slate-900">{item.quantity.toLocaleString()}</td>
-                          <td className="py-3 px-4 text-right font-mono text-slate-700">{formatCurrency(item.unitPrice)}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(item.total)}</td>
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveOrderItem(item.id)}
-                              className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold transition-colors inline-flex items-center justify-center border border-rose-200"
-                              title="Delete Item"
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
 
-          </div>
-
-          {/* Right Summary: Total & Submit */}
-          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4 self-start sticky top-24">
-            <h3 className="font-bold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
-              <span>Order Summary</span>
-              <span className="text-xs text-slate-500 font-mono font-medium">({orderItems.length} items)</span>
-            </h3>
-
-            <div className="space-y-4 text-xs">
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Special Order Remarks</label>
-                <textarea
-                  rows="3"
-                  placeholder="e.g. Cut &amp; fold preference, packaging instructions, urgent dispatch note..."
-                  value={orderNotes}
-                  onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 shadow-2xs"
-                />
-              </div>
-
-              {/* Total Calculation (Pure Subtotal, NO TAXES) */}
-              <div className="pt-3 border-t border-slate-100 space-y-1.5">
-                <div className="flex justify-between items-center text-sm font-medium text-slate-600">
-                  <span>Subtotal:</span>
-                  <span className="font-mono text-slate-800">{formatCurrency(grandTotal)}</span>
-                </div>
-                <div className="flex justify-between items-center text-base font-bold text-slate-900 pt-2 border-t border-dashed border-slate-200">
-                  <span>Grand Total:</span>
-                  <span className="text-slate-900 text-xl font-mono">{formatCurrency(grandTotal)}</span>
-                </div>
-                <p className="text-[10px] text-slate-400">Zero additional taxes applied.</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSubmitFinalOrder}
-                disabled={orderItems.length === 0}
-                className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-xs py-3.5 rounded-xl transition-colors mt-2 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Confirm &amp; Book Manufacturing Order
-              </button>
-
-              <div className="text-[11px] text-slate-500 text-center leading-relaxed">
-                Orders are reviewed by factory admin before proceeding to offset printing.
-              </div>
-            </div>
           </div>
 
         </div>
@@ -1892,7 +2317,7 @@ function CustomerPortal({
                               <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-slate-900 font-medium">• {c.title}:</span>
+                                    <span className="text-slate-900 font-medium">â€¢ {c.title}:</span>
                                     <span className="text-slate-700">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
@@ -2144,9 +2569,9 @@ function CustomerPortal({
                   <th className="py-3 px-4 font-bold">Date</th>
                   <th className="py-3 px-4 font-bold">Particulars</th>
                   <th className="py-3 px-4 font-bold">Ref No</th>
-                  <th className="py-3 px-4 text-right font-bold">Debit (₹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Credit (₹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Balance (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Debit (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Credit (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Balance (â‚¹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -2155,8 +2580,8 @@ function CustomerPortal({
                     <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
                     <td className="py-3 px-4 font-mono text-slate-700">{j.refNo}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : 'â€”'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : 'â€”'}</td>
                     <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
                   </tr>
                 ))}
@@ -2385,7 +2810,7 @@ function CustomerPortal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (₹) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (â‚¹) *</label>
                   <input
                     type="number"
                     step="0.01"
