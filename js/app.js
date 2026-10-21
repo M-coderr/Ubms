@@ -89,6 +89,12 @@ function App() {
     init();
   }, []);
 
+  // Update users (e.g. customer saved brands)
+  const handleUpdateUsers = (updatedUsers) => {
+    setUsers(updatedUsers);
+    window.uBMS.DataService.saveUsers(updatedUsers);
+  };
+
   // Save new order
   const handleSaveOrder = (newOrder) => {
     const updated = [newOrder, ...orders];
@@ -252,6 +258,8 @@ function App() {
             labelTypes={labelTypes}
             catalogs={catalogs}
             messages={messages}
+            users={users}
+            onUpdateUsers={handleUpdateUsers}
             onUpdateOrder={handleUpdateOrder}
             onSaveOrder={handleSaveOrder}
             onSaveEstimate={handleSaveEstimate}
@@ -308,7 +316,7 @@ function App() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold text-[11px]">
-              v1.0 beta
+              v2.4 beta
             </span>
             <span className="text-stone-500 text-[11px]">
               &bull; Warm Ivory Paper Theme

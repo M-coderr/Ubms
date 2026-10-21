@@ -491,15 +491,16 @@ function AdminPortal({
       ? adminItemCode.trim().toUpperCase()
       : window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
 
-    const doriValue = adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg. (₹0.20/pc)';
-    const plasticValue = adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg. (₹0.10/pc)';
+    const isTagKit = adminSelectedType === 'Tag Kit';
+    const doriValue = isTagKit ? 'None' : (adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg. (₹0.20/pc)');
+    const plasticValue = isTagKit ? 'None' : (adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg. (₹0.10/pc)');
 
     let finalMaterial = adminSelectedMaterial;
     let chosenCards = [];
     let primaryCatalogId = null;
     let primaryCatalogCode = null;
 
-    if (adminSelectedType === 'Tag') {
+    if (adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') {
       if (adminIsMultiCard) {
         chosenCards = adminTagCards.map((c, i) => {
           const cat = availableCatalogs.find(x => x.id === c.catalogId) || availableCatalogs[0];
@@ -536,18 +537,18 @@ function AdminPortal({
     const newItem = {
       id: 'ITEM-' + Date.now().toString().slice(-4),
       itemCode: finalCode,
-      name: finalCode,
+      name: (window.uBMS.formatItemName && selectedCust) ? window.uBMS.formatItemName(abbr, adminSelectedType, adminBrandName, window.uBMS.getCustomerNextItemIndex(selectedCust, orders, adminOrderItems)) : finalCode,
       brandName: adminBrandName.trim(),
       type: adminSelectedType,
-      isMultiCard: adminSelectedType === 'Tag' ? adminIsMultiCard : false,
+      isMultiCard: (adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? adminIsMultiCard : false,
       cards: chosenCards,
       catalogId: primaryCatalogId,
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: adminDoriOption === 'reg' ? 0.20 : 0.20,
+      doriRate: adminSelectedType === 'Tag Kit' ? 0 : 0.20,
       plastic: plasticValue,
-      plasticRate: adminPlasticOption === 'reg' ? 0.10 : 0.10,
+      plasticRate: adminSelectedType === 'Tag Kit' ? 0 : 0.10,
       image: adminOrderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(adminSelectedType),
       quantity: Number(adminQty),
       unitPrice: Number(adminRate),
@@ -1864,10 +1865,10 @@ function AdminPortal({
 
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                    {adminSelectedType === 'Tag' ? 'Paper Catalog *' : 'Material *'}{' '}
+                    {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? 'Paper Catalog *' : 'Material *'}{' '}
                     <span className="text-slate-400 font-normal">({adminSelectedType})</span>
                   </label>
-                  {adminSelectedType === 'Tag' ? (
+                  {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? (
                     <select
                       value={adminSelectedCatalogId}
                       onChange={(e) => setAdminSelectedCatalogId(e.target.value)}
@@ -1894,7 +1895,7 @@ function AdminPortal({
               </div>
 
               {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG FOR ADMIN */}
-              {adminSelectedType === 'Tag' && (
+              {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') && (
                 <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>

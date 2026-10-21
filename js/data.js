@@ -315,3 +315,70 @@ window.uBMS.formatCurrency = formatCurrency;
 window.uBMS.formatDate = formatDate;
 window.uBMS.generateCustomerAbbr = generateCustomerAbbr;
 window.uBMS.getNextItemCode = getNextItemCode;
+
+
+// Format Item Name according to formula: {Customer Abrevation}_{item_type}_{Brand Name}_{x}
+function formatItemName(customerAbbr, itemType, brandName, itemIndex) {
+  const abbr = (customerAbbr || 'ITM').trim().toUpperCase();
+  const cleanType = (itemType || 'Item').trim().replace(/\s+/g, '_');
+  const cleanBrand = (brandName && brandName.trim()) ? brandName.trim().replace(/\s+/g, '_') : 'Brand';
+  const index = itemIndex || 1;
+  return `${abbr}_${cleanType}_${cleanBrand}_${index}`;
+}
+
+// Calculate increasing number variable 'x' for items per customer
+function getCustomerNextItemIndex(customer, orders = [], stagedItems = []) {
+  if (!customer) return 1;
+  const custId = customer.id;
+  const custEmail = customer.email;
+  const custName = customer.name;
+  const custCompany = customer.company;
+  const custAbbr = customer.abbr || generateCustomerAbbr(custCompany || custName);
+
+  let maxIndex = 0;
+  let totalCustomerItems = 0;
+
+  // Regex to match item names ending in _(\d+) or formatted as {abbr}_{type}_{brand}_{x}
+  const patternRegex = new RegExp(`^${custAbbr}_.+_(\\d+)$`, 'i');
+  const genericIndexRegex = /_(\d+)$/;
+
+  const inspectItem = (item) => {
+    if (!item) return;
+    totalCustomerItems++;
+    const name = item.name || item.itemName || item.itemCode || '';
+
+    const exactMatch = name.match(patternRegex);
+    if (exactMatch) {
+      const val = parseInt(exactMatch[1], 10);
+      if (!isNaN(val) && val > maxIndex) {
+        maxIndex = val;
+      }
+      return;
+    }
+
+    const genericMatch = name.match(genericIndexRegex);
+    if (genericMatch) {
+      const val = parseInt(genericMatch[1], 10);
+      if (!isNaN(val) && val > maxIndex) {
+        maxIndex = val;
+      }
+    }
+  };
+
+  (orders || []).forEach(o => {
+    const isThisCust = (custId && o.customerId === custId) ||
+                       (custEmail && o.customerEmail === custEmail) ||
+                       (custName && o.customerName === custName) ||
+                       (custCompany && o.customerCompany === custCompany);
+    if (isThisCust && Array.isArray(o.items)) {
+      o.items.forEach(inspectItem);
+    }
+  });
+
+  (stagedItems || []).forEach(inspectItem);
+
+  return Math.max(maxIndex + 1, totalCustomerItems + 1);
+}
+
+window.uBMS.formatItemName = formatItemName;
+window.uBMS.getCustomerNextItemIndex = getCustomerNextItemIndex;

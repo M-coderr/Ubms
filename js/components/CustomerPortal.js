@@ -1,4 +1,4 @@
-﻿// Customer Portal: Tags & Labels Manufacturing Order System
+// Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
 
 function CustomerPortal({ 
@@ -9,6 +9,8 @@ function CustomerPortal({
   labelTypes = [], 
   catalogs = [],
   messages, 
+  users,
+  onUpdateUsers,
   onSaveOrder, 
   onUpdateOrder,
   onSaveMessage, 
@@ -103,7 +105,7 @@ function CustomerPortal({
 
       // 5. Individual Search: Rate
       if (searchRate.trim()) {
-        const query = searchRate.trim().replace(/[â‚¹,\s]/g, '').toLowerCase();
+        const query = searchRate.trim().replace(/[₹,\s]/g, '').toLowerCase();
         const matchesRate = items.some(item => {
           const rStr = String(item.unitPrice || '');
           const rFmt = (typeof formatCurrency === 'function' ? formatCurrency(item.unitPrice || 0) : '').toLowerCase();
@@ -170,9 +172,13 @@ function CustomerPortal({
   // ---------------------------------------------------------------------------
   // Available Types & Paper Catalogs
   // ---------------------------------------------------------------------------
-  const availableTypes = labelTypes.length > 0 ? labelTypes : [
+  const baseTypes = (labelTypes && labelTypes.length > 0) ? labelTypes : [
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
     { id: 'TYPE-PULABEL', name: 'PU Label', materials: ['1.2', '1.8', '2.2'], defaultRate: 14.00 }
+  ];
+  const availableTypes = baseTypes.some(t => t.name === 'Tag Kit') ? baseTypes : [
+    ...baseTypes,
+    { id: 'TYPE-TAGKIT', name: 'Tag Kit', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 5.00 }
   ];
 
   const availableCatalogs = catalogs.length > 0 ? catalogs : [
@@ -189,6 +195,7 @@ function CustomerPortal({
   // ---------------------------------------------------------------------------
   const [orderImage, setOrderImage] = React.useState('');
   const [brandName, setBrandName] = React.useState('');
+  const [brandInputFocused, setBrandInputFocused] = React.useState(false);
   const [selectedType, setSelectedType] = React.useState(availableTypes[0]?.name || 'Tag');
   
   const currentTypeObj = availableTypes.find(t => t.name === selectedType) || availableTypes[0];
@@ -210,8 +217,97 @@ function CustomerPortal({
   const [doriOption, setDoriOption] = React.useState('reg'); // 'reg' or 'custom'
   const [doriCustom, setDoriCustom] = React.useState('');
 
-  const [plasticOption, setPlasticOption] = React.useState('reg'); // 'reg' or 'custom'
+  const [plasticOption, setPlasticOption] = React.useState('reg'); // 'none', 'reg', 'custom'
   const [plasticCustom, setPlasticCustom] = React.useState('');
+
+  // Repeat Order State & PU Selection States
+  const [repeatSelectedItemCode, setRepeatSelectedItemCode] = React.useState('');
+  const [repeatSelectedItemName, setRepeatSelectedItemName] = React.useState('');
+  const [repeatSearchQuery, setRepeatSearchQuery] = React.useState('');
+  const [repeatInputFocused, setRepeatInputFocused] = React.useState(false);
+  const [localSavedBrands, setLocalSavedBrands] = React.useState([]);
+
+  // Collect all saved brands for this customer (from customer profile, past orders, and session)
+  const customerSavedBrands = React.useMemo(() => {
+    const brandSet = new Set();
+    
+    // Explicit brands saved on customer profile
+    if (Array.isArray(customer?.brands)) {
+      customer.brands.forEach(b => {
+        if (b && typeof b === 'string' && b.trim()) brandSet.add(b.trim());
+      });
+    }
+
+    // Dynamic session saved brands
+    (localSavedBrands || []).forEach(b => {
+      if (b && typeof b === 'string' && b.trim()) brandSet.add(b.trim());
+    });
+
+    // Default company name as brand
+    if (customer?.company && typeof customer.company === 'string' && customer.company.trim()) {
+      brandSet.add(customer.company.trim());
+    }
+
+    // Historical brand names from past customer orders
+    (orders || []).forEach(o => {
+      const isThisCust = (o.customerId && customer?.id && o.customerId === customer.id) ||
+                         (o.customerEmail && customer?.email && o.customerEmail === customer.email) ||
+                         (o.customerName && customer?.name && o.customerName === customer.name);
+      if (isThisCust && Array.isArray(o.items)) {
+        o.items.forEach(item => {
+          if (item.brandName && typeof item.brandName === 'string' && item.brandName.trim()) {
+            brandSet.add(item.brandName.trim());
+          }
+        });
+      }
+    });
+
+    return Array.from(brandSet).sort();
+  }, [customer, orders, localSavedBrands]);
+
+  // Persist brand to customer profile and backend storage
+  const saveCustomerBrand = async (brandToSave) => {
+    if (!brandToSave || !brandToSave.trim() || !customer) return;
+    const clean = brandToSave.trim();
+
+    // Update in-memory customer object
+    if (!Array.isArray(customer.brands)) {
+      customer.brands = [];
+    }
+    const alreadySaved = customer.brands.some(b => b.toLowerCase() === clean.toLowerCase());
+    if (!alreadySaved) {
+      customer.brands.push(clean);
+    }
+
+    setLocalSavedBrands(prev => {
+      if (!prev.some(b => b.toLowerCase() === clean.toLowerCase())) {
+        return [...prev, clean];
+      }
+      return prev;
+    });
+
+    // Persist via DataService
+    try {
+      const usersData = await window.uBMS.DataService.fetchUsers();
+      if (usersData && Array.isArray(usersData.customers)) {
+        const idx = usersData.customers.findIndex(c => c.id === customer.id || c.email === customer.email);
+        if (idx !== -1) {
+          const custBrands = usersData.customers[idx].brands || [];
+          if (!custBrands.some(b => b.toLowerCase() === clean.toLowerCase())) {
+            usersData.customers[idx].brands = [...custBrands, clean];
+            await window.uBMS.DataService.saveUsers(usersData);
+            if (typeof onUpdateUsers === 'function') {
+              onUpdateUsers(usersData);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not persist brand to users storage:', err);
+    }
+  };
+  const [puOrigin, setPuOrigin] = React.useState('Indian'); // 'Indian' or 'Imported'
+  const [puThickness, setPuThickness] = React.useState('1.8'); // '1.2', '1.8', '2.2'
 
   // General Information States (Matching TagX online reference layout)
   const [transactionType, setTransactionType] = React.useState('Sales Order');
@@ -223,6 +319,108 @@ function CustomerPortal({
   const [stepValidationErrors, setStepValidationErrors] = React.useState({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
+
+  // List of all previous items ordered by this customer for Repeat Order selection
+  const customerPastItems = React.useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    (orders || []).forEach(o => {
+      const isThisCust = (o.customerId && customer?.id && o.customerId === customer.id) ||
+                         (o.customerEmail && customer?.email && o.customerEmail === customer.email) ||
+                         (o.customerName && customer?.name && o.customerName === customer.name);
+      if (isThisCust && Array.isArray(o.items)) {
+        o.items.forEach(item => {
+          const code = item.itemCode || item.name || item.id;
+          if (code && !seen.has(code)) {
+            seen.add(code);
+            list.push({
+              ...item,
+              orderId: o.id,
+              orderDate: o.createdAt
+            });
+          }
+        });
+      }
+    });
+    return list;
+  }, [orders, customer]);
+
+  // Filtered list of past items based on user search query
+  const filteredRepeatItems = React.useMemo(() => {
+    if (!customerPastItems || customerPastItems.length === 0) return [];
+    const q = (repeatSearchQuery || '').trim().toLowerCase();
+    if (!q) return customerPastItems;
+    return customerPastItems.filter(item => {
+      const code = (item.itemCode || '').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const brand = (item.brandName || '').toLowerCase();
+      const type = (item.type || '').toLowerCase();
+      const mat = (item.material || '').toLowerCase();
+      return code.includes(q) || name.includes(q) || brand.includes(q) || type.includes(q) || mat.includes(q);
+    });
+  }, [customerPastItems, repeatSearchQuery]);
+
+  const handleSelectRepeatItem = (code) => {
+    setRepeatSelectedItemCode(code);
+    if (stepValidationErrors.repeatSelectedItemCode) {
+      setStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
+    }
+    const found = customerPastItems.find(i => (i.itemCode || i.name) === code);
+    if (found) {
+      const displayName = found.name || found.itemCode || code;
+      const displayLabel = found.itemCode && found.name && found.itemCode !== found.name ? found.name + ' (' + found.itemCode + ')' : displayName;
+      setRepeatSearchQuery(displayLabel);
+      setRepeatSelectedItemName(displayName);
+      if (found.brandName) setBrandName(found.brandName);
+      if (found.type) {
+        setSelectedType(found.type);
+        const typeObj = availableTypes.find(t => t.name === found.type);
+        if (typeObj && typeObj.materials) setSelectedMaterial(found.material || typeObj.materials[0]);
+      }
+      if (found.catalogId) setSelectedCatalogId(found.catalogId);
+      if (found.material && found.material.includes('Indian PU')) {
+        setPuOrigin('Indian');
+        if (found.material.includes('1.2')) setPuThickness('1.2');
+        else if (found.material.includes('2.2')) setPuThickness('2.2');
+        else setPuThickness('1.8');
+      } else if (found.material && (found.material.includes('Imported') || found.material.includes('PU'))) {
+        setPuOrigin('Imported');
+      }
+      if (found.image) setOrderImage(found.image);
+      if (found.unitPrice) setRate(found.unitPrice);
+      if (found.quantity) setQty(found.quantity);
+      if (found.dori) {
+        if (found.dori === 'None') {
+          setDoriOption('none');
+          setDoriCustom('');
+        } else if (found.dori.startsWith('Custom:')) {
+          setDoriOption('custom');
+          setDoriCustom(found.dori.replace('Custom:', '').trim());
+        } else {
+          setDoriOption('reg');
+          setDoriCustom('');
+        }
+      }
+      if (found.plastic) {
+        if (found.plastic === 'None') {
+          setPlasticOption('none');
+          setPlasticCustom('');
+        } else if (found.plastic.startsWith('Custom:')) {
+          setPlasticOption('custom');
+          setPlasticCustom(found.plastic.replace('Custom:', '').trim());
+        } else {
+          setPlasticOption('reg');
+          setPlasticCustom('');
+        }
+      }
+      if (found.isMultiCard && found.cards && found.cards.length > 0) {
+        setIsMultiCard(true);
+        setTagCards(found.cards);
+      } else {
+        setIsMultiCard(false);
+      }
+    }
+  };
 
   // Update material when type changes
   const handleTypeChange = (newType) => {
@@ -287,6 +485,8 @@ function CustomerPortal({
   const customerPartyName = customer?.company || customer?.name || brandName;
   const customerAbbr = window.uBMS.generateCustomerAbbr(customerPartyName);
   const currentCustomerItemCode = window.uBMS.getNextItemCode(customerAbbr, orders, orderItems);
+  const customerItemIndex = window.uBMS.getCustomerNextItemIndex(customer, orders, orderItems);
+  const currentDraftItemName = window.uBMS.formatItemName(customerAbbr, selectedType, brandName, customerItemIndex);
 
   // Unified Form Validation (Matching modern single-view layout)
   const validateOrderForm = () => {
@@ -297,11 +497,11 @@ function CustomerPortal({
     if (!selectedType) {
       errors.selectedType = 'Please select a category.';
     }
-    if (selectedType === 'Tag') {
+    if (selectedType === 'Tag' || selectedType === 'Tag Kit') {
       if (!isMultiCard && !selectedCatalogId) {
         errors.selectedCatalogId = 'Please select a paper catalog.';
       }
-    } else if (selectedType !== 'Tag' && !selectedMaterial) {
+    } else if (selectedType === 'PU Label' && !selectedMaterial) {
       errors.selectedMaterial = 'Please select a material gauge.';
     }
     if (doriOption === 'custom' && (!doriCustom || !doriCustom.trim())) {
@@ -324,6 +524,9 @@ function CustomerPortal({
   const handleDiscardDraft = () => {
     if (window.confirm('Discard current order draft and reset all inputs?')) {
       setBrandName('');
+      setRepeatSelectedItemCode('');
+      setRepeatSelectedItemName('');
+      setRepeatSearchQuery('');
       setOrderImage('');
       setSingleCardDimension('');
       setQty(0);
@@ -342,6 +545,12 @@ function CustomerPortal({
   const validateStep = (step) => {
     const errors = {};
     if (step === 1) {
+      if (!orderType || !orderType.trim()) {
+        errors.orderType = 'Please select an order type (New or Repeat).';
+      }
+      if (orderType === 'Repeat Order' && !repeatSelectedItemCode && customerPastItems.length > 0) {
+        errors.repeatSelectedItemCode = 'Please select an existing item to reorder.';
+      }
       if (!brandName || !brandName.trim()) {
         errors.brandName = 'Please enter a brand name.';
       }
@@ -417,7 +626,7 @@ function CustomerPortal({
     let primaryCatalogId = null;
     let primaryCatalogCode = null;
 
-    if (selectedType === 'Tag') {
+    if (selectedType === 'Tag' || selectedType === 'Tag Kit') {
       if (isMultiCard) {
         chosenCards = tagCards.map((c, i) => {
           const cat = availableCatalogs.find(x => x.id === c.catalogId) || availableCatalogs[0];
@@ -453,16 +662,46 @@ function CustomerPortal({
       }
     }
 
-    const doriValue = doriOption === 'custom' ? `Custom: ${doriCustom.trim()}` : 'Reg. (â‚¹0.20/pc)';
-    const plasticValue = plasticOption === 'custom' ? `Custom: ${plasticCustom.trim()}` : 'Reg. (â‚¹0.10/pc)';
+    if (selectedType === 'PU Label') {
+      if (puOrigin === 'Indian') {
+        finalMaterial = `Indian PU - ${puThickness}`;
+      } else {
+        finalMaterial = 'Imported PU (Standard Quality)';
+      }
+    }
+
+    const activeItemCode = (orderType === 'Repeat Order' && repeatSelectedItemCode)
+      ? repeatSelectedItemCode
+      : currentCustomerItemCode;
+
+    const activeItemName = (orderType === 'Repeat Order' && repeatSelectedItemCode)
+      ? (repeatSelectedItemName || repeatSelectedItemCode)
+      : currentDraftItemName;
+
+    const isTagKit = selectedType === 'Tag Kit';
+    const doriValue = isTagKit
+      ? 'None'
+      : doriOption === 'custom'
+        ? `Custom: ${doriCustom.trim()}`
+        : doriOption === 'none'
+          ? 'None'
+          : 'Reg. (₹0.20/pc)';
+
+    const plasticValue = isTagKit
+      ? 'None'
+      : plasticOption === 'custom'
+        ? `Custom: ${plasticCustom.trim()}`
+        : plasticOption === 'none'
+          ? 'None'
+          : 'Reg. (₹0.10/pc)';
     const quantityNum = Number(qty) || 0;
     const rateNum = Number(rate) || 0;
     const itemTotal = quantityNum * rateNum;
 
     return {
       id: 'ITEM-' + Date.now().toString().slice(-4),
-      itemCode: currentCustomerItemCode,
-      name: currentCustomerItemCode,
+      itemCode: activeItemCode,
+      name: activeItemName,
       brandName: brandName.trim(),
       type: selectedType,
       isMultiCard: selectedType === 'Tag' ? isMultiCard : false,
@@ -471,9 +710,9 @@ function CustomerPortal({
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: 0.20,
+      doriRate: selectedType === 'Tag Kit' || doriOption === 'none' ? 0 : 0.20,
       plastic: plasticValue,
-      plasticRate: 0.10,
+      plasticRate: selectedType === 'Tag Kit' || plasticOption === 'none' ? 0 : 0.10,
       image: orderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(selectedType),
       quantity: quantityNum,
       unitPrice: rateNum,
@@ -591,7 +830,7 @@ function CustomerPortal({
   const grandTotal = stagedTotal + (orderItems.length > 0 && (!brandName.trim() || Number(qty) <= 0) ? 0 : draftTotal);
 
   // Submit Final Order (Prevent duplicates with isSubmitting)
-  const handleSubmitFinalOrder = (e) => {
+  const handleSubmitFinalOrder = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isSubmitting) return;
 
@@ -619,6 +858,7 @@ function CustomerPortal({
 
       const newOrder = {
         id: orderId,
+        orderType: orderType || 'New Order',
         customerId: customer.id,
         customerName: customer.name,
         customerCompany: customer.company || itemsToSubmit[0]?.brandName || brandName.trim(),
@@ -632,7 +872,7 @@ function CustomerPortal({
         items: itemsToSubmit.map(i => ({
           id: i.id || ('ITEM-' + Date.now().toString().slice(-4)),
           itemCode: i.itemCode || i.name,
-          name: i.itemCode || i.name,
+          name: i.name || i.itemCode,
           brandName: i.brandName,
           type: i.type,
           isMultiCard: !!i.isMultiCard,
@@ -673,6 +913,16 @@ function CustomerPortal({
       };
 
       onSaveOrder(newOrder);
+
+      // Always save new brand name(s) after order is submitted
+      for (const item of itemsToSubmit) {
+        if (item.brandName && item.brandName.trim()) {
+          await saveCustomerBrand(item.brandName.trim());
+        }
+      }
+      if (brandName && brandName.trim()) {
+        await saveCustomerBrand(brandName.trim());
+      }
 
       // Reset state after successful submission
       setOrderItems([]);
@@ -782,7 +1032,7 @@ function CustomerPortal({
         {
           stage: editingOrder.status,
           title: 'Order Edited by Customer',
-          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: â‚¹${editRate}).`,
+          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: ₹${editRate}).`,
           timestamp: formattedDate,
           author: customer.name
         }
@@ -1249,7 +1499,7 @@ function CustomerPortal({
       {activeTab === 'place_order' && (
         <div className="max-w-7xl mx-auto space-y-5 animate-fade-in pb-16">
           
-          {/* Top Page Header (Matching TagX reference: New Sales Order / SO â€” place a customer order) */}
+          {/* Top Page Header (Matching TagX reference: New Sales Order / SO — place a customer order) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
             <div>
               <div className="flex items-center space-x-2">
@@ -1258,7 +1508,7 @@ function CustomerPortal({
                 </h1>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                SO â€” place a customer order
+                SO — place a customer order
               </p>
             </div>
             
@@ -1274,7 +1524,7 @@ function CustomerPortal({
                 ) : (
                   <>
                     <span>Place Order</span>
-                    <span>âœ“</span>
+                    <span>✓</span>
                   </>
                 )}
               </button>
@@ -1284,15 +1534,15 @@ function CustomerPortal({
           {/* Document Status / Draft Pill Bar */}
           <div className="flex items-center space-x-3 text-xs bg-white border border-slate-200/80 rounded-xl px-4 py-2.5 shadow-2xs">
             <div className="flex items-center space-x-1.5 font-medium text-slate-800">
-              <span className="text-slate-400">ðŸ“„</span>
+              <span className="text-slate-400">📄</span>
               <span className="font-semibold">New Sales Order</span>
             </div>
-            <span className="text-slate-300">â€¢</span>
+            <span className="text-slate-300">•</span>
             <span className="text-emerald-700 font-medium flex items-center space-x-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               <span>Draft saved just now</span>
             </span>
-            <span className="text-slate-300">â€¢</span>
+            <span className="text-slate-300">•</span>
             <button
               type="button"
               onClick={handleDiscardDraft}
@@ -1311,55 +1561,87 @@ function CustomerPortal({
               {/* Card 1: General Information */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
                 <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
-                  <span className="text-base text-slate-400">ðŸ—‚</span>
+                  <span className="text-base text-slate-400">🗂️</span>
                   <h3 className="font-bold text-slate-900 text-sm">General Information</h3>
                 </div>
 
                 <div className="space-y-4">
-                  {/* Row 1: Transaction Type, Order Type, Order No */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        Transaction Type
+                  {/* Order Type Radio Buttons (Mandatory) */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-2">
+                      Order Type <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                      <label className={`flex items-center space-x-2.5 px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                        orderType === 'New Order'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-slate-50/80 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="orderType"
+                          value="New Order"
+                          checked={orderType === 'New Order'}
+                          onChange={(e) => {
+                            setOrderType(e.target.value);
+                            setRepeatSelectedItemCode('');
+                            setRepeatSelectedItemName('');
+                            setRepeatSearchQuery('');
+                            if (stepValidationErrors.orderType) {
+                              setStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                            }
+                          }}
+                          className="w-4 h-4 text-slate-900 focus:ring-slate-900 accent-slate-900 cursor-pointer"
+                          required
+                        />
+                        <span>New Order</span>
                       </label>
-                      <select
-                        value={transactionType}
-                        onChange={(e) => setTransactionType(e.target.value)}
-                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
-                      >
-                        <option value="Sales Order">Sales Order</option>
-                        <option value="Sample / Job Work">Sample / Job Work</option>
-                        <option value="Direct Export">Direct Export</option>
-                      </select>
-                    </div>
 
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        Order Type
+                      <label className={`flex items-center space-x-2.5 px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                        orderType === 'Repeat Order'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-slate-50/80 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="orderType"
+                          value="Repeat Order"
+                          checked={orderType === 'Repeat Order'}
+                          onChange={(e) => {
+                            setOrderType(e.target.value);
+                            if (stepValidationErrors.orderType) {
+                              setStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                            }
+                          }}
+                          className="w-4 h-4 text-slate-900 focus:ring-slate-900 accent-slate-900 cursor-pointer"
+                          required
+                        />
+                        <span>Repeat Order</span>
                       </label>
-                      <select
-                        value={orderType}
-                        onChange={(e) => setOrderType(e.target.value)}
-                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
-                      >
-                        <option value="New Order">New Order</option>
-                        <option value="Repeat Order">Repeat Order</option>
-                      </select>
                     </div>
+                    {stepValidationErrors.orderType && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        ⚠️ {stepValidationErrors.orderType}
+                      </p>
+                    )}
+                  </div>
 
+                  {/* Row: Order No and Date */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    {/* 1. Order Number */}
                     <div>
                       <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
                         Order No
                       </label>
                       <div className="w-full bg-slate-100/70 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-800 flex items-center justify-between cursor-not-allowed select-none shadow-2xs">
-                        <span>{currentCustomerItemCode}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Auto-assigned</span>
+                        <span>{orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {orderType === 'Repeat Order' && repeatSelectedItemCode ? 'Selected Ref' : 'Auto-assigned'}
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Row 2: Date, Agent Name, Brand Name */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* 2. Date */}
                     <div>
                       <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
                         Date
@@ -1371,68 +1653,8 @@ function CustomerPortal({
                           value={new Date().toLocaleDateString('en-GB')}
                           className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium pr-8 cursor-not-allowed"
                         />
-                        <span className="absolute right-3 top-2 text-slate-400 text-xs">ðŸ“…</span>
+                        <span className="absolute right-3 top-2 text-slate-400 text-xs">📅</span>
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        Agent Name
-                      </label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={customer.company || customer.name || 'TagX Customer'}
-                        className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium cursor-not-allowed"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[11px] font-semibold text-slate-700">
-                          Brand Name <span className="text-rose-500">*</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setBrandName(customer.company || 'Urban Stitch')}
-                          className="text-[10px] text-brand-600 hover:text-brand-700 font-semibold cursor-pointer"
-                        >
-                          + Add Brand
-                        </button>
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Type to search brand or mobile.."
-                        value={brandName}
-                        onChange={(e) => {
-                          setBrandName(e.target.value);
-                          if (stepValidationErrors.brandName) {
-                            setStepValidationErrors(prev => ({ ...prev, brandName: null }));
-                          }
-                        }}
-                        className={`w-full bg-slate-50/80 hover:bg-white focus:bg-white border ${stepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200/80 focus:ring-slate-400'} rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium transition-all`}
-                      />
-                      {stepValidationErrors.brandName && (
-                        <p className="text-[11px] text-rose-600 font-medium mt-1">
-                          âš  {stepValidationErrors.brandName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Row 3: GST No (optional) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        GST No (optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter GST No"
-                        value={gstNo}
-                        onChange={(e) => setGstNo(e.target.value)}
-                        className="w-full bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium transition-all"
-                      />
                     </div>
                   </div>
                 </div>
@@ -1442,7 +1664,7 @@ function CustomerPortal({
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center space-x-2">
-                    <span className="text-base text-slate-400">ðŸ·</span>
+                    <span className="text-base text-slate-400">🏷️</span>
                     <h3 className="font-bold text-slate-900 text-sm">Items</h3>
                   </div>
                   <span className="text-[11px] font-mono text-slate-500 font-medium">
@@ -1450,81 +1672,277 @@ function CustomerPortal({
                   </span>
                 </div>
 
-                {/* ITEM 1 Container (Matching TagX reference) */}
+                {/* ITEM 1 Container */}
                 <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
+                  {/* Item Number Header & Repeat Selection */}
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
                       ITEM 1
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">
-                      Ref: {currentCustomerItemCode}
+                      Ref: {orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentDraftItemName}
                     </span>
                   </div>
 
-                  {/* Article Picker Input */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      readOnly
-                      value={brandName ? `${brandName} â€” ${currentCustomerItemCode} (${selectedType})` : `Pick item: ${currentCustomerItemCode} (${selectedType})`}
-                      placeholder="Type or pick item..."
-                      className="w-full bg-white border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold cursor-not-allowed pr-8 shadow-2xs"
-                    />
-                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs">ðŸ“‹</span>
-                  </div>
-
-                  {/* Item Image Thumbnail + Category + Pieces */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                    {/* Compact Image Button / Thumbnail */}
-                    <div className="sm:col-span-3">
-                      {orderImage ? (
-                        <div className="flex items-center space-x-2 bg-white border border-slate-200/90 rounded-xl p-1.5 shadow-2xs">
-                          <img
-                            src={orderImage}
-                            alt="Item Artwork"
-                            className="w-10 h-10 object-contain rounded-lg bg-slate-50 border border-slate-200 cursor-pointer"
-                            onClick={() => setShowFullImageModal(true)}
-                            title="Click to view full image"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[10px] font-bold text-slate-800 truncate">Artwork</div>
-                            <div className="flex items-center space-x-1.5 mt-0.5">
-                              <button
-                                type="button"
-                                onClick={() => setShowCropModal(true)}
-                                className="text-[10px] text-slate-600 hover:text-slate-900 font-semibold underline cursor-pointer"
-                              >
-                                Crop
-                              </button>
-                              <span className="text-slate-300">â€¢</span>
-                              <button
-                                type="button"
-                                onClick={() => setOrderImage('')}
-                                className="text-[10px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
-                              >
-                                Ã—
-                              </button>
-                            </div>
+                  {/* If Repeat Order: Customer MUST select an existing item */}
+                  {orderType === 'Repeat Order' ? (
+                    <div className="p-3.5 bg-slate-100/70 border border-slate-200 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-slate-800">
+                          Select Previous Item to Reorder <span className="text-rose-500">*</span>
+                        </label>
+                        {repeatSelectedItemCode && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                              Loaded: {repeatSelectedItemCode}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRepeatSelectedItemCode('');
+                                setRepeatSelectedItemName('');
+                                setRepeatSearchQuery('');
+                              }}
+                              className="text-[10px] text-slate-400 hover:text-rose-600 underline font-medium cursor-pointer"
+                            >
+                              Clear
+                            </button>
                           </div>
+                        )}
+                      </div>
+
+                      {customerPastItems.length > 0 ? (
+                        <div className="relative">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              name="ubms_repeat_item_search_input"
+                              placeholder="Type to search previous item by code, brand, or name..."
+                              value={repeatSearchQuery}
+                              onFocus={() => setRepeatInputFocused(true)}
+                              onChange={(e) => {
+                                setRepeatSearchQuery(e.target.value);
+                                setRepeatInputFocused(true);
+                                if (!e.target.value.trim()) {
+                                  setRepeatSelectedItemCode('');
+                                  setRepeatSelectedItemName('');
+                                }
+                                if (stepValidationErrors.repeatSelectedItemCode) {
+                                  setStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
+                                }
+                              }}
+                              onBlur={() => {
+                                setTimeout(() => setRepeatInputFocused(false), 200);
+                              }}
+                              className={`w-full bg-white border ${stepValidationErrors.repeatSelectedItemCode ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-300 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                              spellCheck="false"
+                              data-lpignore="true"
+                              data-form-type="other"
+                            />
+                            {repeatSearchQuery && (
+                              <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setRepeatSearchQuery('');
+                                  setRepeatSelectedItemCode('');
+                                  setRepeatSelectedItemName('');
+                                }}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1"
+                                title="Clear search"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Custom Non-Intrusive Autocomplete Dropdown */}
+                          {repeatInputFocused && (
+                            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-60 overflow-y-auto">
+                              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                                <span>Previous Order Items</span>
+                                <span>{filteredRepeatItems.length} found</span>
+                              </div>
+                              {filteredRepeatItems.length > 0 ? (
+                                filteredRepeatItems.map((item, idx) => {
+                                  const code = item.itemCode || item.name;
+                                  const isSelected = repeatSelectedItemCode === code;
+                                  return (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleSelectRepeatItem(code);
+                                        setRepeatInputFocused(false);
+                                      }}
+                                      className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                                        isSelected ? 'bg-indigo-50/70' : ''
+                                      }`}
+                                    >
+                                      <div className="flex items-center space-x-3 overflow-hidden">
+                                        {item.image ? (
+                                          <img
+                                            src={item.image}
+                                            alt={item.name || code}
+                                            className="w-9 h-9 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
+                                          />
+                                        ) : (
+                                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
+                                            {(item.type || 'ITM').slice(0, 3).toUpperCase()}
+                                          </div>
+                                        )}
+                                        <div className="min-w-0">
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-mono font-bold text-xs text-slate-900 truncate">
+                                              {item.name || code}
+                                            </span>
+                                            {code && code !== item.name && (
+                                              <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                                                {code}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="text-[11px] text-slate-500 truncate flex items-center space-x-1.5 mt-0.5">
+                                            <span className="font-semibold text-slate-700">{item.brandName || 'No Brand'}</span>
+                                            <span>•</span>
+                                            <span className="text-slate-600">{item.type}</span>
+                                            {item.material && (
+                                              <>
+                                                <span>•</span>
+                                                <span className="text-slate-500">{item.material}</span>
+                                              </>
+                                            )}
+                                            {item.unitPrice ? (
+                                              <>
+                                                <span>•</span>
+                                                <span className="text-emerald-700 font-semibold font-mono">₹{item.unitPrice}/pc</span>
+                                              </>
+                                            ) : null}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded font-mono font-semibold shrink-0 ml-2">
+                                        {isSelected ? '✓ Loaded' : 'Select ↵'}
+                                      </span>
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <div className="px-4 py-3 text-xs text-slate-500 text-center">
+                                  No previous items matching "{repeatSearchQuery}"
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {stepValidationErrors.repeatSelectedItemCode && (
+                            <p className="text-[11px] text-rose-600 font-medium mt-1">
+                              ⚠️ {stepValidationErrors.repeatSelectedItemCode}
+                            </p>
+                          )}
                         </div>
                       ) : (
-                        <label className="flex items-center justify-center space-x-2 bg-white hover:bg-slate-50 border border-dashed border-slate-300 rounded-xl p-2 cursor-pointer transition-colors shadow-2xs h-[42px]">
-                          <span className="text-slate-400 text-sm font-bold">+</span>
-                          <span className="text-[11px] font-semibold text-slate-600 truncate">+ Add item image</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
+                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                          No previous items found in your account history. You can place this as a New Order or enter brand details below.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs shadow-2xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-slate-500 font-medium text-[11px]">Item Name:</span>
+                        <span className="font-mono font-bold text-slate-900">{currentDraftItemName}</span>
+                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                          Auto-generated
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1.5 text-slate-400 font-mono text-[11px]">
+                        <span>Item Code:</span>
+                        <span className="font-semibold text-slate-700">{currentCustomerItemCode}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Row: Brand Name, Category, Pieces */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+                    {/* 1. Brand Name (sm:col-span-5) */}
+                    <div className="sm:col-span-5 relative">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-slate-700">
+                          Brand Name <span className="text-rose-500">*</span>
                         </label>
+                      </div>
+                      <input
+                        type="text"
+                        name="ubms_brand_input_field"
+                        placeholder="Type to search or enter brand..."
+                        value={brandName}
+                        onFocus={() => setBrandInputFocused(true)}
+                        onChange={(e) => {
+                          setBrandName(e.target.value);
+                          setBrandInputFocused(true);
+                          if (stepValidationErrors.brandName) {
+                            setStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setBrandInputFocused(false), 200);
+                        }}
+                        className={`w-full bg-white border ${stepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200/80 focus:ring-slate-400'} rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
+                        data-lpignore="true"
+                        data-form-type="other"
+                      />
+
+                      {/* Custom Non-Intrusive Autocomplete Dropdown */}
+                      {brandInputFocused && customerSavedBrands.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-48 overflow-y-auto">
+                          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                            Saved Brand Suggestions
+                          </div>
+                          {customerSavedBrands
+                            .filter(b => !brandName.trim() || b.toLowerCase().includes(brandName.trim().toLowerCase()))
+                            .map((b, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setBrandName(b);
+                                  setBrandInputFocused(false);
+                                  if (stepValidationErrors.brandName) {
+                                    setStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                                  }
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0"
+                              >
+                                <span className="font-semibold text-slate-900">{b}</span>
+                                <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-mono">Select ↵</span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+
+
+                      {stepValidationErrors.brandName && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1">
+                          ⚠️ {stepValidationErrors.brandName}
+                        </p>
                       )}
                     </div>
 
-                    {/* Category Select */}
-                    <div className="sm:col-span-4">
-                      <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                        Category
+                    {/* 2. Category (sm:col-span-3) */}
+                    <div className="sm:col-span-3">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                        Category <span className="text-rose-500">*</span>
                       </label>
                       <select
                         value={selectedType}
@@ -1537,157 +1955,245 @@ function CustomerPortal({
                       </select>
                     </div>
 
-                    {/* Pieces / Format Select */}
-                    <div className="sm:col-span-5">
-                      <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                        Pieces / Format
+                    {/* 3. Pieces (sm:col-span-4) */}
+                    <div className="sm:col-span-4">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                        Pieces
                       </label>
-                      <select
-                        value={isMultiCard ? (tagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '1 PC') {
-                            setIsMultiCard(false);
-                          } else if (val === '2 PC') {
-                            setIsMultiCard(true);
-                            if (tagCards.length > 2) handleRemoveThirdCard();
-                          } else if (val === '3 PC') {
-                            setIsMultiCard(true);
-                            if (tagCards.length < 3) handleAddThirdCard();
-                          }
-                        }}
-                        className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                      >
-                        <option value="1 PC">1 PC (Single Card Tag)</option>
-                        <option value="2 PC">2 PC (Multi-Card Tag Set)</option>
-                        <option value="3 PC">3 PC (3-Card Tag Set)</option>
-                      </select>
+                      {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
+                        <select
+                          value={isMultiCard ? (tagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '1 PC') {
+                              setIsMultiCard(false);
+                            } else if (val === '2 PC') {
+                              setIsMultiCard(true);
+                              if (tagCards.length > 2) handleRemoveThirdCard();
+                            } else if (val === '3 PC') {
+                              setIsMultiCard(true);
+                              if (tagCards.length < 3) handleAddThirdCard();
+                            }
+                          }}
+                          className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                        >
+                          <option value="1 PC">1 PC (Single Card Tag)</option>
+                          <option value="2 PC">2 PC (Multi-Card Tag Set)</option>
+                          <option value="3 PC">3 PC (3-Card Tag Set)</option>
+                        </select>
+                      ) : (
+                        <div className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium shadow-2xs">
+                          1 PC (Standard)
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Specifications (Paper & Dimensions) */}
+                  {/* Specifications (Tag Paper Catalog OR PU Quality / Origin) */}
                   <div className="pt-2 border-t border-slate-200/60">
-                    {!isMultiCard ? (
-                      /* Single Card Tag */
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                            Paper Catalog Stock <span className="text-rose-500">*</span>
-                          </label>
-                          <select
-                            value={selectedCatalogId}
-                            onChange={(e) => {
-                              setSelectedCatalogId(e.target.value);
-                              if (stepValidationErrors.selectedCatalogId) {
-                                setStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
-                              }
-                            }}
-                            className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                          >
-                            {availableCatalogs.map(cat => (
-                              <option key={cat.id} value={cat.id}>
-                                {cat.code} â€” {cat.gsm} GSM ({cat.finish})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                    {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
+                      /* Tag or Tag Kit Selected -> Paper Catalog */
+                      !isMultiCard ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                              Paper Catalog <span className="text-rose-500">*</span>
+                            </label>
+                            <select
+                              value={selectedCatalogId}
+                              onChange={(e) => {
+                                setSelectedCatalogId(e.target.value);
+                                if (stepValidationErrors.selectedCatalogId) {
+                                  setStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
+                                }
+                              }}
+                              className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                            >
+                              {availableCatalogs.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.code} — {cat.gsm} GSM ({cat.finish})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                            Tag Dimensions / Finished Size (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
-                            value={singleCardDimension}
-                            onChange={(e) => setSingleCardDimension(e.target.value)}
-                            className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                          />
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                              Tag Dimensions / Finished Size (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
+                              value={singleCardDimension}
+                              onChange={(e) => setSingleCardDimension(e.target.value)}
+                              className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        /* Multi-Card Tag Configuration */
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800">
+                              Multi-Tag Configuration ({tagCards.length} Tags)
+                            </span>
+                            {tagCards.length < 3 && (
+                              <button
+                                type="button"
+                                onClick={handleAddThirdCard}
+                                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 cursor-pointer"
+                              >
+                                + Add 3rd Tag
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            {tagCards.map((card, idx) => (
+                              <div key={card.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-slate-800">
+                                    {card.title}
+                                  </span>
+                                  {idx === 2 && (
+                                    <button
+                                      type="button"
+                                      onClick={handleRemoveThirdCard}
+                                      className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
+                                    >
+                                      &times; Remove
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                      Paper Catalog
+                                    </label>
+                                    <select
+                                      value={card.catalogId}
+                                      onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
+                                    >
+                                      {availableCatalogs.map(cat => (
+                                        <option key={cat.id} value={cat.id}>
+                                          {cat.code} — {cat.gsm} GSM
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                      Finished Dimensions
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
+                                      value={card.dimension}
+                                      onChange={(e) => handleUpdateCardDimension(idx, e.target.value)}
+                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
                     ) : (
-                      /* Multi-Card Tag Configuration */
+                      /* PU Label Selected -> Indian or Imported */
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-800">
-                            Multi-Tag Configuration ({tagCards.length} Tags)
-                          </span>
-                          {tagCards.length < 3 && (
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                            PU Quality / Origin <span className="text-rose-500">*</span>
+                          </label>
+                          <div className="flex items-center space-x-3">
                             <button
                               type="button"
-                              onClick={handleAddThirdCard}
-                              className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 cursor-pointer"
+                              onClick={() => setPuOrigin('Indian')}
+                              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                                puOrigin === 'Indian'
+                                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              }`}
                             >
-                              + Add 3rd Tag
+                              Indian
                             </button>
-                          )}
+                            <button
+                              type="button"
+                              onClick={() => setPuOrigin('Imported')}
+                              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                                puOrigin === 'Imported'
+                                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              Imported
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3">
-                          {tagCards.map((card, idx) => (
-                            <div key={card.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-800">
-                                  {card.title}
-                                </span>
-                                {idx === 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={handleRemoveThirdCard}
-                                    className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
-                                  >
-                                    &times; Remove
-                                  </button>
-                                )}
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                                    Paper Catalog Stock
-                                  </label>
-                                  <select
-                                    value={card.catalogId}
-                                    onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
-                                  >
-                                    {availableCatalogs.map(cat => (
-                                      <option key={cat.id} value={cat.id}>
-                                        {cat.code} â€” {cat.gsm} GSM
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                                    Finished Dimensions
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
-                                    value={card.dimension}
-                                    onChange={(e) => handleUpdateCardDimension(idx, e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
-                                  />
-                                </div>
-                              </div>
+                        {puOrigin === 'Indian' ? (
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Thickness (mm) <span className="text-rose-500">*</span>
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              {['1.2', '1.8', '2.2'].map(val => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  onClick={() => setPuThickness(val)}
+                                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
+                                    puThickness === val
+                                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {val} mm
+                                </button>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                            <span className="text-xs font-semibold text-slate-800">
+                              Imported PU — Single Quality Standard (no thickness options needed)
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Handwork Attachments (Dori & Plastic Lock) */}
+                  {/* Handwork Attachments (Optional) - Not applicable for Tag Kit */}
+                  {selectedType !== 'Tag Kit' && (
                   <div className="pt-2 border-t border-slate-200/60">
-                    <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block mb-2">
-                      Handwork Attachments
-                    </label>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                        Handwork Attachments
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Dori */}
                       <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
                           <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDoriOption('none');
+                                setDoriCustom('');
+                              }}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                doriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              None
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -1698,7 +2204,7 @@ function CustomerPortal({
                                 doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              Reg. (â‚¹0.20)
+                              Reg. (₹0.20)
                             </button>
                             <button
                               type="button"
@@ -1711,7 +2217,7 @@ function CustomerPortal({
                             </button>
                           </div>
                         </div>
-                        {doriOption === 'custom' ? (
+                        {doriOption === 'custom' && (
                           <input
                             type="text"
                             placeholder="Specify custom dori (e.g. Waxed Cotton / Satin string)"
@@ -1719,16 +2225,26 @@ function CustomerPortal({
                             onChange={(e) => setDoriCustom(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
                           />
-                        ) : (
-                          <div className="text-[11px] text-slate-500">Standard / Regular Cotton Dori assigned (â‚¹0.20/pc included)</div>
                         )}
                       </div>
 
-                      {/* Plastic Lock */}
+                      {/* Barcode Plastic */}
                       <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-800">Plastic Lock / Seal</span>
+                          <span className="text-xs font-semibold text-slate-800">Barcode Plastic</span>
                           <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPlasticOption('none');
+                                setPlasticCustom('');
+                              }}
+                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                                plasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              None
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -1739,7 +2255,7 @@ function CustomerPortal({
                                 plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              Reg. (â‚¹0.10)
+                              Reg. (₹0.10)
                             </button>
                             <button
                               type="button"
@@ -1752,33 +2268,31 @@ function CustomerPortal({
                             </button>
                           </div>
                         </div>
-                        {plasticOption === 'custom' ? (
+                        {plasticOption === 'custom' && (
                           <input
                             type="text"
-                            placeholder="Specify custom plastic (e.g. Embossed Square Seal / Black matte)"
+                            placeholder="Specify custom barcode plastic (e.g. Embossed Square Seal / Black matte)"
                             value={plasticCustom}
                             onChange={(e) => setPlasticCustom(e.target.value)}
                             className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
                           />
-                        ) : (
-                          <div className="text-[11px] text-slate-500">Standard / Regular Plastic Lock assigned (â‚¹0.10/pc included)</div>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Commercials: Quantity, Rate, Subtotal */}
+                  )}
+
+                  {/* Commercials: Quantity, Rate (Increased size, suggestions removed, subtotal removed) */}
                   <div className="pt-2 border-t border-slate-200/60">
-                    <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block mb-2">
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2.5">
                       Commercials
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs items-end">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[11px] font-semibold text-slate-700">
-                            Quantity (Pcs) <span className="text-rose-500">*</span>
-                          </label>
-                        </div>
+                        <label className="text-xs font-semibold text-slate-800 block mb-1.5">
+                          Quantity (Pcs) <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           type="number"
                           min="1"
@@ -1788,33 +2302,13 @@ function CustomerPortal({
                             setQty(e.target.value);
                             if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
                           }}
-                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 text-sm sm:text-base font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
                         />
-                        {/* Quick Presets */}
-                        <div className="flex items-center space-x-1 mt-1.5">
-                          {[1000, 2500, 5000, 10000].map(val => (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={() => {
-                                setQty(val);
-                                if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
-                              }}
-                              className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                                Number(qty) === val
-                                  ? 'bg-slate-900 text-white border-slate-900 font-bold'
-                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                              }`}
-                            >
-                              {val >= 1000 ? `${val / 1000}k` : val}
-                            </button>
-                          ))}
-                        </div>
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                          Applicable Rate (â‚¹/pc) <span className="text-rose-500">*</span>
+                        <label className="text-xs font-semibold text-slate-800 block mb-1.5">
+                          Applicable Rate (₹/pc) <span className="text-rose-500">*</span>
                         </label>
                         <input
                           type="number"
@@ -1826,16 +2320,9 @@ function CustomerPortal({
                             setRate(e.target.value);
                             if (stepValidationErrors.rate) setStepValidationErrors(prev => ({ ...prev, rate: null }));
                           }}
-                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 text-sm sm:text-base font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
                         />
-                        <span className="text-[10px] text-slate-400 mt-1 block">Production agreed unit price</span>
-                      </div>
-
-                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                        <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">Subtotal</span>
-                        <span className="text-sm font-mono font-bold text-slate-900">
-                          {formatCurrency((Number(qty) || 0) * (Number(rate) || 0))}
-                        </span>
+                        <span className="text-[11px] text-slate-400 mt-1 block">Production agreed unit price</span>
                       </div>
                     </div>
                   </div>
@@ -1854,50 +2341,6 @@ function CustomerPortal({
                     />
                   </div>
                 </div>
-
-                {/* Staged Additional Items Table (if any) */}
-                {orderItems.length > 0 && (
-                  <div className="space-y-2 pt-1">
-                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      Previously Staged Items ({orderItems.length})
-                    </h4>
-                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
-                      {orderItems.map((item, idx) => (
-                        <div key={idx} className="p-3 border-b border-slate-100 last:border-0 flex items-center justify-between">
-                          <div>
-                            <span className="font-mono font-bold text-slate-900 mr-2">{item.itemCode || item.name}</span>
-                            <span className="font-semibold text-slate-800 mr-2">{item.brandName}</span>
-                            <span className="text-slate-500 font-mono">({item.quantity} pcs @ {formatCurrency(item.unitPrice)})</span>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <span className="font-mono font-bold text-slate-900">{formatCurrency(item.total)}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveOrderItem(item.id)}
-                              className="text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Add Another Item Button */}
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={handleAddItemToOrder}
-                    className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <span>+ Add Another Item to this Order</span>
-                  </button>
-                  <span className="text-[11px] text-slate-400">
-                    Add multiple hangtags or woven labels to one order
-                  </span>
-                </div>
               </div>
 
             </div>
@@ -1908,7 +2351,7 @@ function CustomerPortal({
               {/* Card 1: Default Artwork (Exact match to TagX reference) */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-3">
                 <div className="flex items-center space-x-2">
-                  <span className="text-base text-slate-400">ðŸ–¼</span>
+                  <span className="text-base text-slate-400">🖼️</span>
                   <h3 className="font-bold text-slate-900 text-sm">Default Artwork</h3>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -1945,7 +2388,7 @@ function CustomerPortal({
                       />
                     </div>
                     <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-[11px] font-semibold text-emerald-700">âœ“ Uploaded &amp; Ready</span>
+                      <span className="text-[11px] font-semibold text-emerald-700">✓ Uploaded &amp; Ready</span>
                       <div className="flex items-center space-x-2">
                         <button
                           type="button"
@@ -1954,7 +2397,7 @@ function CustomerPortal({
                         >
                           Crop
                         </button>
-                        <span className="text-slate-300">â€¢</span>
+                        <span className="text-slate-300">•</span>
                         <button
                           type="button"
                           onClick={() => setShowFullImageModal(true)}
@@ -1962,7 +2405,7 @@ function CustomerPortal({
                         >
                           View
                         </button>
-                        <span className="text-slate-300">â€¢</span>
+                        <span className="text-slate-300">•</span>
                         <button
                           type="button"
                           onClick={() => setOrderImage('')}
@@ -1988,11 +2431,15 @@ function CustomerPortal({
                 <div className="space-y-2.5 text-xs">
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Brand:</span>
-                    <span className="font-semibold text-slate-900 text-right">{brandName || 'â€”'}</span>
+                    <span className="font-semibold text-slate-900 text-right">{brandName || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Item Name:</span>
+                    <span className="font-semibold text-slate-900 text-right font-mono text-[11px]">{orderType === 'Repeat Order' && repeatSelectedItemCode ? (repeatSelectedItemName || repeatSelectedItemCode) : currentDraftItemName}</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Item Code:</span>
-                    <span className="font-semibold text-slate-900 text-right font-mono">{currentCustomerItemCode}</span>
+                    <span className="font-semibold text-slate-700 text-right font-mono text-[11px]">{orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Product:</span>
@@ -2001,7 +2448,7 @@ function CustomerPortal({
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Format:</span>
                     <span className="font-semibold text-slate-900 text-right">
-                      {selectedType === 'Tag' ? (isMultiCard ? `${tagCards.length}-Tag Set` : 'Single Card Tag') : 'Standard'}
+                      {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (isMultiCard ? `${tagCards.length}-Piece ${selectedType}` : `Single ${selectedType}`) : 'Standard'}
                     </span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
@@ -2016,15 +2463,24 @@ function CustomerPortal({
                     <span className="text-slate-500 text-[11px]">Subtotal:</span>
                     <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency((Number(qty) || 0) * (Number(rate) || 0))}</span>
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Handwork:</span>
-                    <span className="text-[11px] text-slate-600 text-right">
-                      Dori ({doriOption === 'custom' ? 'Custom' : 'â‚¹0.20'}) | Plastic ({plasticOption === 'custom' ? 'Custom' : 'â‚¹0.10'})
-                    </span>
-                  </div>
+                  {selectedType !== 'Tag Kit' ? (
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-500 text-[11px]">Handwork:</span>
+                      <span className="text-[11px] text-slate-600 text-right">
+                        Dori ({doriOption === 'none' ? 'None' : doriOption === 'custom' ? 'Custom' : '₹0.20'}) | Barcode Plastic ({plasticOption === 'none' ? 'None' : plasticOption === 'custom' ? 'Custom' : '₹0.10'})
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-500 text-[11px]">Handwork:</span>
+                      <span className="text-[11px] text-slate-400 text-right">
+                        None (Not included in Tag Kit)
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Taxes &amp; Surcharges:</span>
-                    <span className="text-[11px] text-emerald-700 font-semibold text-right">â‚¹0.00 (Zero Added)</span>
+                    <span className="text-[11px] text-emerald-700 font-semibold text-right">₹0.00 (Zero Added)</span>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
@@ -2047,7 +2503,7 @@ function CustomerPortal({
                   ) : (
                     <>
                       <span>Place Order</span>
-                      <span>âœ“</span>
+                      <span>✓</span>
                     </>
                   )}
                 </button>
@@ -2317,7 +2773,7 @@ function CustomerPortal({
                               <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-slate-900 font-medium">â€¢ {c.title}:</span>
+                                    <span className="text-slate-900 font-medium">• {c.title}:</span>
                                     <span className="text-slate-700">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
@@ -2569,9 +3025,9 @@ function CustomerPortal({
                   <th className="py-3 px-4 font-bold">Date</th>
                   <th className="py-3 px-4 font-bold">Particulars</th>
                   <th className="py-3 px-4 font-bold">Ref No</th>
-                  <th className="py-3 px-4 text-right font-bold">Debit (â‚¹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Credit (â‚¹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Balance (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Debit (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Credit (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Balance (₹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -2580,8 +3036,8 @@ function CustomerPortal({
                     <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
                     <td className="py-3 px-4 font-mono text-slate-700">{j.refNo}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : 'â€”'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : 'â€”'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
                     <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
                   </tr>
                 ))}
@@ -2810,7 +3266,7 @@ function CustomerPortal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (â‚¹) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (₹) *</label>
                   <input
                     type="number"
                     step="0.01"

@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 2.3  
-**Last Updated**: October 20, 2026  
+**Version**: 2.4  
+**Last Updated**: October 21, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -49,6 +49,28 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 2.4 — October 21, 2026
+- **Customer Portal Order Entry Streamlining**:
+  - **Order Type Radio Switcher**: Replaced the transaction type & order dropdowns with mandatory top-level radio buttons (`New Order` / `Repeat Order`). Simplified General Info tab to order number, date, and customer agent details.
+  - **Brand Name Integration**: Relocated Brand Name to the Item Section directly beside Category and Pieces format.
+  - **Dynamic Customer Brand Persistence**: Automatic saving of newly entered brand names upon final order submission (`handleSubmitFinalOrder`), with instant real-time suggestion dropdown. Solved browser autofill popup collisions via custom floating suggestion cards and autofill suppression attributes.
+  - **Standardized Item Naming Formula**: Dynamic automatic item naming adhering to `{Customer Abbreviation}_{item_type}_{Brand Name}_{x}` where `x` represents an incremental integer per customer item.
+- **Repeat Order Item Search System**:
+  - Replaced native `<select>` dropdown with a custom searchable input and floating suggestions matching the Brand Name autocomplete UX.
+  - Real-time search across past items by code, brand name, category, or material.
+  - Rich suggestions display artwork thumbnail, item code, brand, category, paper/material gauge, unit price, and one-click selection with instant spec population.
+- **New Category: "Tag Kit" & Material Specifications**:
+  - Introduced new manufacturing category: **Tag Kit** (supports multi-card pieces, paper catalog selection, zero handwork attachments).
+  - Material Selection: Paper catalog for Tag and Tag Kit; Indian PU (1.2, 1.8, 2.2 mm gauges) vs Imported PU (single quality) for PU Labels.
+  - Renamed "Plastic lock / seal" to "Barcode Plastic" with optional toggle.
+  - Streamlined commercials: eliminated distracting suggestions and redundant subtotal, enhanced quantity and rate input sizing.
+- **Enhanced In-Browser Artwork Cropper**:
+  - Implemented 8 interactive resizing handles (4 corner handles + 4 edge handles) for precise framing.
+  - Set **Free Crop** as the default cropping mode with one-click aspect ratio presets (`Free`, `2:3`, `1:1`, `1:2`, `3:4`).
+  - Added mouse wheel zoom, 90° rotation, horizontal flip, and center alignment controls.
+  - Added tag hole punch simulator toggle for visual verification of hole placement.
+  - Exported high-resolution canvas with 2× retina scale for crisp rendering.
 
 ### Version 2.3 — October 20, 2026
 - **Customer Order Creation Redesign (TagX Modern Sales Order Layout)**:

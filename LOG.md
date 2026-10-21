@@ -4,6 +4,48 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-21] — Version 2.4
+
+### 🚀 Customer Portal Order Entry Streamlining & Customization
+- **Streamlined Order Type Selection**:
+  - Replaced legacy sales order / transaction type dropdowns with mandatory top-level radio buttons (`New Order` / `Repeat Order`) on the General Information card.
+  - Streamlined general info card to prioritize mandatory order type, auto-assigned order reference, order date, and customer profile details.
+- **Brand Name Integration & Item Creation**:
+  - Relocated Brand Name to the Item Specifications section directly preceding Category and Pieces format.
+  - Built real-time brand autocomplete with non-intrusive floating suggestion cards.
+  - Configured persistent brand saving: any new brand entered by the customer is automatically saved into the customer profile and local storage upon order submission (`handleSubmitFinalOrder`).
+  - Eliminated browser autofill collisions by suppressing native autocomplete/datalist popups.
+  - Implemented standardized automatic item naming convention: `{Customer Abbreviation}_{item_type}_{Brand Name}_{x}`, with per-customer sequential counters.
+
+### 🔍 Repeat Order Searchable Autocomplete
+- **Floating Suggestion Card Format**:
+  - Replaced static HTML `<select>` dropdown with custom searchable input matching the Brand Name autocomplete format.
+  - Real-time client-side filtering matching item code, name, brand, category/type, or material specifications.
+  - Displays thumbnail artwork, item name/code badge, brand, type, material/catalog, unit price, and a quick `Select ↵` / `✓ Loaded` status indicator.
+  - Instant loading of complete item specs (brand, category, multi-card format, paper catalog, PU gauge, dori/plastic options, artwork, and unit price).
+  - Added inline `✕` clear button for quick selection reset and automatic draft reset on order type toggle.
+
+### 🏷️ Category "Tag Kit" & Material Specialization
+- **Tag Kit Category**:
+  - Added third major manufacturing category: **Tag Kit** across customer and admin portals and label types metadata.
+  - Supports multi-card piece sets (1 PC, 2 PC, 3 PC) with independent paper catalog selection for each card.
+  - Configured zero-handwork attachment logic (Dori and Barcode Plastic excluded, handwork labor rate set to ₹0.00).
+- **Dynamic Material Options**:
+  - Tag & Tag Kit: Paper catalog selection (Art Ivory, Duo Art, White Kraft, Eco Brown Kraft, Black Core Board, etc.).
+  - PU Label: Dynamic origin switcher between **Indian PU** (with thickness options: 1.2 mm, 1.8 mm, 2.2 mm) and **Imported PU** (single premium quality).
+  - Renamed "Plastic lock / seal" to "Barcode Plastic" with optional toggle.
+  - Commercials cleaned up: removed distracting subtotal and quantity pill suggestions, enlarged inputs for better readability.
+
+### 🖼️ In-Browser Artwork Studio Overhaul
+- **8-Point Handle Crop Box**:
+  - Enhanced `ImageCropModal.js` with 8 interactive resize handles (4 corners + 4 edge midpoints) with responsive touch/mouse dragging.
+  - Set **Free Crop** as the default mode with one-click aspect ratio toggles (`Free`, `2:3`, `1:1`, `1:2`, `3:4`).
+  - Added mouse wheel zooming, 90° rotation, horizontal flip, and center reset controls.
+  - Added tag hole punch simulator toggle (hole visualizer with safe zone guide).
+  - High-resolution retina canvas export (2× scale) with smooth bicubic image scaling.
+
+---
+
 ## [2026-10-20] — Version 2.3
 
 ### 🎨 Modern Sales Order UI Redesign (Inspired by TagX Reference)
