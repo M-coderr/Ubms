@@ -94,7 +94,7 @@ function CustomerPortal({
       }
       // 5. Individual Search: Rate
       if (searchRate.trim()) {
-        const query = searchRate.trim().replace(/[â‚¹,\s]/g, '').toLowerCase();
+        const query = searchRate.trim().replace(/[\u20B9,\s]/g, '').toLowerCase();
         const matchesRate = items.some(item => {
           const rStr = String(item.unitPrice || '');
           const rFmt = (typeof formatCurrency === 'function' ? formatCurrency(item.unitPrice || 0) : '').toLowerCase();
@@ -625,14 +625,14 @@ function CustomerPortal({
         ? `Custom: ${doriCustom.trim()}`
         : doriOption === 'none'
           ? 'None'
-          : 'Reg. (â‚¹0.20/pc)';
+          : 'Reg. (\u20B90.20/pc)';
     const plasticValue = isTagKit
       ? 'None'
       : plasticOption === 'custom'
         ? `Custom: ${plasticCustom.trim()}`
         : plasticOption === 'none'
           ? 'None'
-          : 'Reg. (â‚¹0.10/pc)';
+          : 'Reg. (\u20B90.10/pc)';
     const quantityNum = Number(qty) || 0;
     const rateNum = Number(rate) || 0;
     const itemTotal = quantityNum * rateNum;
@@ -942,7 +942,7 @@ function CustomerPortal({
         {
           stage: editingOrder.status,
           title: 'Order Edited by Customer',
-          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: â‚¹${editRate}).`,
+          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: \u20B9${editRate}).`,
           timestamp: formattedDate,
           author: customer.name
         }
@@ -1405,7 +1405,7 @@ function CustomerPortal({
                 ) : (
                   <>
                     <span>Confirm &amp; Book Order</span>
-                    <span>â†’</span>
+                    <span className="font-bold">&rarr;</span>
                   </>
                 )}
               </button>
@@ -1448,7 +1448,7 @@ function CustomerPortal({
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>âœ¨ New Design Order</span>
+                    <span>+ New Design Order</span>
                   </button>
                   <button
                     type="button"
@@ -1464,7 +1464,7 @@ function CustomerPortal({
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>ðŸ” Repeat Past Item</span>
+                    <span>&#8635; Repeat Past Item</span>
                   </button>
                 </div>
                 {/* IF REPEAT ORDER: Searchable Autocomplete Picker */}
@@ -1477,7 +1477,7 @@ function CustomerPortal({
                       {repeatSelectedItemCode && (
                         <div className="flex items-center space-x-2">
                           <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                            âœ“ {repeatSelectedItemCode} Loaded
+                            &#10003; {repeatSelectedItemCode} Loaded
                           </span>
                           <button
                             type="button"
@@ -1536,7 +1536,7 @@ function CustomerPortal({
                               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1 cursor-pointer"
                               title="Clear search"
                             >
-                              âœ•
+                              &times;
                             </button>
                           )}
                         </div>
@@ -1582,13 +1582,13 @@ function CustomerPortal({
                                           <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium">{item.type || 'Tag'}</span>
                                         </div>
                                         <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                                          {item.brandName ? <strong className="text-slate-700 font-semibold">{item.brandName}</strong> : 'Item'} â€¢ {item.material || 'Standard Board'}
+                                          {item.brandName ? <strong className="text-slate-700 font-semibold">{item.brandName}</strong> : 'Item'} &bull; {item.material || 'Standard Board'}
                                         </div>
                                       </div>
                                     </div>
                                     <div className="text-right shrink-0 ml-3">
                                       <div className="text-xs font-mono font-bold text-slate-900">{formatCurrency(item.unitPrice || 0)}</div>
-                                      <span className="text-[10px] text-brand-600 font-semibold">{isSelected ? 'âœ“ Loaded' : 'Select â†µ'}</span>
+                                      <span className="text-[10px] text-brand-600 font-semibold">{isSelected ? '\u2713 Loaded' : 'Select \u2192'}</span>
                                     </div>
                                   </button>
                                 );
@@ -1603,12 +1603,12 @@ function CustomerPortal({
                       </div>
                     ) : (
                       <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
-                        No previous manufactured orders found. Switch to <strong>âœ¨ New Design Order</strong> to create your first article.
+                        No previous manufactured orders found. Switch to <strong>+ New Design Order</strong> to create your first article.
                       </div>
                     )}
                     {stepValidationErrors.repeatSelectedItemCode && (
                       <p className="text-[11px] text-rose-600 font-medium">
-                        âš ï¸ {stepValidationErrors.repeatSelectedItemCode}
+                        &#9888; {stepValidationErrors.repeatSelectedItemCode}
                       </p>
                     )}
                   </div>
@@ -1688,7 +1688,7 @@ function CustomerPortal({
                                 className="w-full text-left px-3.5 py-2 text-xs text-slate-800 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
                               >
                                 <span>{sb}</span>
-                                <span className="text-[10px] text-slate-400">Select â†µ</span>
+                                <span className="text-[10px] text-slate-400">Select &rarr;</span>
                               </button>
                             ))}
                           </div>
@@ -1696,7 +1696,7 @@ function CustomerPortal({
                       </div>
                       {stepValidationErrors.brandName && (
                         <p className="text-[11px] text-rose-600 font-medium mt-1">
-                          âš ï¸ {stepValidationErrors.brandName}
+                          &#9888; {stepValidationErrors.brandName}
                         </p>
                       )}
                     </div>
@@ -1805,14 +1805,14 @@ function CustomerPortal({
                             >
                               {availableCatalogs.map(cat => (
                                 <option key={cat.id} value={cat.id}>
-                                  {cat.code} â€” {cat.gsm} GSM ({cat.finish})
+                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
                                 </option>
                               ))}
                             </select>
                           </div>
                           <div>
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                              Die-Cut Dimensions (Size L Ã— Size B)
+                              Die-Cut Dimensions (Size L x Size B)
                             </label>
                             <input
                               type="text"
@@ -1869,7 +1869,7 @@ function CustomerPortal({
                                     >
                                       {availableCatalogs.map(cat => (
                                         <option key={cat.id} value={cat.id}>
-                                          {cat.code} â€” {cat.gsm} GSM
+                                          {cat.code} - {cat.gsm} GSM
                                         </option>
                                       ))}
                                     </select>
@@ -1957,7 +1957,7 @@ function CustomerPortal({
                       </div>
                       <div>
                         <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                          Patch Finished Size (L Ã— B)
+                          Patch Finished Size (L x B)
                         </label>
                         <input
                           type="text"
@@ -2010,7 +2010,7 @@ function CustomerPortal({
                               doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
-                            Reg. (â‚¹0.20)
+                            Reg. (&#8377;0.20)
                           </button>
                           <button
                             type="button"
@@ -2033,7 +2033,7 @@ function CustomerPortal({
                         />
                       ) : (
                         <div className="text-[11px] text-slate-500">
-                          {doriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (â‚¹0.20/pc)'}
+                          {doriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (\u20B90.20/pc)'}
                         </div>
                       )}
                     </div>
@@ -2064,7 +2064,7 @@ function CustomerPortal({
                               plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
-                            Reg. (â‚¹0.10)
+                            Reg. (&#8377;0.10)
                           </button>
                           <button
                             type="button"
@@ -2087,7 +2087,7 @@ function CustomerPortal({
                         />
                       ) : (
                         <div className="text-[11px] text-slate-500">
-                          {plasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (â‚¹0.10/pc)'}
+                          {plasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (\u20B90.10/pc)'}
                         </div>
                       )}
                     </div>
@@ -2142,13 +2142,13 @@ function CustomerPortal({
                       className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
                     />
                     {stepValidationErrors.qty && (
-                      <p className="text-[11px] text-rose-600 font-medium">âš ï¸ {stepValidationErrors.qty}</p>
+                      <p className="text-[11px] text-rose-600 font-medium">&#9888; {stepValidationErrors.qty}</p>
                     )}
                   </div>
                   {/* Rate Input */}
                   <div className="sm:col-span-6 space-y-1.5">
                     <label className="text-[11px] font-semibold text-slate-700 block">
-                      Agreed Unit Rate (â‚¹/pc) <span className="text-rose-500">*</span>
+                      Agreed Unit Rate (&#8377;/pc) <span className="text-rose-500">*</span>
                     </label>
                     <input type="number" step="0.05"
                       name="ubms_order_rate_input"
@@ -2161,7 +2161,7 @@ function CustomerPortal({
                       className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
                     />
                     {stepValidationErrors.rate && (
-                      <p className="text-[11px] text-rose-600 font-medium">âš ï¸ {stepValidationErrors.rate}</p>
+                      <p className="text-[11px] text-rose-600 font-medium">&#9888; {stepValidationErrors.rate}</p>
                     )}
                   </div>
                 </div>
@@ -2236,7 +2236,7 @@ function CustomerPortal({
                   </div>
                   {orderImage && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                      âœ“ Print File Ready
+                      &#10003; Print File Ready
                     </span>
                   )}
                 </div>
@@ -2291,7 +2291,7 @@ function CustomerPortal({
                         </div>
                         {/* Tag Dimensions Badge */}
                         <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest shrink-0">
-                          {singleCardDimension || '50 Ã— 90 mm'}
+                          {singleCardDimension || '50 x 90 mm'}
                         </div>
                       </div>
                     </div>
@@ -2303,7 +2303,7 @@ function CustomerPortal({
                           onClick={() => setShowCropModal(true)}
                           className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1 cursor-pointer"
                         >
-                          <span>âœ‚ï¸ Crop &amp; Frame</span>
+                          <span>Crop &amp; Frame</span>
                         </button>
                         <button
                           type="button"
@@ -2323,7 +2323,7 @@ function CustomerPortal({
                             className="hidden"
                           />
                         </label>
-                        <span className="text-slate-300">â€¢</span>
+                        <span className="text-slate-300">&bull;</span>
                         <button
                           type="button"
                           onClick={() => setOrderImage('')}
@@ -2340,7 +2340,7 @@ function CustomerPortal({
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center space-x-2">
-                    <span className="text-base text-slate-400">ðŸ“‹</span>
+                    <span className="text-sm text-slate-400 font-bold">#</span>
                     <h3 className="font-bold text-slate-900 text-sm">Production Job Ticket</h3>
                   </div>
                   <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">
@@ -2350,7 +2350,7 @@ function CustomerPortal({
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Brand:</span>
-                    <span className="font-semibold text-slate-900 text-right">{brandName || 'â€”'}</span>
+                    <span className="font-semibold text-slate-900 text-right">{brandName || '-'}</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Product:</span>
@@ -2383,7 +2383,7 @@ function CustomerPortal({
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
                       <span className="text-[11px] text-slate-600 text-right">
-                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : 'â‚¹0.20'}) | Seal ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : 'â‚¹0.10'})
+                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : '\u20B90.20'}) | Seal ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : '\u20B90.10'})
                       </span>
                     </div>
                   )}
@@ -2406,7 +2406,7 @@ function CustomerPortal({
                   ) : (
                     <>
                       <span>Confirm &amp; Book Order</span>
-                      <span>âœ“</span>
+                      <span className="font-bold">&rarr;</span>
                     </>
                   )}
                 </button>
@@ -2664,7 +2664,7 @@ function CustomerPortal({
                               <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-slate-900 font-medium">â€¢ {c.title}:</span>
+                                    <span className="text-slate-900 font-medium">&bull; {c.title}:</span>
                                     <span className="text-slate-700">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
@@ -2902,9 +2902,9 @@ function CustomerPortal({
                   <th className="py-3 px-4 font-bold">Date</th>
                   <th className="py-3 px-4 font-bold">Particulars</th>
                   <th className="py-3 px-4 font-bold">Ref No</th>
-                  <th className="py-3 px-4 text-right font-bold">Debit (â‚¹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Credit (â‚¹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Balance (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Debit (&#8377;)</th>
+                  <th className="py-3 px-4 text-right font-bold">Credit (&#8377;)</th>
+                  <th className="py-3 px-4 text-right font-bold">Balance (&#8377;)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -2913,8 +2913,8 @@ function CustomerPortal({
                     <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
                     <td className="py-3 px-4 font-mono text-slate-700">{j.refNo}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : 'â€”'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : 'â€”'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '-'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '-'}</td>
                     <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
                   </tr>
                 ))}
@@ -3134,7 +3134,7 @@ function CustomerPortal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (â‚¹) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (&#8377;) *</label>
                   <input
                     type="number"
                     step="0.01"

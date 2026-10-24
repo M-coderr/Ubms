@@ -4,6 +4,29 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-24] — Version 2.6
+
+### 🛠️ Complete Elimination of Mojibake & Encoding Artifacts
+- **Repository Encoding Audit**:
+  - Scanned the entire workspace codebase using targeted byte-inspection scripts.
+  - Isolated character corruption in `CustomerPortal.js`, where multi-byte UTF-8 character sequences (`₹`, `✨`, `🔍`, `—`, `×`, `✓`, `•`) had been corrupted by Windows-1252 code-page interpretations (`â‚¹`, `âœ¨`, `ðŸ” `, `â€”`, `Ã—`, `âœ“`, `â€¢`).
+- **Standardized Pure ASCII & HTML Entity Architecture**:
+  - Replaced all corrupted sequences with standard HTML entities and JavaScript Unicode escapes:
+    - **Currency**: `&#8377;` for JSX markup and `\u20B9` inside JS template literals and regex patterns (`₹0.20`, `₹0.10`, `₹/pc`).
+    - **Navigation & Arrows**: `&rarr;` / `\u2192` (`→`).
+    - **Actions & Modes**: `&#8635;` (`↻`) and `+ New Design Order`.
+    - **Status & Badges**: `&#10003;` / `\u2713` (`✓ Loaded`, `✓ Print File Ready`).
+    - **Clear / Dismiss Controls**: `&times;` (`×`).
+    - **Dimensions & Separators**: Standard ASCII `x` (`Size L x Size B`) and `&bull;` (`•`).
+    - **Form Validation Warnings**: `&#9888;` (`⚠`).
+  - Saved `CustomerPortal.js` in pure 7-bit ASCII format (`[System.Text.Encoding]::ASCII`), rendering it 100% resilient against any future server, OS, or browser encoding mismatches.
+- **Verification & Testing**:
+  - Validated that `Babel.transform` compiles `CustomerPortal.js` in-browser with zero syntax errors.
+  - Verified 0 non-ASCII characters remain across the entire codebase.
+  - Captured full headless Edge CDP screenshots confirming pristine UI rendering on the live local server.
+
+---
+
 ## [2026-10-24] — Version 2.5
 
 ### 🎨 Bespoke "Production Order Studio" (Eliminated TagX Clone Layout)

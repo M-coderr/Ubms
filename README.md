@@ -73,7 +73,7 @@ uBMS comes pre-configured with operational team members and customer accounts:
 ## Core Features & Workflow
 
 ### 1. Customer Ordering & Artwork Processing
-- **Modern Sales Order UI (TagX Style)**: A clean, calm single-screen interface eliminating cognitive overload. Features General Information (Transaction Type, Order Type, Order No, Date, Agent, Brand with `+ Add Brand`, GST), Items (Article picker, compact image thumbnail, category, pieces, paper catalog, dimensions, Dori & Plastic lock, volume presets `1k/2.5k/5k/10k`, rate, subtotal), Default Artwork dropzone, and live Commercial Summary with instant confirmation.
+- **Production Order Studio (Bespoke Manufacturing UI)**: A focused, distraction-free manufacturing order studio divided into a Production Specification Sheet (~58%) and Visual Proof Canvas & Job Ticket (~42%). Features run type switcher (`+ New Design Order` vs `&#8635; Repeat Past Item`), searchable past item autocomplete with floating cards, customer saved brand chips with auto-assigned references, multi-card piece format, master paper board selector, handwork fastener configuration (Dori & Barcode Plastic Seal), volume presets (`1k/2.5k/5k/10k`), prepress silhouette dropzone with 3mm drill-hole simulator, live job ticket, and instant transition to the Order Register upon booking.
 - **In-Browser Image Cropping**: Interactive cropping tool with presets (`2:3`, `1:1`, `1:2`, `3:4`), rotate 90°, zoom, and drag-to-pan.
 - **Approval Lifecycle**: Orders submitted by customers enter `pending_approval` status before committing raw materials.
 

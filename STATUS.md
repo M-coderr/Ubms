@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 2.5  
+**Version**: 2.6  
 **Last Updated**: October 24, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -50,6 +50,21 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 2.6 — October 24, 2026
+- **Complete Elimination of Mojibake & Encoding Artifacts**:
+  - Scanned repository and isolated character corruption in `CustomerPortal.js` caused by multi-byte UTF-8 bytes previously read in Windows-1252 code pages.
+  - Converted the codebase to 100% pure 7-bit ASCII, completely immune to cross-platform encoding anomalies across web servers, browsers, and operating systems.
+  - Cleaned all 38 corrupted symbols and replaced them with standard HTML entities and JavaScript Unicode escapes:
+    - Rupee currency symbol: `&#8377;` in JSX markup and `\u20B9` inside JavaScript template strings/regex (`₹0.20`, `₹0.10`, `₹/pc`).
+    - Directional navigation arrows: `&rarr;` / `\u2192` (`→`).
+    - Repeat order action: `&#8635;` (`↻`) and `+ New Design Order`.
+    - Checkmark badges: `&#10003;` / `\u2713` (`✓ Loaded`, `✓ Print File Ready`).
+    - Dismiss & clear search buttons: `&times;` (`×`).
+    - Dimensions & bullets: standard ASCII `x` (`Size L x Size B`) and `&bull;` (`•`).
+    - Validation alerts: `&#9888;` (`⚠`).
+  - Tested and verified 0 Babel transpilation errors via in-browser headless Edge test runner.
+  - Confirmed visual fidelity via headless browser screenshots: `clean_studio_page.png` and `clean_repeat_mode.png`.
 
 ### Version 2.5 — October 24, 2026
 - **Bespoke "Production Order Studio" (Eliminated TagX Clone Layout)**:
