@@ -4,6 +4,35 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-24] — Version 2.5
+
+### 🎨 Bespoke "Production Order Studio" (Eliminated TagX Clone Layout)
+- **Elimination of Copycat SaaS Elements**:
+  - Replaced generic SaaS / TagX clone elements (`New Sales Order`, `SO — place a customer order`, `Draft saved just now • discard`, `General Information`, and `Default Artwork: Used for any item that doesn't have its own image...`).
+  - Transitioned the entire experience to a clean, proprietary garment accessories manufacturing studio tailored specifically for tags, woven labels, and leather patches.
+- **Header & Workspace Structure**:
+  - Header: **Production Order Studio** with dynamic sequential customer reference badge (`currentCustomerItemCode`, e.g., `MGC01`), subtitle *"Configure garment tag specifications, inspect artwork proof, and book manufacturing orders"*, and primary `Confirm & Book Order →` button.
+  - Balanced 2-Column Split: ~58% Left Column (Production Specification Sheet) and ~42% Right Column (Visual Proof Canvas & Production Job Ticket).
+- **Left Column: Production Specification Sheet**:
+  - **Production Run Type**: Segmented pill switcher between `✨ New Design Order` and `🔄 Repeat Past Item`.
+  - **Repeat Past Item Autocomplete**: Floating cards showing past manufactured artwork thumbnails, code badges, brands, product type, board stock, unit price, and instant spec loading.
+  - **New Design Brand Input**: Clean brand field with quick-select customer brand chips (`+ MG Creation`, etc.) and real-time auto-assigned manufacturing reference (`MGC_Tag_Zara_1`).
+  - **Product Category & Structure**: Segmented categories (`Hangtag`, `Tag Kit (Multi-Piece)`, `PU Leather Label`). Multi-card sets (1 PC, 2 PC, 3 PC) with independent catalog boards.
+  - **Material Board**: Master paper catalog boards with GSM and finish options; dynamic origin switcher for PU labels (Indian PU 1.2/1.8/2.2mm vs Imported Synthetic Grain).
+  - **Handwork Fasteners**: Dori (None / Reg. ₹0.20 / Custom) & Barcode Plastic Seal (None / Reg. ₹0.10 / Custom), hidden for Tag Kit.
+  - **Production Volume & Commercials**: Volume input with presets (`1k`, `2.5k`, `5k`, `10k`), agreed rate, subtotal, and special packaging notes.
+  - **Multi-Article Batching**: `+ Add Another Article to this Order Batch` staged items table.
+- **Right Column: Visual Proof Canvas & Production Job Ticket**:
+  - **Visual Artwork Proof Canvas**: Simulated hangtag blueprint silhouette upload dropzone (`Upload Production Artwork`). When uploaded, frames the artwork inside a realistic hangtag with 3mm drill-hole guide, aspect-ratio dimensions badge, and prepress toolstrip (`✂️ Crop & Frame`, `Inspect Lightbox`, `Replace`, `Remove`).
+  - **Production Job Ticket**: Authentic manufacturing job ticket summary with brand, item, composition, material board, volume, unit rate, attachments, estimated total (`formatCurrency(grandTotal)`), and primary `Confirm & Book Order ✓` button.
+- **Instantaneous Transition & Alert Elimination**:
+  - Removed blocking browser `alert()` modal dialogs in favor of non-blocking success toasts.
+  - Configured instantaneous tab transition to `Customer Order Register` upon clicking `Confirm & Book Order`.
+  - Background asynchronous persistence of newly used brand names to user storage.
+  - Fixed encoding artifacts and mojibake across all JSX elements.
+
+---
+
 ## [2026-10-21] — Version 2.4
 
 ### 🚀 Customer Portal Order Entry Streamlining & Customization

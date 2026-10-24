@@ -1,6 +1,5 @@
 // Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
-
 function CustomerPortal({ 
   customer, 
   orders, 
@@ -20,12 +19,10 @@ function CustomerPortal({
   const [activeTab, setActiveTab] = React.useState(defaultTab);
   const [previewArtworkUrl, setPreviewArtworkUrl] = React.useState(null);
   const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
-
   // Automatically minimize on non-dashboard tabs, expand on dashboard
   React.useEffect(() => {
     setBannerMinimized(activeTab !== 'dashboard');
   }, [activeTab]);
-
   // Edit Order State (Customer allowed to edit before admin approval)
   const [editingOrder, setEditingOrder] = React.useState(null);
   const [editBrandName, setEditBrandName] = React.useState('');
@@ -39,19 +36,16 @@ function CustomerPortal({
   const [editRate, setEditRate] = React.useState(0);
   const [editOrderImage, setEditOrderImage] = React.useState('');
   const [editNotes, setEditNotes] = React.useState('');
-
   // Filter orders for this customer
   const customerOrders = React.useMemo(() => {
     return orders.filter(o => o.customerId === customer.id || o.customerEmail === customer.email);
   }, [orders, customer]);
-
   // Order Register Filter & Search states
   const [orderStatusFilter, setOrderStatusFilter] = React.useState('all');
   const [searchBrandSpecs, setSearchBrandSpecs] = React.useState('');
   const [searchDoriPlastic, setSearchDoriPlastic] = React.useState('');
   const [searchQty, setSearchQty] = React.useState('');
   const [searchRate, setSearchRate] = React.useState('');
-
   const filteredCustomerOrders = React.useMemo(() => {
     return customerOrders.filter(order => {
       // 1. Status Filter
@@ -65,9 +59,7 @@ function CustomerPortal({
           return false;
         }
       }
-
       const items = order.items && order.items.length > 0 ? order.items : [{}];
-
       // 2. Individual Search: Brand & Item Specs
       if (searchBrandSpecs.trim()) {
         const query = searchBrandSpecs.trim().toLowerCase();
@@ -80,7 +72,6 @@ function CustomerPortal({
         });
         if (!matchesSpecs) return false;
       }
-
       // 3. Individual Search: Dori & Plastic
       if (searchDoriPlastic.trim()) {
         const query = searchDoriPlastic.trim().toLowerCase();
@@ -91,7 +82,6 @@ function CustomerPortal({
         });
         if (!matchesDoriPlastic) return false;
       }
-
       // 4. Individual Search: Qty
       if (searchQty.trim()) {
         const query = searchQty.trim().replace(/,/g, '').toLowerCase();
@@ -102,10 +92,9 @@ function CustomerPortal({
         });
         if (!matchesQty) return false;
       }
-
       // 5. Individual Search: Rate
       if (searchRate.trim()) {
-        const query = searchRate.trim().replace(/[₹,\s]/g, '').toLowerCase();
+        const query = searchRate.trim().replace(/[â‚¹,\s]/g, '').toLowerCase();
         const matchesRate = items.some(item => {
           const rStr = String(item.unitPrice || '');
           const rFmt = (typeof formatCurrency === 'function' ? formatCurrency(item.unitPrice || 0) : '').toLowerCase();
@@ -113,24 +102,19 @@ function CustomerPortal({
         });
         if (!matchesRate) return false;
       }
-
       return true;
     });
   }, [customerOrders, orderStatusFilter, searchBrandSpecs, searchDoriPlastic, searchQty, searchRate]);
-
   const customerInvoices = React.useMemo(() => {
     return invoices.filter(i => i.customerId === customer.id);
   }, [invoices, customer]);
-
   // Financial Ledgers
   const generalLedger = React.useMemo(() => {
     return window.uBMS.computeCustomerGeneralLedger(customer.id, customerInvoices, payments);
   }, [customer, customerInvoices, payments]);
-
   const outstandingLedger = React.useMemo(() => {
     return window.uBMS.computeOutstandingLedger(customer.id, customerInvoices);
   }, [customer, customerInvoices]);
-
   // Customer Dashboard KPI Metrics
   const customerStats = React.useMemo(() => {
     const totalOrders = customerOrders.length;
@@ -141,11 +125,9 @@ function CustomerPortal({
     const shippedOrders = customerOrders.filter(o => o.status === 'shipped').length;
     const deliveredOrders = customerOrders.filter(o => o.status === 'delivered').length;
     const activeOrders = inProdOrders + readyOrders + shippedOrders;
-
     const totalSpend = customerOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const totalOutstanding = outstandingLedger?.totalOutstanding || 0;
     const unpaidInvoicesCount = (outstandingLedger?.bills || []).length;
-
     return {
       totalOrders,
       pendingOrders,
@@ -160,15 +142,12 @@ function CustomerPortal({
       unpaidInvoicesCount
     };
   }, [customerOrders, outstandingLedger]);
-
   // Chat Thread
   const customerThread = React.useMemo(() => {
     const thread = messages.find(m => m.threadId === customer.id);
     return thread || { threadId: customer.id, customerName: customer.name, accountManager: 'Parth', messages: [] };
   }, [messages, customer]);
-
   const [chatInput, setChatInput] = React.useState('');
-
   // ---------------------------------------------------------------------------
   // Available Types & Paper Catalogs
   // ---------------------------------------------------------------------------
@@ -180,7 +159,6 @@ function CustomerPortal({
     ...baseTypes,
     { id: 'TYPE-TAGKIT', name: 'Tag Kit', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 5.00 }
   ];
-
   const availableCatalogs = catalogs.length > 0 ? catalogs : [
     { id: 'CAT-IV350', code: 'Cat #101 - Art Ivory 350', name: 'Art & Ivory Board 350 GSM', gsm: 350, finish: 'Silk Matte Coated', sheetRate: 3.20 },
     { id: 'CAT-KF280', code: 'Cat #102 - Natural Kraft 280', name: 'Virgin Eco Kraft Paper 280 GSM', gsm: 280, finish: 'Raw Fibrous Texture', sheetRate: 2.40 },
@@ -189,7 +167,6 @@ function CustomerPortal({
     { id: 'CAT-MT400', code: 'Cat #105 - Metallic Pearl 400', name: 'Champagne Shimmer Board 400 GSM', gsm: 400, finish: 'Subtle Pearl Luster', sheetRate: 5.80 },
     { id: 'CAT-DUP250', code: 'Cat #106 - Sturdy Duplex 250', name: 'Greyback Duplex Board 250 GSM', gsm: 250, finish: 'Semi-Gloss Single Sided', sheetRate: 1.60 }
   ];
-
   // ---------------------------------------------------------------------------
   // Tags & Labels Order Creation State
   // ---------------------------------------------------------------------------
@@ -209,24 +186,19 @@ function CustomerPortal({
     { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
     { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
   ]);
-
   const [qty, setQty] = React.useState(0);
   const [rate, setRate] = React.useState(0);
-
   // Dori & Plastic States (Reg. vs Custom)
   const [doriOption, setDoriOption] = React.useState('reg'); // 'reg' or 'custom'
   const [doriCustom, setDoriCustom] = React.useState('');
-
   const [plasticOption, setPlasticOption] = React.useState('reg'); // 'none', 'reg', 'custom'
   const [plasticCustom, setPlasticCustom] = React.useState('');
-
   // Repeat Order State & PU Selection States
   const [repeatSelectedItemCode, setRepeatSelectedItemCode] = React.useState('');
   const [repeatSelectedItemName, setRepeatSelectedItemName] = React.useState('');
   const [repeatSearchQuery, setRepeatSearchQuery] = React.useState('');
   const [repeatInputFocused, setRepeatInputFocused] = React.useState(false);
   const [localSavedBrands, setLocalSavedBrands] = React.useState([]);
-
   // Collect all saved brands for this customer (from customer profile, past orders, and session)
   const customerSavedBrands = React.useMemo(() => {
     const brandSet = new Set();
@@ -237,17 +209,14 @@ function CustomerPortal({
         if (b && typeof b === 'string' && b.trim()) brandSet.add(b.trim());
       });
     }
-
     // Dynamic session saved brands
     (localSavedBrands || []).forEach(b => {
       if (b && typeof b === 'string' && b.trim()) brandSet.add(b.trim());
     });
-
     // Default company name as brand
     if (customer?.company && typeof customer.company === 'string' && customer.company.trim()) {
       brandSet.add(customer.company.trim());
     }
-
     // Historical brand names from past customer orders
     (orders || []).forEach(o => {
       const isThisCust = (o.customerId && customer?.id && o.customerId === customer.id) ||
@@ -261,15 +230,12 @@ function CustomerPortal({
         });
       }
     });
-
     return Array.from(brandSet).sort();
   }, [customer, orders, localSavedBrands]);
-
   // Persist brand to customer profile and backend storage
   const saveCustomerBrand = async (brandToSave) => {
     if (!brandToSave || !brandToSave.trim() || !customer) return;
     const clean = brandToSave.trim();
-
     // Update in-memory customer object
     if (!Array.isArray(customer.brands)) {
       customer.brands = [];
@@ -278,14 +244,12 @@ function CustomerPortal({
     if (!alreadySaved) {
       customer.brands.push(clean);
     }
-
     setLocalSavedBrands(prev => {
       if (!prev.some(b => b.toLowerCase() === clean.toLowerCase())) {
         return [...prev, clean];
       }
       return prev;
     });
-
     // Persist via DataService
     try {
       const usersData = await window.uBMS.DataService.fetchUsers();
@@ -308,18 +272,15 @@ function CustomerPortal({
   };
   const [puOrigin, setPuOrigin] = React.useState('Indian'); // 'Indian' or 'Imported'
   const [puThickness, setPuThickness] = React.useState('1.8'); // '1.2', '1.8', '2.2'
-
   // General Information States (Matching TagX online reference layout)
   const [transactionType, setTransactionType] = React.useState('Sales Order');
   const [orderType, setOrderType] = React.useState('New Order');
   const [gstNo, setGstNo] = React.useState(customer?.gstNo || '');
-
   // Order Flow Navigation & Validation States
   const [currentStep, setCurrentStep] = React.useState(1);
   const [stepValidationErrors, setStepValidationErrors] = React.useState({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [mobileSummaryOpen, setMobileSummaryOpen] = React.useState(false);
-
   // List of all previous items ordered by this customer for Repeat Order selection
   const customerPastItems = React.useMemo(() => {
     const list = [];
@@ -344,7 +305,6 @@ function CustomerPortal({
     });
     return list;
   }, [orders, customer]);
-
   // Filtered list of past items based on user search query
   const filteredRepeatItems = React.useMemo(() => {
     if (!customerPastItems || customerPastItems.length === 0) return [];
@@ -359,7 +319,6 @@ function CustomerPortal({
       return code.includes(q) || name.includes(q) || brand.includes(q) || type.includes(q) || mat.includes(q);
     });
   }, [customerPastItems, repeatSearchQuery]);
-
   const handleSelectRepeatItem = (code) => {
     setRepeatSelectedItemCode(code);
     if (stepValidationErrors.repeatSelectedItemCode) {
@@ -421,7 +380,6 @@ function CustomerPortal({
       }
     }
   };
-
   // Update material when type changes
   const handleTypeChange = (newType) => {
     setSelectedType(newType);
@@ -433,15 +391,12 @@ function CustomerPortal({
       }
     }
   };
-
   const handleUpdateCardCatalog = (cardIndex, newCatId) => {
     setTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, catalogId: newCatId } : c));
   };
-
   const handleUpdateCardDimension = (cardIndex, newDim) => {
     setTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, dimension: newDim } : c));
   };
-
   const handleAddThirdCard = () => {
     if (tagCards.length >= 3) return;
     setTagCards(prev => [
@@ -449,15 +404,12 @@ function CustomerPortal({
       { id: 3, title: 'Tag 3 (Overlay Tag)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115', dimension: '' }
     ]);
   };
-
   const handleRemoveThirdCard = () => {
     setTagCards(prev => prev.slice(0, 2));
   };
-
   // Image upload & cropping
   const [showCropModal, setShowCropModal] = React.useState(false);
   const [showFullImageModal, setShowFullImageModal] = React.useState(false);
-
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -468,31 +420,32 @@ function CustomerPortal({
       reader.readAsDataURL(file);
     }
   };
-
   const handleSaveCroppedImage = (croppedUrl) => {
     setOrderImage(croppedUrl);
     setShowCropModal(false);
   };
-
   // Cart / Items in Current Order
   const [orderItems, setOrderItems] = React.useState([]);
   const [orderNotes, setOrderNotes] = React.useState('');
-
   const formatCurrency = window.uBMS.formatCurrency;
   const formatDate = window.uBMS.formatDate;
-
   // Auto-calculated unique Item Code for Customer (e.g. MGC01, MGC02)
   const customerPartyName = customer?.company || customer?.name || brandName;
   const customerAbbr = window.uBMS.generateCustomerAbbr(customerPartyName);
   const currentCustomerItemCode = window.uBMS.getNextItemCode(customerAbbr, orders, orderItems);
   const customerItemIndex = window.uBMS.getCustomerNextItemIndex(customer, orders, orderItems);
   const currentDraftItemName = window.uBMS.formatItemName(customerAbbr, selectedType, brandName, customerItemIndex);
-
   // Unified Form Validation (Matching modern single-view layout)
   const validateOrderForm = () => {
     const errors = {};
-    if (!brandName || !brandName.trim()) {
-      errors.brandName = 'Please enter a brand name.';
+    if (orderType === "Repeat Order") {
+      if (!repeatSelectedItemCode) {
+        errors.repeatSelectedItemCode = "Please select a past manufactured item to repeat.";
+      }
+    } else {
+      if (!brandName || !brandName.trim()) {
+        errors.brandName = "Please enter a brand name.";
+      }
     }
     if (!selectedType) {
       errors.selectedType = 'Please select a category.';
@@ -516,11 +469,9 @@ function CustomerPortal({
     if (!rate || Number(rate) <= 0) {
       errors.rate = 'Please enter a valid rate per piece (greater than 0).';
     }
-
     setStepValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleDiscardDraft = () => {
     if (window.confirm('Discard current order draft and reset all inputs?')) {
       setBrandName('');
@@ -540,7 +491,6 @@ function CustomerPortal({
       setStepValidationErrors({});
     }
   };
-
   // 4-Step Flow Validation
   const validateStep = (step) => {
     const errors = {};
@@ -579,11 +529,9 @@ function CustomerPortal({
         errors.rate = 'Please enter a valid rate per piece (greater than 0).';
       }
     }
-
     setStepValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleContinue = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (validateStep(currentStep)) {
@@ -592,13 +540,11 @@ function CustomerPortal({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
   const handleBack = () => {
     setStepValidationErrors({});
     setCurrentStep(prev => Math.max(1, prev - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   const handleGoToStep = (targetStep) => {
     if (targetStep < currentStep) {
       setStepValidationErrors({});
@@ -618,14 +564,12 @@ function CustomerPortal({
       }
     }
   };
-
   // Live Current Draft Item Object
   const currentDraftItem = React.useMemo(() => {
     let finalMaterial = selectedMaterial;
     let chosenCards = [];
     let primaryCatalogId = null;
     let primaryCatalogCode = null;
-
     if (selectedType === 'Tag' || selectedType === 'Tag Kit') {
       if (isMultiCard) {
         chosenCards = tagCards.map((c, i) => {
@@ -661,7 +605,6 @@ function CustomerPortal({
         primaryCatalogCode = cat.code;
       }
     }
-
     if (selectedType === 'PU Label') {
       if (puOrigin === 'Indian') {
         finalMaterial = `Indian PU - ${puThickness}`;
@@ -669,15 +612,12 @@ function CustomerPortal({
         finalMaterial = 'Imported PU (Standard Quality)';
       }
     }
-
     const activeItemCode = (orderType === 'Repeat Order' && repeatSelectedItemCode)
       ? repeatSelectedItemCode
       : currentCustomerItemCode;
-
     const activeItemName = (orderType === 'Repeat Order' && repeatSelectedItemCode)
       ? (repeatSelectedItemName || repeatSelectedItemCode)
       : currentDraftItemName;
-
     const isTagKit = selectedType === 'Tag Kit';
     const doriValue = isTagKit
       ? 'None'
@@ -685,19 +625,17 @@ function CustomerPortal({
         ? `Custom: ${doriCustom.trim()}`
         : doriOption === 'none'
           ? 'None'
-          : 'Reg. (₹0.20/pc)';
-
+          : 'Reg. (â‚¹0.20/pc)';
     const plasticValue = isTagKit
       ? 'None'
       : plasticOption === 'custom'
         ? `Custom: ${plasticCustom.trim()}`
         : plasticOption === 'none'
           ? 'None'
-          : 'Reg. (₹0.10/pc)';
+          : 'Reg. (â‚¹0.10/pc)';
     const quantityNum = Number(qty) || 0;
     const rateNum = Number(rate) || 0;
     const itemTotal = quantityNum * rateNum;
-
     return {
       id: 'ITEM-' + Date.now().toString().slice(-4),
       itemCode: activeItemCode,
@@ -736,16 +674,13 @@ function CustomerPortal({
     currentCustomerItemCode,
     orderImage
   ]);
-
   // Add Item to Staged Items (Optional for multi-item orders)
   const handleAddItemToOrder = (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!validateOrderForm()) {
       return;
     }
-
     setOrderItems(prev => [...prev, currentDraftItem]);
-
     // Reset fields for the next item
     setBrandName('');
     setOrderImage('');
@@ -767,15 +702,12 @@ function CustomerPortal({
     setPlasticCustom('');
     setCurrentStep(1);
     setStepValidationErrors({});
-
     const fileInput = document.getElementById('customer-file-upload');
     if (fileInput) fileInput.value = '';
   };
-
   const handleRemoveOrderItem = (id) => {
     setOrderItems(prev => prev.filter(i => i.id !== id));
   };
-
   // Duplicate rejected order into new order draft
   const handleDuplicateOrder = (rejectedOrder) => {
     if (!rejectedOrder || !rejectedOrder.items) return;
@@ -786,7 +718,6 @@ function CustomerPortal({
     setOrderItems(clonedItems);
     setBrandName(rejectedOrder.items[0]?.brandName || rejectedOrder.customerCompany || '');
     setOrderNotes(`Re-order following rejected order #${rejectedOrder.id}`);
-
     const first = rejectedOrder.items[0];
     if (first) {
       setSelectedType(first.type || 'Tag');
@@ -819,43 +750,34 @@ function CustomerPortal({
       setRate(first.unitPrice || 0);
       setOrderImage(first.image || '');
     }
-
     setCurrentStep(4);
     setActiveTab('place_order');
   };
-
   // Calculations (NO TAXES, Subtotal = Grand Total)
   const stagedTotal = orderItems.reduce((acc, i) => acc + i.total, 0);
   const draftTotal = (Number(qty) || 0) * (Number(rate) || 0);
   const grandTotal = stagedTotal + (orderItems.length > 0 && (!brandName.trim() || Number(qty) <= 0) ? 0 : draftTotal);
-
   // Submit Final Order (Prevent duplicates with isSubmitting)
   const handleSubmitFinalOrder = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isSubmitting) return;
-
     if (!validateOrderForm()) {
       return;
     }
-
     let itemsToSubmit = [...orderItems];
     if (brandName.trim() && Number(qty) > 0 && Number(rate) > 0) {
       itemsToSubmit.push(currentDraftItem);
     }
-
     if (itemsToSubmit.length === 0) {
       setStepValidationErrors({ qty: 'Please specify quantity and rate before placing order.' });
       return;
     }
-
     setIsSubmitting(true);
-
     try {
       const orderId = 'ORD-2026-' + Math.floor(1000 + Math.random() * 9000);
       const nowIso = new Date().toISOString();
       const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       const orderGrandTotal = itemsToSubmit.reduce((acc, i) => acc + i.total, 0);
-
       const newOrder = {
         id: orderId,
         orderType: orderType || 'New Order',
@@ -911,36 +833,33 @@ function CustomerPortal({
         internalNotes: [],
         customerNotes: orderNotes
       };
-
       onSaveOrder(newOrder);
-
-      // Always save new brand name(s) after order is submitted
+      
+      // Reset state and transition instantly to Order Register
+      setOrderItems([]);
+      setOrderNotes("");
+      setBrandName("");
+      setOrderImage("");
+      setSingleCardDimension("");
+      setQty(0);
+      setRate(0);
+      setDoriOption("reg");
+      setDoriCustom("");
+      setPlasticOption("reg");
+      setPlasticCustom("");
+      setCurrentStep(1);
+      setStepValidationErrors({});
+      setActiveTab("order_register");
+      
+      // Persist brand name in background
       for (const item of itemsToSubmit) {
         if (item.brandName && item.brandName.trim()) {
-          await saveCustomerBrand(item.brandName.trim());
+          saveCustomerBrand(item.brandName.trim()).catch(() => {});
         }
       }
       if (brandName && brandName.trim()) {
-        await saveCustomerBrand(brandName.trim());
+        saveCustomerBrand(brandName.trim()).catch(() => {});
       }
-
-      // Reset state after successful submission
-      setOrderItems([]);
-      setOrderNotes('');
-      setBrandName('');
-      setOrderImage('');
-      setSingleCardDimension('');
-      setQty(0);
-      setRate(0);
-      setDoriOption('reg');
-      setDoriCustom('');
-      setPlasticOption('reg');
-      setPlasticCustom('');
-      setCurrentStep(1);
-      setStepValidationErrors({});
-
-      alert(`Order ${orderId} placed successfully!`);
-      setActiveTab('order_register');
     } catch (err) {
       console.error('Error placing order:', err);
       alert('An error occurred while placing your order. Please try again.');
@@ -948,7 +867,6 @@ function CustomerPortal({
       setIsSubmitting(false);
     }
   };
-
   // Open Edit Order Modal (Allowed before admin approval)
   const handleOpenEditModal = (order) => {
     setEditingOrder(order);
@@ -964,7 +882,6 @@ function CustomerPortal({
       setEditDoriOption('reg');
       setEditDoriCustom('');
     }
-
     if (item.plastic && item.plastic.startsWith('Custom:')) {
       setEditPlasticOption('custom');
       setEditPlasticCustom(item.plastic.replace('Custom:', '').trim());
@@ -972,13 +889,11 @@ function CustomerPortal({
       setEditPlasticOption('reg');
       setEditPlasticCustom('');
     }
-
     setEditQty(item.quantity || 0);
     setEditRate(item.unitPrice || 0);
     setEditOrderImage(item.image || '');
     setEditNotes(order.customerNotes || '');
   };
-
   const handleEditImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -987,7 +902,6 @@ function CustomerPortal({
       reader.readAsDataURL(file);
     }
   };
-
   const handleSaveOrderEdits = (e) => {
     e.preventDefault();
     if (!editingOrder) return;
@@ -996,14 +910,11 @@ function CustomerPortal({
     if (!editRate || Number(editRate) <= 0) return alert('Please enter a valid rate.');
     if (editDoriOption === 'custom' && !editDoriCustom.trim()) return alert('Please enter the custom Dori specification.');
     if (editPlasticOption === 'custom' && !editPlasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
-
     const doriValue = editDoriOption === 'custom' ? `Custom: ${editDoriCustom.trim()}` : 'Reg.';
     const plasticValue = editPlasticOption === 'custom' ? `Custom: ${editPlasticCustom.trim()}` : 'Reg.';
     const itemTotal = Number(editQty) * Number(editRate);
-
     const prevItem = editingOrder.items[0] || {};
     const existingCode = prevItem.itemCode || prevItem.name || currentCustomerItemCode;
-
     const updatedItem = {
       id: prevItem.id || ('ITEM-' + Date.now().toString().slice(-4)),
       itemCode: existingCode,
@@ -1018,7 +929,6 @@ function CustomerPortal({
       unitPrice: Number(editRate),
       total: itemTotal
     };
-
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const updatedOrder = {
       ...editingOrder,
@@ -1032,25 +942,22 @@ function CustomerPortal({
         {
           stage: editingOrder.status,
           title: 'Order Edited by Customer',
-          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: ₹${editRate}).`,
+          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: â‚¹${editRate}).`,
           timestamp: formattedDate,
           author: customer.name
         }
       ]
     };
-
     if (onUpdateOrder) {
       onUpdateOrder(updatedOrder);
     }
     setEditingOrder(null);
     alert(`Order ${editingOrder.id} updated successfully!`);
   };
-
   // Chat message send
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-
     const formattedTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const newMsg = {
       id: 'MSG-' + Date.now().toString().slice(-4),
@@ -1059,16 +966,13 @@ function CustomerPortal({
       timestamp: formattedTime,
       isCustomer: true
     };
-
     const updatedThread = {
       ...customerThread,
       messages: [...(customerThread.messages || []), newMsg]
     };
-
     onSaveMessage(updatedThread);
     setChatInput('');
   };
-
   // 7 Customer Tabs
   const customerTabs = [
     { key: 'dashboard', label: 'Dashboard' },
@@ -1079,7 +983,6 @@ function CustomerPortal({
     { key: 'general_ledger', label: 'General Ledger' },
     { key: 'chat', label: 'Chat with Acc Manager' }
   ];
-
   return (
     <div className="space-y-6">
       
@@ -1102,7 +1005,6 @@ function CustomerPortal({
               </button>
             ))}
           </div>
-
           {/* Right: Balance & expand toggle */}
           <div className="flex items-center space-x-2 shrink-0">
             {outstandingLedger.totalOutstanding > 0 && (
@@ -1110,7 +1012,6 @@ function CustomerPortal({
                 Due: {formatCurrency(outstandingLedger.totalOutstanding)}
               </span>
             )}
-
             {activeTab !== 'place_order' && (
               <button
                 onClick={() => setActiveTab('place_order')}
@@ -1119,7 +1020,6 @@ function CustomerPortal({
                 + Place Order
               </button>
             )}
-
             <button
               onClick={() => setBannerMinimized(false)}
               className="bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 transition-all"
@@ -1142,7 +1042,6 @@ function CustomerPortal({
               Minimize
             </button>
           </div>
-
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pr-16 sm:pr-24">
             <div>
               <div className="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-1">
@@ -1155,13 +1054,11 @@ function CustomerPortal({
                 Client: {customer.name} &bull; Account Manager: <span className="text-slate-800 font-semibold">{customerThread.accountManager}</span>
               </p>
             </div>
-
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-right">
               <span className="text-[10px] text-slate-500 block uppercase font-semibold">Outstanding Balance</span>
               <span className="text-lg font-bold font-mono text-slate-900">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
             </div>
           </div>
-
           {/* Modular Navigation Bar */}
           <div className="flex items-center space-x-1.5 mt-5 pt-4 border-t border-slate-100 overflow-x-auto">
             {customerTabs.map(tab => (
@@ -1180,7 +1077,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* MODULE 0: CUSTOMER DASHBOARD */}
       {activeTab === 'dashboard' && (
         <div className="space-y-6 animate-fade-in">
@@ -1202,7 +1098,6 @@ function CustomerPortal({
                 <span>{customerStats.pendingOrders} Pending</span> &bull; <span>{customerStats.deliveredOrders} Delivered</span>
               </div>
             </div>
-
             {/* 2. Total Business Spend */}
             <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Order Value</div>
@@ -1213,7 +1108,6 @@ function CustomerPortal({
                 Manufacturing volume booked
               </div>
             </div>
-
             {/* 3. Outstanding Dues */}
             <div 
               onClick={() => setActiveTab('outstanding_ledger')}
@@ -1233,7 +1127,6 @@ function CustomerPortal({
                 )}
               </div>
             </div>
-
             {/* 4. Active in Production / Dispatched */}
             <div 
               onClick={() => {
@@ -1251,7 +1144,6 @@ function CustomerPortal({
               </div>
             </div>
           </div>
-
           {/* Interactive Manufacturing Pipeline Status Tracker */}
           <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
@@ -1265,7 +1157,6 @@ function CustomerPortal({
                 {customerOrders.length} Total Orders Tracked
               </span>
             </div>
-
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
               {[
                 { step: '01', key: 'pending', label: 'Pending Approval', count: customerStats.pendingOrders },
@@ -1292,7 +1183,6 @@ function CustomerPortal({
               ))}
             </div>
           </div>
-
           {/* Main Grid: Recent Orders (Left) & Quick Actions / Financial Summary (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -1316,7 +1206,6 @@ function CustomerPortal({
                   <span>&rarr;</span>
                 </button>
               </div>
-
               {customerOrders.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
                   <p className="text-sm font-medium text-slate-600">No orders placed yet.</p>
@@ -1345,7 +1234,6 @@ function CustomerPortal({
                       {customerOrders.slice(0, 5).map(order => {
                         const firstItem = order.items[0] || {};
                         const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
-
                         return (
                           <tr key={order.id} className="hover:bg-slate-50 transition-colors">
                             <td className="py-3 px-3 font-mono font-bold text-slate-900">
@@ -1414,7 +1302,6 @@ function CustomerPortal({
                 </div>
               )}
             </div>
-
             {/* Right Column: Quick Navigation Hub & Dedicated Support */}
             <div className="space-y-6">
               
@@ -1431,7 +1318,6 @@ function CustomerPortal({
                     <div className="font-semibold text-xs">+ New Order</div>
                     <div className="text-[10px] text-slate-300 mt-0.5 leading-tight">Configure tags &amp; labels</div>
                   </button>
-
                   <button
                     onClick={() => {
                       setOrderStatusFilter('all');
@@ -1442,7 +1328,6 @@ function CustomerPortal({
                     <div className="font-semibold text-xs text-slate-900">Order Register</div>
                     <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Search &amp; edit orders</div>
                   </button>
-
                   <button
                     onClick={() => setActiveTab('invoice_register')}
                     className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
@@ -1450,7 +1335,6 @@ function CustomerPortal({
                     <div className="font-semibold text-xs text-slate-900">Invoices</div>
                     <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
                   </button>
-
                   <button
                     onClick={() => setActiveTab('general_ledger')}
                     className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
@@ -1460,7 +1344,6 @@ function CustomerPortal({
                   </button>
                 </div>
               </div>
-
               {/* Dedicated Support Card */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
                 <div className="flex items-center space-x-3">
@@ -1476,11 +1359,9 @@ function CustomerPortal({
                     </div>
                   </div>
                 </div>
-
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Need urgent revisions, custom sample approvals, or dispatch priority? Chat directly with your production account lead.
                 </p>
-
                 <button
                   onClick={() => setActiveTab('chat')}
                   className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2 rounded-lg border border-slate-200 transition-all flex items-center justify-center space-x-1"
@@ -1488,27 +1369,27 @@ function CustomerPortal({
                   <span>Open Dedicated Chat</span>
                 </button>
               </div>
-
             </div>
-
           </div>
         </div>
       )}
-
-      {/* MODULE 1: PLACE ORDER (MODERN SALES ORDER UI - INLINE WITH TAGX REFERENCE) */}
+      {/* MODULE 1: PRODUCTION ORDER STUDIO (BESPOKE UBMS DESIGN) */}
       {activeTab === 'place_order' && (
-        <div className="max-w-7xl mx-auto space-y-5 animate-fade-in pb-16">
+        <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16">
           
-          {/* Top Page Header (Matching TagX reference: New Sales Order / SO — place a customer order) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+          {/* Studio Top Header: Refined, Distinctive uBMS Branding */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2.5">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  New Sales Order
+                  Production Order Studio
                 </h1>
+                <span className="text-xs bg-slate-100 text-slate-700 font-mono font-semibold px-2 py-0.5 rounded-md border border-slate-200">
+                  {currentCustomerItemCode}
+                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                SO — place a customer order
+                Configure garment tag specifications, inspect artwork proof, and book manufacturing orders.
               </p>
             </div>
             
@@ -1520,484 +1401,397 @@ function CustomerPortal({
                 className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white px-6 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
               >
                 {isSubmitting ? (
-                  <span>Placing Order...</span>
+                  <span>Booking Order...</span>
                 ) : (
                   <>
-                    <span>Place Order</span>
-                    <span>✓</span>
+                    <span>Confirm &amp; Book Order</span>
+                    <span>â†’</span>
                   </>
                 )}
               </button>
             </div>
           </div>
-
-          {/* Document Status / Draft Pill Bar */}
-          <div className="flex items-center space-x-3 text-xs bg-white border border-slate-200/80 rounded-xl px-4 py-2.5 shadow-2xs">
-            <div className="flex items-center space-x-1.5 font-medium text-slate-800">
-              <span className="text-slate-400">📄</span>
-              <span className="font-semibold">New Sales Order</span>
-            </div>
-            <span className="text-slate-300">•</span>
-            <span className="text-emerald-700 font-medium flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>Draft saved just now</span>
-            </span>
-            <span className="text-slate-300">•</span>
-            <button
-              type="button"
-              onClick={handleDiscardDraft}
-              className="text-slate-400 hover:text-rose-600 font-medium transition-colors cursor-pointer"
-            >
-              discard
-            </button>
-          </div>
-
-          {/* Main 2-Column Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Main Studio Workspace: 2-Column Split */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
             
-            {/* Left Column (8 cols): General Information & Items */}
-            <div className="lg:col-span-8 space-y-6">
+            {/* LEFT COLUMN (7 cols): The Production Specification Sheet */}
+            <div className="lg:col-span-7 space-y-5">
               
-              {/* Card 1: General Information */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
-                <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
-                  <span className="text-base text-slate-400">🗂️</span>
-                  <h3 className="font-bold text-slate-900 text-sm">General Information</h3>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Order Type Radio Buttons (Mandatory) */}
+              {/* SECTION 1: Production Run Type (New vs Repeat) */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-[11px] font-semibold text-slate-700 block mb-2">
-                      Order Type <span className="text-rose-500">*</span>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Production Run Type
                     </label>
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
-                      <label className={`flex items-center space-x-2.5 px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                        orderType === 'New Order'
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-slate-50/80 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="orderType"
-                          value="New Order"
-                          checked={orderType === 'New Order'}
-                          onChange={(e) => {
-                            setOrderType(e.target.value);
-                            setRepeatSelectedItemCode('');
-                            setRepeatSelectedItemName('');
-                            setRepeatSearchQuery('');
-                            if (stepValidationErrors.orderType) {
-                              setStepValidationErrors(prev => ({ ...prev, orderType: null }));
-                            }
-                          }}
-                          className="w-4 h-4 text-slate-900 focus:ring-slate-900 accent-slate-900 cursor-pointer"
-                          required
-                        />
-                        <span>New Order</span>
-                      </label>
-
-                      <label className={`flex items-center space-x-2.5 px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                        orderType === 'Repeat Order'
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-slate-50/80 text-slate-700 border-slate-200/80 hover:bg-white hover:border-slate-300'
-                      }`}>
-                        <input
-                          type="radio"
-                          name="orderType"
-                          value="Repeat Order"
-                          checked={orderType === 'Repeat Order'}
-                          onChange={(e) => {
-                            setOrderType(e.target.value);
-                            if (stepValidationErrors.orderType) {
-                              setStepValidationErrors(prev => ({ ...prev, orderType: null }));
-                            }
-                          }}
-                          className="w-4 h-4 text-slate-900 focus:ring-slate-900 accent-slate-900 cursor-pointer"
-                          required
-                        />
-                        <span>Repeat Order</span>
-                      </label>
-                    </div>
-                    {stepValidationErrors.orderType && (
-                      <p className="text-[11px] text-rose-600 font-medium mt-1">
-                        ⚠️ {stepValidationErrors.orderType}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Row: Order No and Date */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    {/* 1. Order Number */}
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        Order No
-                      </label>
-                      <div className="w-full bg-slate-100/70 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-800 flex items-center justify-between cursor-not-allowed select-none shadow-2xs">
-                        <span>{orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}</span>
-                        <span className="text-[10px] text-slate-400 font-normal">
-                          {orderType === 'Repeat Order' && repeatSelectedItemCode ? 'Selected Ref' : 'Auto-assigned'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 2. Date */}
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                        Date
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          readOnly
-                          value={new Date().toLocaleDateString('en-GB')}
-                          className="w-full bg-slate-50/80 border border-slate-200/80 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium pr-8 cursor-not-allowed"
-                        />
-                        <span className="absolute right-3 top-2 text-slate-400 text-xs">📅</span>
-                      </div>
-                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Choose whether you are booking a new design run or repeating a past manufactured order.
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Card 2: Items */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-base text-slate-400">🏷️</span>
-                    <h3 className="font-bold text-slate-900 text-sm">Items</h3>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-500 font-medium">
-                    {orderItems.length + 1} Item(s) in Order
-                  </span>
+                {/* Elegant Segmented Switcher */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderType('New Order');
+                      setRepeatSelectedItemCode('');
+                      setRepeatSelectedItemName('');
+                      setRepeatSearchQuery('');
+                      if (stepValidationErrors.orderType) {
+                        setStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                      orderType === 'New Order'
+                        ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>âœ¨ New Design Order</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderType('Repeat Order');
+                      if (stepValidationErrors.orderType) {
+                        setStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                      orderType === 'Repeat Order'
+                        ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>ðŸ” Repeat Past Item</span>
+                  </button>
                 </div>
-
-                {/* ITEM 1 Container */}
-                <div className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 space-y-4">
-                  {/* Item Number Header & Repeat Selection */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
-                      ITEM 1
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Ref: {orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentDraftItemName}
-                    </span>
-                  </div>
-
-                  {/* If Repeat Order: Customer MUST select an existing item */}
-                  {orderType === 'Repeat Order' ? (
-                    <div className="p-3.5 bg-slate-100/70 border border-slate-200 rounded-xl space-y-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-bold text-slate-800">
-                          Select Previous Item to Reorder <span className="text-rose-500">*</span>
-                        </label>
-                        {repeatSelectedItemCode && (
-                          <div className="flex items-center space-x-2">
-                            <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
-                              Loaded: {repeatSelectedItemCode}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRepeatSelectedItemCode('');
-                                setRepeatSelectedItemName('');
-                                setRepeatSearchQuery('');
-                              }}
-                              className="text-[10px] text-slate-400 hover:text-rose-600 underline font-medium cursor-pointer"
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {customerPastItems.length > 0 ? (
-                        <div className="relative">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              name="ubms_repeat_item_search_input"
-                              placeholder="Type to search previous item by code, brand, or name..."
-                              value={repeatSearchQuery}
-                              onFocus={() => setRepeatInputFocused(true)}
-                              onChange={(e) => {
-                                setRepeatSearchQuery(e.target.value);
-                                setRepeatInputFocused(true);
-                                if (!e.target.value.trim()) {
-                                  setRepeatSelectedItemCode('');
-                                  setRepeatSelectedItemName('');
-                                }
-                                if (stepValidationErrors.repeatSelectedItemCode) {
-                                  setStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
-                                }
-                              }}
-                              onBlur={() => {
-                                setTimeout(() => setRepeatInputFocused(false), 200);
-                              }}
-                              className={`w-full bg-white border ${stepValidationErrors.repeatSelectedItemCode ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-300 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
-                              autoComplete="off"
-                              autoCorrect="off"
-                              autoCapitalize="off"
-                              spellCheck="false"
-                              data-lpignore="true"
-                              data-form-type="other"
-                            />
-                            {repeatSearchQuery && (
-                              <button
-                                type="button"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setRepeatSearchQuery('');
-                                  setRepeatSelectedItemCode('');
-                                  setRepeatSelectedItemName('');
-                                }}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1"
-                                title="Clear search"
-                              >
-                                ✕
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Custom Non-Intrusive Autocomplete Dropdown */}
-                          {repeatInputFocused && (
-                            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-60 overflow-y-auto">
-                              <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
-                                <span>Previous Order Items</span>
-                                <span>{filteredRepeatItems.length} found</span>
-                              </div>
-                              {filteredRepeatItems.length > 0 ? (
-                                filteredRepeatItems.map((item, idx) => {
-                                  const code = item.itemCode || item.name;
-                                  const isSelected = repeatSelectedItemCode === code;
-                                  return (
-                                    <button
-                                      key={idx}
-                                      type="button"
-                                      onMouseDown={(e) => {
-                                        e.preventDefault();
-                                        handleSelectRepeatItem(code);
-                                        setRepeatInputFocused(false);
-                                      }}
-                                      className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
-                                        isSelected ? 'bg-indigo-50/70' : ''
-                                      }`}
-                                    >
-                                      <div className="flex items-center space-x-3 overflow-hidden">
-                                        {item.image ? (
-                                          <img
-                                            src={item.image}
-                                            alt={item.name || code}
-                                            className="w-9 h-9 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
-                                          />
-                                        ) : (
-                                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
-                                            {(item.type || 'ITM').slice(0, 3).toUpperCase()}
-                                          </div>
-                                        )}
-                                        <div className="min-w-0">
-                                          <div className="flex items-center space-x-2">
-                                            <span className="font-mono font-bold text-xs text-slate-900 truncate">
-                                              {item.name || code}
-                                            </span>
-                                            {code && code !== item.name && (
-                                              <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
-                                                {code}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div className="text-[11px] text-slate-500 truncate flex items-center space-x-1.5 mt-0.5">
-                                            <span className="font-semibold text-slate-700">{item.brandName || 'No Brand'}</span>
-                                            <span>•</span>
-                                            <span className="text-slate-600">{item.type}</span>
-                                            {item.material && (
-                                              <>
-                                                <span>•</span>
-                                                <span className="text-slate-500">{item.material}</span>
-                                              </>
-                                            )}
-                                            {item.unitPrice ? (
-                                              <>
-                                                <span>•</span>
-                                                <span className="text-emerald-700 font-semibold font-mono">₹{item.unitPrice}/pc</span>
-                                              </>
-                                            ) : null}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <span className="text-[10px] text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded font-mono font-semibold shrink-0 ml-2">
-                                        {isSelected ? '✓ Loaded' : 'Select ↵'}
-                                      </span>
-                                    </button>
-                                  );
-                                })
-                              ) : (
-                                <div className="px-4 py-3 text-xs text-slate-500 text-center">
-                                  No previous items matching "{repeatSearchQuery}"
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {stepValidationErrors.repeatSelectedItemCode && (
-                            <p className="text-[11px] text-rose-600 font-medium mt-1">
-                              ⚠️ {stepValidationErrors.repeatSelectedItemCode}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                          No previous items found in your account history. You can place this as a New Order or enter brand details below.
+                {/* IF REPEAT ORDER: Searchable Autocomplete Picker */}
+                {orderType === 'Repeat Order' && (
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-700">
+                        Select Item to Repeat <span className="text-rose-500">*</span>
+                      </label>
+                      {repeatSelectedItemCode && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                            âœ“ {repeatSelectedItemCode} Loaded
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRepeatSelectedItemCode('');
+                              setRepeatSelectedItemName('');
+                              setRepeatSearchQuery('');
+                            }}
+                            className="text-[10px] text-slate-400 hover:text-rose-600 underline font-medium cursor-pointer"
+                          >
+                            Clear
+                          </button>
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs shadow-2xs">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-slate-500 font-medium text-[11px]">Item Name:</span>
-                        <span className="font-mono font-bold text-slate-900">{currentDraftItemName}</span>
-                        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                          Auto-generated
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1.5 text-slate-400 font-mono text-[11px]">
-                        <span>Item Code:</span>
-                        <span className="font-semibold text-slate-700">{currentCustomerItemCode}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Row: Brand Name, Category, Pieces */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
-                    {/* 1. Brand Name (sm:col-span-5) */}
-                    <div className="sm:col-span-5 relative">
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-[11px] font-semibold text-slate-700">
-                          Brand Name <span className="text-rose-500">*</span>
-                        </label>
-                      </div>
-                      <input
-                        type="text"
-                        name="ubms_brand_input_field"
-                        placeholder="Type to search or enter brand..."
-                        value={brandName}
-                        onFocus={() => setBrandInputFocused(true)}
-                        onChange={(e) => {
-                          setBrandName(e.target.value);
-                          setBrandInputFocused(true);
-                          if (stepValidationErrors.brandName) {
-                            setStepValidationErrors(prev => ({ ...prev, brandName: null }));
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setBrandInputFocused(false), 200);
-                        }}
-                        className={`w-full bg-white border ${stepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200/80 focus:ring-slate-400'} rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        data-lpignore="true"
-                        data-form-type="other"
-                      />
-
-                      {/* Custom Non-Intrusive Autocomplete Dropdown */}
-                      {brandInputFocused && customerSavedBrands.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-48 overflow-y-auto">
-                          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                            Saved Brand Suggestions
+                    {customerPastItems.length > 0 ? (
+                      <div className="relative">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="ubms_repeat_item_search_input"
+                            placeholder="Type to search past items by code, brand, or name..."
+                            value={repeatSearchQuery}
+                            onFocus={() => setRepeatInputFocused(true)}
+                            onChange={(e) => {
+                              setRepeatSearchQuery(e.target.value);
+                              setRepeatInputFocused(true);
+                              if (!e.target.value.trim()) {
+                                setRepeatSelectedItemCode('');
+                                setRepeatSelectedItemName('');
+                              }
+                              if (stepValidationErrors.repeatSelectedItemCode) {
+                                setStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
+                              }
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => setRepeatInputFocused(false), 200);
+                            }}
+                            className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.repeatSelectedItemCode ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+                            data-lpignore="true"
+                            data-form-type="other"
+                          />
+                          {repeatSearchQuery && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setRepeatSearchQuery('');
+                                setRepeatSelectedItemCode('');
+                                setRepeatSelectedItemName('');
+                              }}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1 cursor-pointer"
+                              title="Clear search"
+                            >
+                              âœ•
+                            </button>
+                          )}
+                        </div>
+                        {/* Floating Suggestion Cards */}
+                        {repeatInputFocused && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-60 overflow-y-auto">
+                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                              <span>Previously Manufactured Items</span>
+                              <span>{filteredRepeatItems.length} found</span>
+                            </div>
+                            {filteredRepeatItems.length > 0 ? (
+                              filteredRepeatItems.map((item, idx) => {
+                                const code = item.itemCode || item.name;
+                                const isSelected = repeatSelectedItemCode === code;
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      handleSelectRepeatItem(code);
+                                      setRepeatInputFocused(false);
+                                    }}
+                                    className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                                      isSelected ? 'bg-indigo-50/70' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center space-x-3 overflow-hidden">
+                                      {item.image ? (
+                                        <img
+                                          src={item.image}
+                                          alt={item.name || code}
+                                          className="w-9 h-9 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
+                                          {(item.type || 'TAG').slice(0, 3).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-mono font-bold text-xs text-slate-900 truncate">{code}</span>
+                                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium">{item.type || 'Tag'}</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                          {item.brandName ? <strong className="text-slate-700 font-semibold">{item.brandName}</strong> : 'Item'} â€¢ {item.material || 'Standard Board'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-3">
+                                      <div className="text-xs font-mono font-bold text-slate-900">{formatCurrency(item.unitPrice || 0)}</div>
+                                      <span className="text-[10px] text-brand-600 font-semibold">{isSelected ? 'âœ“ Loaded' : 'Select â†µ'}</span>
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <div className="p-4 text-center text-xs text-slate-500">
+                                No previous items matching "{repeatSearchQuery}"
+                              </div>
+                            )}
                           </div>
-                          {customerSavedBrands
-                            .filter(b => !brandName.trim() || b.toLowerCase().includes(brandName.trim().toLowerCase()))
-                            .map((b, idx) => (
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+                        No previous manufactured orders found. Switch to <strong>âœ¨ New Design Order</strong> to create your first article.
+                      </div>
+                    )}
+                    {stepValidationErrors.repeatSelectedItemCode && (
+                      <p className="text-[11px] text-rose-600 font-medium">
+                        âš ï¸ {stepValidationErrors.repeatSelectedItemCode}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {/* IF NEW ORDER: Brand Name & Automatic Article Identification */}
+                {orderType === 'New Order' && (
+                  <div className="pt-2 border-t border-slate-100 space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-semibold text-slate-700">
+                          Brand / Client Label <span className="text-rose-500">*</span>
+                        </label>
+                        {customerSavedBrands.length > 0 && (
+                          <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                            <span>Saved:</span>
+                            {customerSavedBrands.slice(0, 3).map((sb, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  setBrandName(sb);
+                                  if (stepValidationErrors.brandName) {
+                                    setStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                                  }
+                                }}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                              >
+                                {sb}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="ubms_brand_input_field"
+                          placeholder="Type brand name (e.g. Urban Stitch / Denim Club)..."
+                          value={brandName}
+                          onFocus={() => setBrandInputFocused(true)}
+                          onChange={(e) => {
+                            setBrandName(e.target.value);
+                            setBrandInputFocused(true);
+                            if (stepValidationErrors.brandName) {
+                              setStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => setBrandInputFocused(false), 200);
+                          }}
+                          className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          data-lpignore="true"
+                          data-form-type="other"
+                        />
+                        {/* Floating Brand Suggestions */}
+                        {brandInputFocused && filteredBrandSuggestions.length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-48 overflow-y-auto">
+                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                              Saved Brands
+                            </div>
+                            {filteredBrandSuggestions.map((sb, idx) => (
                               <button
                                 key={idx}
                                 type="button"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
-                                  setBrandName(b);
+                                  setBrandName(sb);
                                   setBrandInputFocused(false);
                                   if (stepValidationErrors.brandName) {
                                     setStepValidationErrors(prev => ({ ...prev, brandName: null }));
                                   }
                                 }}
-                                className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0"
+                                className="w-full text-left px-3.5 py-2 text-xs text-slate-800 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
                               >
-                                <span className="font-semibold text-slate-900">{b}</span>
-                                <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-mono">Select ↵</span>
+                                <span>{sb}</span>
+                                <span className="text-[10px] text-slate-400">Select â†µ</span>
                               </button>
                             ))}
-                        </div>
-                      )}
-
-
-
+                          </div>
+                        )}
+                      </div>
                       {stepValidationErrors.brandName && (
                         <p className="text-[11px] text-rose-600 font-medium mt-1">
-                          ⚠️ {stepValidationErrors.brandName}
+                          âš ï¸ {stepValidationErrors.brandName}
                         </p>
                       )}
                     </div>
-
-                    {/* 2. Category (sm:col-span-3) */}
-                    <div className="sm:col-span-3">
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                        Category <span className="text-rose-500">*</span>
-                      </label>
-                      <select
-                        value={selectedType}
-                        onChange={(e) => handleTypeChange(e.target.value)}
-                        className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                      >
-                        {availableTypes.map(t => (
-                          <option key={t.id} value={t.name}>{t.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* 3. Pieces (sm:col-span-4) */}
-                    <div className="sm:col-span-4">
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                        Pieces
-                      </label>
-                      {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
-                        <select
-                          value={isMultiCard ? (tagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '1 PC') {
-                              setIsMultiCard(false);
-                            } else if (val === '2 PC') {
-                              setIsMultiCard(true);
-                              if (tagCards.length > 2) handleRemoveThirdCard();
-                            } else if (val === '3 PC') {
-                              setIsMultiCard(true);
-                              if (tagCards.length < 3) handleAddThirdCard();
-                            }
-                          }}
-                          className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                        >
-                          <option value="1 PC">1 PC (Single Card Tag)</option>
-                          <option value="2 PC">2 PC (Multi-Card Tag Set)</option>
-                          <option value="3 PC">3 PC (3-Card Tag Set)</option>
-                        </select>
-                      ) : (
-                        <div className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-700 font-medium shadow-2xs">
-                          1 PC (Standard)
-                        </div>
-                      )}
+                    {/* Auto-Assigned Article Reference */}
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/70 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-500 font-medium">Assigned Production Reference:</span>
+                        <span className="font-mono font-bold text-slate-900 ml-2">{currentDraftItemName}</span>
+                      </div>
+                      <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-medium">
+                        Standardized Naming
+                      </span>
                     </div>
                   </div>
-
-                  {/* Specifications (Tag Paper Catalog OR PU Quality / Origin) */}
-                  <div className="pt-2 border-t border-slate-200/60">
-                    {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
-                      /* Tag or Tag Kit Selected -> Paper Catalog */
-                      !isMultiCard ? (
+                )}
+              </div>
+              {/* SECTION 2: Product Category & Structural Specifications */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Product Architecture &amp; Specifications
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Select the garment accessory category and configure physical dimensions and paper board qualities.
+                  </p>
+                </div>
+                {/* Category & Piece Format Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                      Product Category <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={selectedType}
+                      onChange={(e) => handleTypeChange(e.target.value)}
+                      className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                    >
+                      {availableTypes.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Format / Pieces (For Hangtags & Tag Kits) */}
+                  {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Piece Composition / Format
+                      </label>
+                      <select
+                        value={isMultiCard ? (tagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '1 PC') {
+                            setIsMultiCard(false);
+                          } else if (val === '2 PC') {
+                            setIsMultiCard(true);
+                            if (tagCards.length > 2) handleRemoveThirdCard();
+                          } else if (val === '3 PC') {
+                            setIsMultiCard(true);
+                            if (tagCards.length < 3) handleAddThirdCard();
+                          }
+                        }}
+                        className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                      >
+                        <option value="1 PC">1 PC (Single Tag)</option>
+                        <option value="2 PC">2 PC (2-Piece Tag Set)</option>
+                        <option value="3 PC">3 PC (3-Piece Tag Kit)</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Format
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="Single Unit Patch"
+                        className="w-full bg-slate-100/70 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-600 font-medium cursor-not-allowed"
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* MATERIAL ENGINEERING: Hangtag / Tag Kit vs PU Label */}
+                <div className="pt-2 border-t border-slate-100">
+                  {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (
+                    /* Hangtag / Tag Kit Paper Board Selection */
+                    <div className="space-y-3">
+                      {!isMultiCard ? (
+                        /* Single Card Tag */
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                              Paper Catalog <span className="text-rose-500">*</span>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Paper Catalog Board <span className="text-rose-500">*</span>
                             </label>
                             <select
                               value={selectedCatalogId}
@@ -2007,26 +1801,25 @@ function CustomerPortal({
                                   setStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
                                 }
                               }}
-                              className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                             >
                               {availableCatalogs.map(cat => (
                                 <option key={cat.id} value={cat.id}>
-                                  {cat.code} — {cat.gsm} GSM ({cat.finish})
+                                  {cat.code} â€” {cat.gsm} GSM ({cat.finish})
                                 </option>
                               ))}
                             </select>
                           </div>
-
                           <div>
-                            <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                              Tag Dimensions / Finished Size (Optional)
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Die-Cut Dimensions (Size L Ã— Size B)
                             </label>
                             <input
                               type="text"
                               placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
                               value={singleCardDimension}
                               onChange={(e) => setSingleCardDimension(e.target.value)}
-                              className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                             />
                           </div>
                         </div>
@@ -2035,7 +1828,7 @@ function CustomerPortal({
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-slate-800">
-                              Multi-Tag Configuration ({tagCards.length} Tags)
+                              Multi-Piece Layer Configuration ({tagCards.length} Pieces)
                             </span>
                             {tagCards.length < 3 && (
                               <button
@@ -2043,14 +1836,13 @@ function CustomerPortal({
                                 onClick={handleAddThirdCard}
                                 className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 cursor-pointer"
                               >
-                                + Add 3rd Tag
+                                + Add 3rd Piece
                               </button>
                             )}
                           </div>
-
                           <div className="grid grid-cols-1 gap-3">
                             {tagCards.map((card, idx) => (
-                              <div key={card.id} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2.5 shadow-2xs">
+                              <div key={card.id} className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-bold text-slate-800">
                                     {card.title}
@@ -2068,16 +1860,16 @@ function CustomerPortal({
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                                      Paper Catalog
+                                      Paper Board Quality
                                     </label>
                                     <select
                                       value={card.catalogId}
                                       onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
                                     >
                                       {availableCatalogs.map(cat => (
                                         <option key={cat.id} value={cat.id}>
-                                          {cat.code} — {cat.gsm} GSM
+                                          {cat.code} â€” {cat.gsm} GSM
                                         </option>
                                       ))}
                                     </select>
@@ -2091,7 +1883,7 @@ function CustomerPortal({
                                       placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
                                       value={card.dimension}
                                       onChange={(e) => handleUpdateCardDimension(idx, e.target.value)}
-                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
                                     />
                                   </div>
                                 </div>
@@ -2099,268 +1891,359 @@ function CustomerPortal({
                             ))}
                           </div>
                         </div>
-                      )
-                    ) : (
-                      /* PU Label Selected -> Indian or Imported */
-                      <div className="space-y-3">
+                      )}
+                    </div>
+                  ) : (
+                    /* PU Label Leather Material Options */
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                            PU Quality / Origin <span className="text-rose-500">*</span>
+                            PU Leather Origin
                           </label>
-                          <div className="flex items-center space-x-3">
+                          <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
                             <button
                               type="button"
                               onClick={() => setPuOrigin('Indian')}
-                              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                                 puOrigin === 'Indian'
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              Indian
+                              Indian PU
                             </button>
                             <button
                               type="button"
                               onClick={() => setPuOrigin('Imported')}
-                              className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                                 puOrigin === 'Imported'
-                                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900'
                               }`}
                             >
-                              Imported
+                              Imported PU
                             </button>
                           </div>
                         </div>
-
                         {puOrigin === 'Indian' ? (
                           <div>
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                              Thickness (mm) <span className="text-rose-500">*</span>
+                              Thickness Gauge
                             </label>
-                            <div className="flex items-center space-x-2">
-                              {['1.2', '1.8', '2.2'].map(val => (
-                                <button
-                                  key={val}
-                                  type="button"
-                                  onClick={() => setPuThickness(val)}
-                                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer ${
-                                    puThickness === val
-                                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {val} mm
-                                </button>
-                              ))}
-                            </div>
+                            <select
+                              value={puThickness}
+                              onChange={(e) => setPuThickness(e.target.value)}
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium shadow-2xs"
+                            >
+                              <option value="1.2">1.2 mm (Standard)</option>
+                              <option value="1.8">1.8 mm (Medium Heavy)</option>
+                              <option value="2.2">2.2 mm (Ultra Heavy Duty)</option>
+                            </select>
                           </div>
                         ) : (
-                          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                            <span className="text-xs font-semibold text-slate-800">
-                              Imported PU — Single Quality Standard (no thickness options needed)
-                            </span>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Imported Grade
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value="Premium Imported Synthetic Grain"
+                              className="w-full bg-slate-100/70 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-600 font-medium cursor-not-allowed"
+                            />
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-
-                  {/* Handwork Attachments (Optional) - Not applicable for Tag Kit */}
-                  {selectedType !== 'Tag Kit' && (
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
-                        Handwork Attachments
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Dori */}
-                      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
-                          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDoriOption('none');
-                                setDoriCustom('');
-                              }}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                doriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              None
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDoriOption('reg');
-                                setDoriCustom('');
-                              }}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              Reg. (₹0.20)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDoriOption('custom')}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                doriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              Custom
-                            </button>
-                          </div>
-                        </div>
-                        {doriOption === 'custom' && (
-                          <input
-                            type="text"
-                            placeholder="Specify custom dori (e.g. Waxed Cotton / Satin string)"
-                            value={doriCustom}
-                            onChange={(e) => setDoriCustom(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
-                          />
-                        )}
-                      </div>
-
-                      {/* Barcode Plastic */}
-                      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-800">Barcode Plastic</span>
-                          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPlasticOption('none');
-                                setPlasticCustom('');
-                              }}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                plasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              None
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPlasticOption('reg');
-                                setPlasticCustom('');
-                              }}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              Reg. (₹0.10)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPlasticOption('custom')}
-                              className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                                plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                            >
-                              Custom
-                            </button>
-                          </div>
-                        </div>
-                        {plasticOption === 'custom' && (
-                          <input
-                            type="text"
-                            placeholder="Specify custom barcode plastic (e.g. Embossed Square Seal / Black matte)"
-                            value={plasticCustom}
-                            onChange={(e) => setPlasticCustom(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
-                          />
-                        )}
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                          Patch Finished Size (L Ã— B)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 45 x 70 mm or 50 x 85 mm"
+                          value={singleCardDimension}
+                          onChange={(e) => setSingleCardDimension(e.target.value)}
+                          className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium shadow-2xs"
+                        />
                       </div>
                     </div>
-                  </div>
-
                   )}
-
-                  {/* Commercials: Quantity, Rate (Increased size, suggestions removed, subtotal removed) */}
-                  <div className="pt-2 border-t border-slate-200/60">
-                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block mb-2.5">
-                      Commercials
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-800 block mb-1.5">
-                          Quantity (Pcs) <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          placeholder="e.g. 5000"
-                          value={qty || ''}
-                          onChange={(e) => {
-                            setQty(e.target.value);
-                            if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
-                          }}
-                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 text-sm sm:text-base font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-semibold text-slate-800 block mb-1.5">
-                          Applicable Rate (₹/pc) <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.05"
-                          min="0"
-                          placeholder="e.g. 3.50"
-                          value={rate || ''}
-                          onChange={(e) => {
-                            setRate(e.target.value);
-                            if (stepValidationErrors.rate) setStepValidationErrors(prev => ({ ...prev, rate: null }));
-                          }}
-                          className={`w-full bg-slate-50 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 text-sm sm:text-base font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
-                        />
-                        <span className="text-[11px] text-slate-400 mt-1 block">Production agreed unit price</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Special Order Remarks */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Special Order Remarks / Packaging Instructions (Optional)
-                    </label>
-                    <textarea
-                      rows="2"
-                      placeholder="e.g. Cut & fold preference, bundle packaging in 100s, urgent dispatch deadline..."
-                      value={orderNotes}
-                      onChange={(e) => setOrderNotes(e.target.value)}
-                      className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
-                    />
-                  </div>
                 </div>
               </div>
-
-            </div>
-
-            {/* Right Column (4 cols): Default Artwork & Commercial Summary */}
-            <div className="lg:col-span-4 space-y-6 sticky top-20">
-              
-              {/* Card 1: Default Artwork (Exact match to TagX reference) */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-3">
-                <div className="flex items-center space-x-2">
-                  <span className="text-base text-slate-400">🖼️</span>
-                  <h3 className="font-bold text-slate-900 text-sm">Default Artwork</h3>
+              {/* SECTION 3: Handwork Fasteners & Attachments (Only for Standard Hangtags) */}
+              {selectedType !== 'Tag Kit' && (
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Handwork Fasteners &amp; Attachments
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Configure tag hanging cords (Dori) and molded barcode seal locks.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Dori (Cord/String) */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
+                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDoriOption('none');
+                              setDoriCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              doriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            None
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDoriOption('reg');
+                              setDoriCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Reg. (â‚¹0.20)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDoriOption('custom')}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              doriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                      </div>
+                      {doriOption === 'custom' ? (
+                        <input
+                          type="text"
+                          placeholder="Specify custom dori (e.g. Waxed Cotton / Satin cord)"
+                          value={doriCustom}
+                          onChange={(e) => setDoriCustom(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                        />
+                      ) : (
+                        <div className="text-[11px] text-slate-500">
+                          {doriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (â‚¹0.20/pc)'}
+                        </div>
+                      )}
+                    </div>
+                    {/* Barcode Plastic Seal */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Barcode Plastic Seal</span>
+                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPlasticOption('none');
+                              setPlasticCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              plasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            None
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPlasticOption('reg');
+                              setPlasticCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Reg. (â‚¹0.10)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPlasticOption('custom')}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                      </div>
+                      {plasticOption === 'custom' ? (
+                        <input
+                          type="text"
+                          placeholder="Specify custom seal (e.g. Embossed Square Seal)"
+                          value={plasticCustom}
+                          onChange={(e) => setPlasticCustom(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                        />
+                      ) : (
+                        <div className="text-[11px] text-slate-500">
+                          {plasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (â‚¹0.10/pc)'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Used for any item that doesn't have its own image. Add a per-item image on each item above to override this.
-                </p>
-
-                {/* Minimalist Dropzone */}
+              )}
+              {/* SECTION 4: Production Volume & Commercial Rates */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Production Volume &amp; Commercials
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Specify required pieces and agreed unit manufacturing pricing.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                  {/* Quantity Input with Presets */}
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-700">
+                        Order Quantity (Pcs) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center space-x-1">
+                        {[1000, 2500, 5000, 10000].map(val => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => {
+                              setQty(val);
+                              if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
+                            }}
+                            className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                              Number(qty) === val
+                                ? 'bg-slate-900 text-white border-slate-900 font-bold'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {val >= 1000 ? `${val / 1000}k` : val}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <input type="number"
+                      name="ubms_order_qty_input"
+                      placeholder="e.g. 5000"
+                      value={qty || ''}
+                      onChange={(e) => {
+                        setQty(e.target.value);
+                        if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
+                      }}
+                      className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                    />
+                    {stepValidationErrors.qty && (
+                      <p className="text-[11px] text-rose-600 font-medium">âš ï¸ {stepValidationErrors.qty}</p>
+                    )}
+                  </div>
+                  {/* Rate Input */}
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-700 block">
+                      Agreed Unit Rate (â‚¹/pc) <span className="text-rose-500">*</span>
+                    </label>
+                    <input type="number" step="0.05"
+                      name="ubms_order_rate_input"
+                      placeholder="e.g. 3.50"
+                      value={rate || ''}
+                      onChange={(e) => {
+                        setRate(e.target.value);
+                        if (stepValidationErrors.rate) setStepValidationErrors(prev => ({ ...prev, rate: null }));
+                      }}
+                      className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${stepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                    />
+                    {stepValidationErrors.rate && (
+                      <p className="text-[11px] text-rose-600 font-medium">âš ï¸ {stepValidationErrors.rate}</p>
+                    )}
+                  </div>
+                </div>
+                {/* Packaging Instructions */}
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                    Packaging Instructions / Special Production Notes (Optional)
+                  </label>
+                  <textarea
+                    rows="2"
+                    placeholder="e.g. Bundle packaging in 100s, urgent dispatch deadline, shrink wrap rolls..."
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                  />
+                </div>
+                {/* Staged Additional Items Table (if any) */}
+                {orderItems.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Staged Batch Items ({orderItems.length})
+                    </h4>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
+                      {orderItems.map((item, idx) => (
+                        <div key={idx} className="p-3 border-b border-slate-100 last:border-0 flex items-center justify-between">
+                          <div>
+                            <span className="font-mono font-bold text-slate-900 mr-2">{item.itemCode || item.name}</span>
+                            <span className="font-semibold text-slate-800 mr-2">{item.brandName}</span>
+                            <span className="text-slate-500 font-mono">({item.quantity} pcs @ {formatCurrency(item.unitPrice)})</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className="font-mono font-bold text-slate-900">{formatCurrency(item.total)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOrderItem(item.id)}
+                              className="text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Batch Item Button */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAddItemToOrder}
+                    className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <span>+ Add Another Article to this Order Batch</span>
+                  </button>
+                  <span className="text-[11px] text-slate-400">
+                    Combine multiple tag references into one job card
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* RIGHT COLUMN (5 cols): Visual Artwork Proof Canvas & Production Job Ticket */}
+            <div className="lg:col-span-5 space-y-6 sticky top-20">
+              
+              {/* COMPONENT 1: Interactive Artwork Proof Canvas */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Artwork &amp; Prepress Proof</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Visual framing and prepress alignment for offset printing.
+                    </p>
+                  </div>
+                  {orderImage && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                      âœ“ Print File Ready
+                    </span>
+                  )}
+                </div>
+                {/* Artwork Framing Area */}
                 {!orderImage ? (
-                  <div className="bg-slate-50/70 hover:bg-slate-50 border-2 border-dashed border-slate-200/80 rounded-2xl p-8 min-h-[220px] flex flex-col items-center justify-center text-center relative group transition-all cursor-pointer">
+                  /* Upload Dropzone Styled Like Hangtag Blueprint */
+                  <div className="bg-slate-50/70 hover:bg-white border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-2xl p-7 min-h-[240px] flex flex-col items-center justify-center text-center relative group transition-all cursor-pointer">
                     <input
                       id="customer-file-upload"
                       type="file"
@@ -2368,48 +2251,83 @@ function CustomerPortal({
                       onChange={handleImageUpload}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
-                    <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-slate-700 text-2xl font-light mb-2 group-hover:scale-105 transition-transform">
-                      +
+                    
+                    {/* Simulated Hangtag Silhouette */}
+                    <div className="w-16 h-24 rounded-xl border-2 border-slate-300 group-hover:border-slate-500 bg-white shadow-2xs flex flex-col items-center justify-between p-2 mb-3 transition-colors">
+                      <div className="w-2 h-2 rounded-full border border-slate-300 bg-slate-100"></div>
+                      <div className="text-xl font-light text-slate-400 group-hover:text-slate-800 transition-colors">+</div>
+                      <div className="w-8 h-1 rounded bg-slate-100"></div>
                     </div>
-                    <div className="text-xs font-semibold text-slate-800">
-                      Upload or drag &amp; drop
+                    <div className="text-xs font-bold text-slate-800">
+                      Upload Production Artwork
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Supports JPG, PNG, WEBP (Max 25MB)
+                    <p className="text-[11px] text-slate-500 max-w-xs mt-1 leading-relaxed">
+                      Drag &amp; drop your logo or tag artwork file (JPG, PNG, WEBP up to 25MB).
                     </p>
+                    <span className="text-[10px] text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
+                      Optional: Our design studio prepares prepress proofs if blank
+                    </span>
                   </div>
                 ) : (
-                  <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
-                    <div className="relative group max-h-48 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
-                      <img
-                        src={orderImage}
-                        alt="Order Artwork"
-                        className="max-h-44 w-full object-contain p-2"
-                      />
+                  /* Visual Tag Mockup Proof Preview */
+                  <div className="space-y-3">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center min-h-[220px]">
+                      {/* Realistic Hangtag Frame */}
+                      <div className="relative group w-40 h-56 bg-white rounded-2xl border-2 border-slate-300/80 shadow-md flex flex-col items-center justify-between p-3 overflow-hidden">
+                        {/* Simulated Tag Hole Punch Guide */}
+                        <div className="w-3 h-3 rounded-full border border-slate-300 bg-slate-200/70 shrink-0 z-10" title="Drill Hole Guide (3mm)"></div>
+                        
+                        {/* Artwork Preview Image */}
+                        <div 
+                          onClick={() => setShowFullImageModal(true)}
+                          className="w-full flex-1 flex items-center justify-center overflow-hidden cursor-pointer py-1"
+                          title="Click to view full image in lightbox"
+                        >
+                          <img
+                            src={orderImage}
+                            alt="Order Artwork Proof"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        {/* Tag Dimensions Badge */}
+                        <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest shrink-0">
+                          {singleCardDimension || '50 Ã— 90 mm'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-[11px] font-semibold text-emerald-700">✓ Uploaded &amp; Ready</span>
+                    {/* Prepress Toolstrip */}
+                    <div className="flex items-center justify-between pt-1 text-xs">
                       <div className="flex items-center space-x-2">
                         <button
                           type="button"
                           onClick={() => setShowCropModal(true)}
-                          className="text-slate-700 hover:text-slate-900 font-semibold underline text-[11px] cursor-pointer"
+                          className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1 cursor-pointer"
                         >
-                          Crop
+                          <span>âœ‚ï¸ Crop &amp; Frame</span>
                         </button>
-                        <span className="text-slate-300">•</span>
                         <button
                           type="button"
                           onClick={() => setShowFullImageModal(true)}
-                          className="text-slate-700 hover:text-slate-900 font-semibold text-[11px] cursor-pointer"
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
                         >
-                          View
+                          Inspect Lightbox
                         </button>
-                        <span className="text-slate-300">•</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <label className="text-slate-600 hover:text-slate-900 underline text-xs cursor-pointer font-medium">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-slate-300">â€¢</span>
                         <button
                           type="button"
                           onClick={() => setOrderImage('')}
-                          className="text-rose-600 hover:text-rose-700 font-semibold text-[11px] cursor-pointer"
+                          className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
                         >
                           Remove
                         </button>
@@ -2418,108 +2336,88 @@ function CustomerPortal({
                   </div>
                 )}
               </div>
-
-              {/* Card 2: Commercial Summary & Submit */}
+              {/* COMPONENT 2: Production Job Ticket (Manufacturing Order Summary) */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900 text-sm">Commercial Summary</h3>
-                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-medium">
-                    {currentCustomerItemCode}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-base text-slate-400">ðŸ“‹</span>
+                    <h3 className="font-bold text-slate-900 text-sm">Production Job Ticket</h3>
+                  </div>
+                  <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">
+                    {orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}
                   </span>
                 </div>
-
-                <div className="space-y-2.5 text-xs">
+                <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Brand:</span>
-                    <span className="font-semibold text-slate-900 text-right">{brandName || '—'}</span>
-                  </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Item Name:</span>
-                    <span className="font-semibold text-slate-900 text-right font-mono text-[11px]">{orderType === 'Repeat Order' && repeatSelectedItemCode ? (repeatSelectedItemName || repeatSelectedItemCode) : currentDraftItemName}</span>
-                  </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Item Code:</span>
-                    <span className="font-semibold text-slate-700 text-right font-mono text-[11px]">{orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}</span>
+                    <span className="font-semibold text-slate-900 text-right">{brandName || 'â€”'}</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Product:</span>
                     <span className="font-semibold text-slate-900 text-right">{selectedType}</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Format:</span>
+                    <span className="text-slate-500 text-[11px]">Composition:</span>
                     <span className="font-semibold text-slate-900 text-right">
-                      {(selectedType === 'Tag' || selectedType === 'Tag Kit') ? (isMultiCard ? `${tagCards.length}-Piece ${selectedType}` : `Single ${selectedType}`) : 'Standard'}
+                      {selectedType === 'Tag' || selectedType === 'Tag Kit' ? (isMultiCard ? `${tagCards.length}-Piece Set` : 'Single Card Tag') : 'Standard Unit'}
                     </span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Quantity:</span>
+                    <span className="text-slate-500 text-[11px]">Material Board:</span>
+                    <span className="font-semibold text-slate-900 text-right text-[11px] max-w-[160px] truncate">
+                      {selectedType === 'Tag' || selectedType === 'Tag Kit'
+                        ? (availableCatalogs.find(c => c.id === selectedCatalogId)?.code || 'Stock Board')
+                        : `${puOrigin} PU (${puThickness}mm)`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Volume:</span>
                     <span className="font-semibold font-mono text-slate-900 text-right">{Number(qty || 0).toLocaleString()} pcs</span>
                   </div>
                   <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Rate:</span>
+                    <span className="text-slate-500 text-[11px]">Unit Rate:</span>
                     <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency(Number(rate || 0))}/pc</span>
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Subtotal:</span>
-                    <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency((Number(qty) || 0) * (Number(rate) || 0))}</span>
-                  </div>
-                  {selectedType !== 'Tag Kit' ? (
+                  
+                  {selectedType !== 'Tag Kit' && (
                     <div className="flex justify-between items-start gap-2">
-                      <span className="text-slate-500 text-[11px]">Handwork:</span>
+                      <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
                       <span className="text-[11px] text-slate-600 text-right">
-                        Dori ({doriOption === 'none' ? 'None' : doriOption === 'custom' ? 'Custom' : '₹0.20'}) | Barcode Plastic ({plasticOption === 'none' ? 'None' : plasticOption === 'custom' ? 'Custom' : '₹0.10'})
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-slate-500 text-[11px]">Handwork:</span>
-                      <span className="text-[11px] text-slate-400 text-right">
-                        None (Not included in Tag Kit)
+                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : 'â‚¹0.20'}) | Seal ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : 'â‚¹0.10'})
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Taxes &amp; Surcharges:</span>
-                    <span className="text-[11px] text-emerald-700 font-semibold text-right">₹0.00 (Zero Added)</span>
-                  </div>
-
                   <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
-                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">Grand Total:</span>
+                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">Estimated Total:</span>
                     <span className="text-xl font-bold font-mono text-slate-900">
                       {formatCurrency(grandTotal)}
                     </span>
                   </div>
                 </div>
-
-                {/* Final Submit Button */}
+                {/* Primary Booking Action */}
                 <button
                   type="button"
                   onClick={handleSubmitFinalOrder}
                   disabled={isSubmitting}
-                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   {isSubmitting ? (
-                    <span>Placing Order...</span>
+                    <span>Booking Manufacturing Order...</span>
                   ) : (
                     <>
-                      <span>Place Order</span>
-                      <span>✓</span>
+                      <span>Confirm &amp; Book Order</span>
+                      <span>âœ“</span>
                     </>
                   )}
                 </button>
-
                 <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-                  Orders are instantly transmitted for factory scheduling and prepress proofing.
+                  Orders are scheduled directly to the offset press queue upon confirmation.
                 </p>
               </div>
-
             </div>
-
           </div>
-
         </div>
       )}
-
       {/* MODULE 2: ORDER REGISTER */}
       {activeTab === 'order_register' && (
         <div className="space-y-4 animate-fade-in">
@@ -2548,7 +2446,6 @@ function CustomerPortal({
                     <option value="rejected" className="bg-white text-slate-800">Rejected ({customerOrders.filter(o => o.status === 'rejected').length})</option>
                   </select>
                 </div>
-
                 {(orderStatusFilter !== 'all' || searchBrandSpecs || searchDoriPlastic || searchQty || searchRate) && (
                   <button
                     onClick={() => {
@@ -2564,13 +2461,11 @@ function CustomerPortal({
                     <span>Clear Filters</span>
                   </button>
                 )}
-
                 <span className="text-xs text-slate-700 font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
                   {filteredCustomerOrders.length} of {customerOrders.length} Order(s)
                 </span>
               </div>
             </div>
-
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-y border-slate-200 rounded-xl">
@@ -2695,7 +2590,6 @@ function CustomerPortal({
                   {filteredCustomerOrders.map(order => {
                     const firstItem = order.items[0] || {};
                     const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
-
                     return (
                       <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                         {/* 1. ORDER ID */}
@@ -2721,7 +2615,6 @@ function CustomerPortal({
                             </span>
                           </div>
                         </td>
-
                         {/* 2. ARTWORK (LARGER SIZE WITH CLICK TO ENLARGE) */}
                         <td className="py-4 px-4 align-top">
                           {firstItem.image ? (
@@ -2745,7 +2638,6 @@ function CustomerPortal({
                             </div>
                           )}
                         </td>
-
                         {/* 3. BRAND AND ITEM SPECS */}
                         <td className="py-4 px-4 align-top">
                           <div className="flex items-center space-x-2">
@@ -2764,7 +2656,6 @@ function CustomerPortal({
                               {firstItem.material || 'Standard'}
                             </span>
                           </div>
-
                           {firstItem.isMultiCard && firstItem.cards && firstItem.cards.length > 0 && (
                             <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
                               <span className="text-[10px] font-semibold text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded inline-block">
@@ -2773,27 +2664,24 @@ function CustomerPortal({
                               <div className="text-[11px] text-slate-600 space-y-0.5">
                                 {firstItem.cards.map((c, ci) => (
                                   <div key={ci} className="flex items-center space-x-1">
-                                    <span className="text-slate-900 font-medium">• {c.title}:</span>
+                                    <span className="text-slate-900 font-medium">â€¢ {c.title}:</span>
                                     <span className="text-slate-700">{c.catalogCode || c.name} ({c.gsm} GSM)</span>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           )}
-
                           {order.status === 'rejected' && (
                             <div className="mt-2 bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-rose-800 text-xs">
                               <span className="font-bold text-rose-700">Rejection Reason:</span> {order.rejectionReason || 'Please place a fresh order with revised specifications.'}
                             </div>
                           )}
-
                           {order.items.length > 1 && (
                             <span className="inline-block mt-1 text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 font-medium">
                               + {order.items.length - 1} more item(s)
                             </span>
                           )}
                         </td>
-
                         {/* 4. DORI PLASTIC */}
                         <td className="py-4 px-4 align-top text-xs space-y-1">
                           <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
@@ -2803,7 +2691,6 @@ function CustomerPortal({
                             Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
                           </div>
                         </td>
-
                         {/* 5. QTY */}
                         <td className="py-4 px-4 align-top">
                           <div className="font-mono font-bold text-slate-900 text-sm">
@@ -2811,19 +2698,16 @@ function CustomerPortal({
                           </div>
                           <span className="text-[11px] text-slate-400">pcs</span>
                         </td>
-
                         {/* 6. RATE */}
                         <td className="py-4 px-4 align-top font-mono font-medium text-slate-700 text-sm whitespace-nowrap">
                           {formatCurrency(firstItem.unitPrice || 0)}
                         </td>
-
                         {/* 7. AMT */}
                         <td className="py-4 px-4 align-top text-right">
                           <span className="font-bold text-slate-900 text-base font-mono whitespace-nowrap">
                             {formatCurrency(order.total)}
                           </span>
                         </td>
-
                         {/* 8. EDIT / RE-ORDER */}
                         <td className="py-4 px-4 align-top text-center">
                           <div className="flex flex-col items-center justify-center gap-1.5">
@@ -2851,7 +2735,6 @@ function CustomerPortal({
                                 <span>Locked</span>
                               </span>
                             )}
-
                             <button
                               onClick={() => onOpenInvoice(order)}
                               className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs border border-slate-300 transition-colors flex items-center justify-center space-x-1 font-medium"
@@ -2890,14 +2773,12 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* MODULE 3: INVOICE REGISTER */}
       {activeTab === 'invoice_register' && (
         <div className="space-y-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
             <h3 className="font-extrabold text-slate-900 text-base mb-1">Customer Invoice Register</h3>
             <p className="text-xs text-slate-500 mb-4">Invoices issued against completed orders.</p>
-
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
@@ -2948,7 +2829,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* MODULE 4: OUTSTANDING LEDGER */}
       {activeTab === 'outstanding_ledger' && (
         <div className="space-y-6 animate-fade-in">
@@ -2970,7 +2850,6 @@ function CustomerPortal({
               <div className="text-2xl font-black text-rose-700 mt-1">{formatCurrency(outstandingLedger.aging60Plus)}</div>
             </div>
           </div>
-
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
             <h3 className="font-extrabold text-slate-900 text-base mb-1">Unpaid Dues Breakdown</h3>
             <table className="w-full text-left text-xs text-slate-700 mt-3">
@@ -2998,7 +2877,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* MODULE 5: GENERAL LEDGER */}
       {activeTab === 'general_ledger' && (
         <div className="space-y-6 animate-fade-in">
@@ -3016,7 +2894,6 @@ function CustomerPortal({
               <div className="text-xl font-black text-amber-700 mt-1">{formatCurrency(generalLedger.closingBalance)}</div>
             </div>
           </div>
-
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
             <h3 className="font-extrabold text-slate-900 text-base mb-1">Statement of Account (General Ledger)</h3>
             <table className="w-full text-left text-xs text-slate-700 mt-3">
@@ -3025,9 +2902,9 @@ function CustomerPortal({
                   <th className="py-3 px-4 font-bold">Date</th>
                   <th className="py-3 px-4 font-bold">Particulars</th>
                   <th className="py-3 px-4 font-bold">Ref No</th>
-                  <th className="py-3 px-4 text-right font-bold">Debit (₹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Credit (₹)</th>
-                  <th className="py-3 px-4 text-right font-bold">Balance (₹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Debit (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Credit (â‚¹)</th>
+                  <th className="py-3 px-4 text-right font-bold">Balance (â‚¹)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -3036,8 +2913,8 @@ function CustomerPortal({
                     <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
                     <td className="py-3 px-4 font-bold text-slate-900">{j.particulars}</td>
                     <td className="py-3 px-4 font-mono text-slate-700">{j.refNo}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : 'â€”'}</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">{j.credit > 0 ? formatCurrency(j.credit) : 'â€”'}</td>
                     <td className="py-3 px-4 text-right font-mono font-black text-amber-700">{formatCurrency(j.balance)}</td>
                   </tr>
                 ))}
@@ -3046,7 +2923,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* MODULE 6: CHAT WITH ACCOUNT MANAGER */}
       {activeTab === 'chat' && (
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 animate-fade-in max-w-4xl mx-auto flex flex-col h-[650px]">
@@ -3065,7 +2941,6 @@ function CustomerPortal({
             </div>
             <span className="text-xs text-slate-400 font-mono">Thread: {customer.id}</span>
           </div>
-
           <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-2">
             {customerThread.messages.map(msg => (
               <div key={msg.id} className={`flex flex-col ${msg.isCustomer ? 'items-end' : 'items-start'}`}>
@@ -3080,7 +2955,6 @@ function CustomerPortal({
               </div>
             ))}
           </div>
-
           <form onSubmit={handleSendMessage} className="pt-3 border-t border-slate-100 flex gap-2">
             <input
               type="text"
@@ -3098,7 +2972,6 @@ function CustomerPortal({
           </form>
         </div>
       )}
-
       {/* CUSTOMER EDIT ORDER MODAL */}
       {editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
@@ -3119,7 +2992,6 @@ function CustomerPortal({
                 &times;
               </button>
             </div>
-
             <form onSubmit={handleSaveOrderEdits} className="space-y-4">
               {/* Row 1: Brand, Type, Material */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -3162,7 +3034,6 @@ function CustomerPortal({
                   </select>
                 </div>
               </div>
-
               {/* Row 2: Dori, Plastic, Artwork */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* DORI */}
@@ -3199,7 +3070,6 @@ function CustomerPortal({
                     <div className="text-[11px] text-slate-500 italic">Standard / Regular Dori</div>
                   )}
                 </div>
-
                 {/* PLASTIC */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -3234,7 +3104,6 @@ function CustomerPortal({
                     <div className="text-[11px] text-slate-500 italic">Standard / Regular Plastic lock</div>
                   )}
                 </div>
-
                 {/* ARTWORK */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 block">Artwork Image</label>
@@ -3251,7 +3120,6 @@ function CustomerPortal({
                   </div>
                 </div>
               </div>
-
               {/* Row 3: Quantity, Rate, Subtotal */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-2 border-t border-slate-100">
                 <div>
@@ -3266,7 +3134,7 @@ function CustomerPortal({
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (₹) *</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (â‚¹) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -3282,7 +3150,6 @@ function CustomerPortal({
                   <span className="text-emerald-700 font-black text-sm">{formatCurrency(editQty * editRate)}</span>
                 </div>
               </div>
-
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Customer Remarks</label>
                 <input
@@ -3293,7 +3160,6 @@ function CustomerPortal({
                   className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                 />
               </div>
-
               <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -3313,7 +3179,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* ARTWORK LIGHTBOX MODAL */}
       {previewArtworkUrl && (
         <div 
@@ -3339,7 +3204,6 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
       {/* CROP MODAL FOR PLACE ORDER ARTWORK */}
       {showCropModal && orderImage && (
         <window.uBMS.ImageCropModal
@@ -3348,7 +3212,6 @@ function CustomerPortal({
           onClose={() => setShowCropModal(false)}
         />
       )}
-
       {/* FULL IMAGE MODAL FOR CURRENT ARTWORK */}
       {showFullImageModal && orderImage && (
         <div 
@@ -3385,9 +3248,7 @@ function CustomerPortal({
           </div>
         </div>
       )}
-
     </div>
   );
 }
-
 window.uBMS.CustomerPortal = CustomerPortal;

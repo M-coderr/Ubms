@@ -22,7 +22,7 @@
 │                  (React 18 + Babel + Tailwind CSS CDN)                 │
 ├───────────────────────────────────┬────────────────────────────────────┤
 │          Customer Portal          │            Admin Portal            │
-│  • Modern Sales Order UI (TagX)   │  • Executive Dashboard (KPIs)      │
+│  • Production Order Studio        │  • Executive Dashboard (KPIs)      │
 │  • In-Browser Image Cropper       │  • Kanban & Order Register         │
 │  • Order Status & Timeline        │  • Production Pipeline (Sheets/Pcs)│
 │  • Invoices & Payment Status      │  • Paper Catalog & Inventory       │
