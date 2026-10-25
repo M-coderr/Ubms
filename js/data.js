@@ -68,18 +68,43 @@ const HANDWORK_DEFAULTS = {
 
 // Generic helper to fetch collection with cache
 async function fetchEntity(endpoint, defaultData) {
+  const parseCleanJson = (rawText) => {
+    if (!rawText || typeof rawText !== 'string') return null;
+    const clean = rawText.replace(/^\uFEFF/, '').trim();
+    return JSON.parse(clean);
+  };
+
   try {
-    const res = await fetch(`/api/${endpoint}`);
+    const res = await fetch(`/api/${endpoint}?_t=${Date.now()}`, { cache: 'no-store' });
     if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem(`ubms_${endpoint}`, JSON.stringify(data));
-      return data;
+      const text = await res.text();
+      const data = parseCleanJson(text);
+      if (data) {
+        localStorage.setItem(`ubms_${endpoint}`, JSON.stringify(data));
+        return data;
+      }
     }
   } catch (e) {
-    console.warn(`API /api/${endpoint} unavailable, using cached/static data`, e);
+    console.warn(`API /api/${endpoint} unavailable, checking static fallback`, e);
   }
-  const cached = localStorage.getItem(`ubms_${endpoint}`);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const resStatic = await fetch(`data/${endpoint}.json?_t=${Date.now()}`, { cache: 'no-store' });
+    if (resStatic.ok) {
+      const textStatic = await resStatic.text();
+      const dataStatic = parseCleanJson(textStatic);
+      if (dataStatic) {
+        localStorage.setItem(`ubms_${endpoint}`, JSON.stringify(dataStatic));
+        return dataStatic;
+      }
+    }
+  } catch (e2) {}
+
+  try {
+    const cached = localStorage.getItem(`ubms_${endpoint}`);
+    if (cached) return parseCleanJson(cached);
+  } catch (e3) {}
+
   return defaultData;
 }
 
@@ -258,15 +283,27 @@ function formatDate(isoOrDateStr) {
 // Generate customer abbreviation code (e.g. "MG Creation" -> "MGC", "Raymond" -> "RAY")
 function generateCustomerAbbr(companyOrName) {
   if (!companyOrName) return 'ITM';
-  const clean = companyOrName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  if (typeof companyOrName === 'object') {
+    if (companyOrName.abbr) return companyOrName.abbr;
+    companyOrName = companyOrName.company || companyOrName.name;
+  }
+  const clean = String(companyOrName).replace(/[^a-zA-Z0-9\s]/g, '').trim();
   const words = clean.split(/\s+/).filter(Boolean);
   if (words.length === 0) return 'ITM';
+
+  const known = {
+    'MG CREATION': 'MGC',
+    'AARIYA CREATION': 'ARC',
+    'TAGX': 'TGX',
+    'D TAG': 'DTAG'
+  };
+  const upper = clean.toUpperCase();
+  if (known[upper]) return known[upper];
 
   let abbr = '';
   if (words.length === 1) {
     abbr = words[0].slice(0, 3).toUpperCase();
   } else {
-    // If the first word is an uppercase acronym (e.g. "MG", "RK", "SK", "USA")
     if (words[0].length <= 3 && words[0] === words[0].toUpperCase()) {
       abbr = words[0] + words.slice(1).map(w => w[0].toUpperCase()).join('');
     } else {
@@ -278,6 +315,62 @@ function generateCustomerAbbr(companyOrName) {
   if (abbr.length > 4) abbr = abbr.slice(0, 4);
   if (abbr.length < 2) abbr = (clean.slice(0, 3)).toUpperCase();
   return abbr || 'ITM';
+}
+
+// Generate customer-side order ID (e.g. "MGC01", "MGC02", "ARC01")
+function getNextCustomerOrderId(customerOrCompanyOrAbbr, orders = []) {
+  let abbr = 'ITM';
+  if (typeof customerOrCompanyOrAbbr === 'string') {
+    abbr = generateCustomerAbbr(customerOrCompanyOrAbbr);
+  } else if (customerOrCompanyOrAbbr && typeof customerOrCompanyOrAbbr === 'object') {
+    abbr = customerOrCompanyOrAbbr.abbr || generateCustomerAbbr(customerOrCompanyOrAbbr.company || customerOrCompanyOrAbbr.name);
+  }
+
+  let maxNum = 0;
+  // Match MGC01 at the end of order ID or in customerOrderId: e.g. TGRS01-ORD-2026-MGC01 or MGC01 or ORD-MGC01
+  const regex = new RegExp(`(?:^|[-_])${abbr}[-_]?([0-9]+)$`, 'i');
+
+  (orders || []).forEach(o => {
+    if (!o) return;
+    const cid = o.customerOrderId || o.id || '';
+    const match = cid.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  });
+
+  const nextNum = maxNum + 1;
+  return `${abbr}${String(nextNum).padStart(2, '0')}`;
+}
+
+// Generate full Admin master order ID: TGRS01-ORD-2026-MGC01
+function getNextAdminOrderId(customerOrCompanyOrAbbr, orders = []) {
+  const custOrderId = getNextCustomerOrderId(customerOrCompanyOrAbbr, orders);
+  
+  let maxGlobal = 0;
+  const tgrsRegex = /^TGRS([0-9]+)/i;
+
+  (orders || []).forEach(o => {
+    if (!o) return;
+    const match = (o.id || '').match(tgrsRegex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxGlobal) {
+        maxGlobal = num;
+      }
+    }
+  });
+
+  if (maxGlobal === 0 && Array.isArray(orders) && orders.length > 0) {
+    maxGlobal = orders.length;
+  }
+
+  const nextGlobal = maxGlobal + 1;
+  const year = 2026;
+  return `TGRS${String(nextGlobal).padStart(2, '0')}-ORD-${year}-${custOrderId}`;
 }
 
 // Generate unique sequential item code for a customer (e.g. "MGC01", "MGC02")
@@ -315,6 +408,9 @@ window.uBMS.formatCurrency = formatCurrency;
 window.uBMS.formatDate = formatDate;
 window.uBMS.generateCustomerAbbr = generateCustomerAbbr;
 window.uBMS.getNextItemCode = getNextItemCode;
+window.uBMS.getNextCustomerOrderId = getNextCustomerOrderId;
+window.uBMS.getNextAdminOrderId = getNextAdminOrderId;
+window.uBMS.getNextOrderId = getNextAdminOrderId;
 
 
 // Format Item Name according to formula: {Customer Abrevation}_{item_type}_{Brand Name}_{x}
@@ -382,3 +478,101 @@ function getCustomerNextItemIndex(customer, orders = [], stagedItems = []) {
 
 window.uBMS.formatItemName = formatItemName;
 window.uBMS.getCustomerNextItemIndex = getCustomerNextItemIndex;
+
+// --- TWO-TIER NAVIGATION ARCHITECTURE (Left Groups + Top Sub-Nav) ---
+const CUSTOMER_NAV_GROUPS = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    defaultTab: 'dashboard',
+    tabs: [
+      { key: 'dashboard', label: 'Dashboard Overview' }
+    ]
+  },
+  {
+    id: 'orders',
+    label: 'Orders',
+    defaultTab: 'order_register',
+    tabs: [
+      { key: 'place_order', label: 'Place Order' },
+      { key: 'order_register', label: 'Order Register' }
+    ]
+  },
+  {
+    id: 'billing',
+    label: 'Billing',
+    defaultTab: 'invoice_register',
+    tabs: [
+      { key: 'invoice_register', label: 'Invoice Register' },
+      { key: 'outstanding_ledger', label: 'Outstanding Ledger' },
+      { key: 'general_ledger', label: 'General Ledger' }
+    ]
+  },
+  {
+    id: 'support',
+    label: 'Support',
+    defaultTab: 'chat',
+    tabs: [
+      { key: 'chat', label: 'Chat with Acc Manager' }
+    ]
+  }
+];
+
+const ADMIN_NAV_GROUPS = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    defaultTab: 'dashboard',
+    tabs: [
+      { key: 'dashboard', label: 'Dashboard Overview' }
+    ]
+  },
+  {
+    id: 'orders',
+    label: 'Orders',
+    defaultTab: 'all_orders',
+    tabs: [
+      { key: 'place_order', label: 'Place Order' },
+      { key: 'all_orders', label: 'Order Register' }
+    ]
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    defaultTab: 'production',
+    tabs: [
+      { key: 'production', label: 'Production Flow' },
+      { key: 'inventory', label: 'Raw Materials & Stock' },
+      { key: 'payroll', label: 'Attendance & Payroll' },
+      { key: 'label_config', label: 'Paper Catalogs & Types' }
+    ]
+  },
+  {
+    id: 'billing',
+    label: 'Billing & Finance',
+    defaultTab: 'all_invoices',
+    tabs: [
+      { key: 'all_invoices', label: 'All Invoices' },
+      { key: 'create_invoice', label: 'Create Invoice' },
+      { key: 'payments', label: 'Payment Entries' },
+      { key: 'ledgers', label: 'Ledgers Hub' }
+    ]
+  }
+];
+
+function getCustomerGroupForTab(tab) {
+  if (tab === 'profile') return 'dashboard';
+  const grp = CUSTOMER_NAV_GROUPS.find(g => g.tabs.some(t => t.key === tab));
+  return grp ? grp.id : 'orders';
+}
+
+function getAdminGroupForTab(tab) {
+  if (tab === 'profile') return 'dashboard';
+  const grp = ADMIN_NAV_GROUPS.find(g => g.tabs.some(t => t.key === tab));
+  return grp ? grp.id : 'orders';
+}
+
+window.uBMS.CUSTOMER_NAV_GROUPS = CUSTOMER_NAV_GROUPS;
+window.uBMS.ADMIN_NAV_GROUPS = ADMIN_NAV_GROUPS;
+window.uBMS.getCustomerGroupForTab = getCustomerGroupForTab;
+window.uBMS.getAdminGroupForTab = getAdminGroupForTab;

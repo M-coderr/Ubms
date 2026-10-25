@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 2.6  
-**Last Updated**: October 24, 2026  
+**Version**: 2.7  
+**Last Updated**: October 26, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -23,20 +23,23 @@
 | **Design & UI System** | Minimalist Light Theme | ✅ Complete | Warm Ivory Paper Linen (`#F9F8F5`), crisp white cards, slate-900 typography |
 | | Bespoke uBMS Visual Language | ✅ Complete | Unique manufacturing-oriented terminology, zero SaaS clone copycat elements |
 | | Responsive Layout | ✅ Complete | Fluid 2-column studio grid and mobile-friendly viewports |
+| | Two-Tier Navigation System | ✅ Complete | Level 1 Module Groups on Left Sidebar + Level 2 Dynamic Sub-Tabs on Top Bar |
 | **Persona & Auth** | Real Internal Personas | ✅ Complete | Meet (Super Admin), Parth (Admin), Niraj (Admin), Kanu (Printing), Shivakant (Punching), Sumit (Dori Plastic) |
-| | Real Customer Accounts | ✅ Complete | MG Creation (Mohit), Aariya Creation (Umesh), TagX (Parth), D Tag (Niraj) |
+| | Real Customer Accounts | ✅ Complete | MG Creation (`MGC`), Aariya Creation (`ARC`), TagX (`TGX`), D Tag (`DTAG`) |
 | | Switcher Header | ✅ Complete | One-click role/customer profile switching without re-login |
 | **Customer Portal** | Production Order Studio | ✅ Complete | Bespoke garment accessory order workshop: Specification Sheet + Visual Proof Canvas & Job Ticket |
 | | Visual Artwork Framing & Proof | ✅ Complete | Hangtag blueprint silhouette, 3mm hole-punch guide, prepress alignment canvas |
 | | In-Browser Artwork Cropper | ✅ Complete | Interactive 8-handle image framing with aspect ratio presets (`2:3`, `1:1`, `1:2`, `3:4`), zoom, rotation |
 | | Artwork Lightbox | ✅ Complete | High-resolution popover preview for all uploaded artworks |
-| | Order Register & Filter | ✅ Complete | Instant transition upon booking, order status tracking, priority badges |
+| | Order Register & Filter | ✅ Complete | Per-column search row, status pills filter, real-time counters, priority badges |
 | | Invoicing & PDF Print | ✅ Complete | View invoices and trigger print/PDF export |
 | | Outstanding Aging Ledger | ✅ Complete | 0-30, 31-60, and 60+ days aging overdue tracking |
 | | General Ledger Journal | ✅ Complete | Full debit/credit/balance statement of accounts |
 | | Account Manager Chat | ✅ Complete | Real-time direct chat interface with assigned account manager |
 | **Admin Portal** | Executive Dashboard | ✅ Complete | Revenue, active jobs, pipeline summary, overdue alerts |
-| | All Orders & Kanban | ✅ Complete | List view & Kanban drag-and-drop workflow stages |
+| | All Orders & Kanban | ✅ Complete | Per-column search row matching customer side, view mode toggle (Table/Kanban) |
+| | Multi-User Concurrency Engine | ✅ Complete | Thread-monitor mutex locked `/api/create-order` endpoint guaranteeing unique dual IDs |
+| | Party & Brand Search Studio | ✅ Complete | Quick-clickable party chips and floating autocomplete dropdown matching brand UX |
 | | Production Floor Pipeline | ✅ Complete | Pieces-to-sheets conversion, multi-card handling, bulk promotion to printing |
 | | Paper Catalog Management | ✅ Complete | Master paper sizes, GSM, finishes, vendor rates, and reorder levels |
 | | Inventory & Raw Materials | ✅ Complete | Real-time stock counts for boards, dori spools, plastic locks, and ink |
@@ -51,88 +54,57 @@
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
 
+### Version 2.7 — October 26, 2026
+- **Two-Tier Navigation Architecture (Groups on Left, Sub-Tabs on Top)**:
+  - Re-architected application navigation into a clean two-tier hierarchy across both Customer and Admin portals.
+  - **Level 1 (Left Floating Strip)**: Displays high-level Module Groups with active tooltips and state synchronization:
+    - *Customer*: `Dashboard`, `Orders`, `Billing`, `Support` + Profile.
+    - *Admin*: `Dashboard`, `Orders`, `Operations`, `Billing & Finance` + Profile.
+  - **Level 2 (Top Navigation Bar)**: Dynamically renders only the relevant sub-tabs for the active group:
+    - *Orders*: `Place Order`, `Order Register` + group breadcrumb indicator.
+    - *Operations*: `Production Flow`, `Raw Materials & Stock`, `Attendance & Payroll`, `Paper Catalogs & Types`.
+    - *Billing & Finance*: `All Invoices`, `Create Invoice`, `Payment Entries`, `Ledgers Hub`.
+  - Automatic bi-directional routing: Navigating between tabs automatically switches the active group highlight on the left sidebar.
+- **Admin Order Register Per-Column Search & Filtering**:
+  - Brought complete feature parity with the Customer Order Register.
+  - Added dedicated real-time search inputs directly beneath column headers: `Order ID`, `Customer Name`, `Brand & Item Specs`, `Dori & Plastic`, and `Total Amt / Qty`.
+  - Added Top Filter bar with status dropdown filter displaying live count metrics per stage, order counter badge, and one-click "Clear Filters" button.
+  - Preserved both Table View and Kanban View, with search filters functioning in real-time across both view modes.
+- **Multi-User Concurrency & Guaranteed Unique Dual Order IDs**:
+  - Implemented thread-monitor locked server endpoint `POST /api/create-order` in `server.ps1` with atomic disk read-increment-save.
+  - Implemented dual ID formatting:
+    - Admin View: `TGRS{GlobalSeq}-ORD-{Year}-{CustSeq}` (*e.g., `TGRS25-ORD-2026-MGC07`*).
+    - Customer View: `{CustSeq}` (*e.g., `MGC07`*).
+  - Built-in collision loop guarantees unique sequential IDs even when multiple customers or admins submit orders simultaneously.
+- **Admin Place Order Party Entry UX**:
+  - Replaced legacy `<select>` dropdown with quick-clickable party chips (`[MG Creation]`, `[Aariya Creation]`, `[TagX]`, `[D Tag]`) and real-time text input with floating autocomplete suggestions matching the brand entry UX.
+- **Cleaned Stray Reference Badges & Migrated Historical Data**:
+  - Removed stray `MGC01` badge references from studio headers, preview lines, and job tickets.
+  - Standardized customer abbreviations (`MGC`, `ARC`, `TGX`, `DTAG`) in `users.json` and migrated all orders across `invoices.json`, `production.json`, `payments.json`, `estimates.json`, and `payroll.json`.
+
+---
+
 ### Version 2.6 — October 24, 2026
 - **Complete Elimination of Mojibake & Encoding Artifacts**:
   - Scanned repository and isolated character corruption in `CustomerPortal.js` caused by multi-byte UTF-8 bytes previously read in Windows-1252 code pages.
   - Converted the codebase to 100% pure 7-bit ASCII, completely immune to cross-platform encoding anomalies across web servers, browsers, and operating systems.
-  - Cleaned all 38 corrupted symbols and replaced them with standard HTML entities and JavaScript Unicode escapes:
-    - Rupee currency symbol: `&#8377;` in JSX markup and `\u20B9` inside JavaScript template strings/regex (`₹0.20`, `₹0.10`, `₹/pc`).
-    - Directional navigation arrows: `&rarr;` / `\u2192` (`→`).
-    - Repeat order action: `&#8635;` (`↻`) and `+ New Design Order`.
-    - Checkmark badges: `&#10003;` / `\u2713` (`✓ Loaded`, `✓ Print File Ready`).
-    - Dismiss & clear search buttons: `&times;` (`×`).
-    - Dimensions & bullets: standard ASCII `x` (`Size L x Size B`) and `&bull;` (`•`).
-    - Validation alerts: `&#9888;` (`⚠`).
-  - Tested and verified 0 Babel transpilation errors via in-browser headless Edge test runner.
-  - Confirmed visual fidelity via headless browser screenshots: `clean_studio_page.png` and `clean_repeat_mode.png`.
+  - Cleaned all 38 corrupted symbols and replaced them with standard HTML entities and JavaScript Unicode escapes (`&#8377;`, `&rarr;`, `&times;`, `&bull;`).
+  - Validated 0 Babel transpilation errors via in-browser headless Edge test runner.
+
+---
 
 ### Version 2.5 — October 24, 2026
 - **Bespoke "Production Order Studio" (Eliminated TagX Clone Layout)**:
-  - Completely replaced generic SaaS/TagX copycat strings (`New Sales Order`, `SO — place a customer order`, `Draft saved just now • discard`, `General Information`, `Default Artwork: Used for any item...`) with proprietary garment accessory manufacturing studio branding.
-  - **Left Column: Production Specification Sheet (~58%)**:
-    - Segmented toggle between `✨ New Design Order` and `🔄 Repeat Past Item`.
-    - Floating autocomplete search cards for past manufactured articles with artwork thumbnails, codes, and historical pricing.
-    - Clean brand name input with customer saved brands chips (`+ MG Creation`) and auto-assigned manufacturing reference (`MGC_Tag_Zara_1`).
-    - Product Category and Piece Architecture: Hangtag, Tag Kit (Multi-Piece 1/2/3 PC sets), PU Leather Labels.
-    - Material Board: Paper master catalogs with GSM/finish specifications; Indian PU (1.2/1.8/2.2mm) vs Imported Synthetic Grain.
-    - Handwork Fasteners: Dori (None / Reg. ₹0.20 / Custom) & Barcode Plastic Seal (None / Reg. ₹0.10 / Custom).
-    - Production Volume & Commercials: Preset volume pills (`1k`, `2.5k`, `5k`, `10k`), agreed rate, subtotal, and packaging instructions.
-    - Multi-Article Batches: Staged item batching via `+ Add Another Article to this Order Batch`.
-  - **Right Column: Visual Proof Canvas & Production Job Ticket (~42%)**:
-    - Interactive Blueprint Artwork Proof: Simulated hangtag silhouette upload dropzone; switches to realistic hangtag mockup with 3mm drill hole punch guide, finished dimension badge, and prepress toolstrip (`✂️ Crop & Frame`, `Inspect Lightbox`, `Replace`, `Remove`).
-    - Authentic Production Job Ticket: Live manufacturing order card with brand, product category, piece composition, material board, volume, unit rate, attachments, and live estimated total.
-  - **Instant Transition & Alert Elimination**:
-    - Removed blocking browser `alert()` modal dialogs in favor of non-blocking success toasts.
-    - Configured instantaneous tab transition to `Customer Order Register` upon clicking `Confirm & Book Order`.
-
-### Version 2.4 — October 21, 2026
-- **Customer Portal Order Entry Streamlining**:
-  - **Order Type Radio Switcher**: Replaced the transaction type & order dropdowns with mandatory top-level radio buttons (`New Order` / `Repeat Order`). Simplified General Info tab to order number, date, and customer agent details.
-  - **Brand Name Integration**: Relocated Brand Name to the Item Section directly beside Category and Pieces format.
-  - **Dynamic Customer Brand Persistence**: Automatic saving of newly entered brand names upon final order submission (`handleSubmitFinalOrder`), with instant real-time suggestion dropdown. Solved browser autofill popup collisions via custom floating suggestion cards and autofill suppression attributes.
-  - **Standardized Item Naming Formula**: Dynamic automatic item naming adhering to `{Customer Abbreviation}_{item_type}_{Brand Name}_{x}` where `x` represents an incremental integer per customer item.
-- **Repeat Order Item Search System**:
-  - Replaced native `<select>` dropdown with a custom searchable input and floating suggestions matching the Brand Name autocomplete UX.
-  - Real-time search across past items by code, brand name, category, or material.
-  - Rich suggestions display artwork thumbnail, item code, brand, category, paper/material gauge, unit price, and one-click selection with instant spec population.
-- **New Category: "Tag Kit" & Material Specifications**:
-  - Introduced new manufacturing category: **Tag Kit** (supports multi-card pieces, paper catalog selection, zero handwork attachments).
-  - Material Selection: Paper catalog for Tag and Tag Kit; Indian PU (1.2, 1.8, 2.2 mm gauges) vs Imported PU (single quality) for PU Labels.
-  - Renamed "Plastic lock / seal" to "Barcode Plastic" with optional toggle.
-  - Streamlined commercials: eliminated distracting suggestions and redundant subtotal, enhanced quantity and rate input sizing.
-- **Enhanced In-Browser Artwork Cropper**:
-  - Implemented 8 interactive resizing handles (4 corner handles + 4 edge handles) for precise framing.
-  - Set **Free Crop** as the default cropping mode with one-click aspect ratio presets (`Free`, `2:3`, `1:1`, `1:2`, `3:4`).
-  - Added mouse wheel zoom, 90° rotation, horizontal flip, and center alignment controls.
-  - Added tag hole punch simulator toggle for visual verification of hole placement.
-  - Exported high-resolution canvas with 2× retina scale for crisp rendering.
-
-### Version 2.3 — October 20, 2026
-- **Customer Order Creation Redesign (TagX Modern Sales Order Layout)**:
-  - Transformed order entry into a clean, calm, single-screen layout modeled directly after modern SaaS benchmarks (TagX reference design).
-  - Eliminated mental overload and cognitive friction from multi-step wizard barriers.
-
-### Version 2.2 — October 20, 2026
-- **Customer Order Creation Flow Redesign (Revised 4-Step Wizard)**:
-  - Re-architected customer order creation into four sequential steps with interactive stepper.
-
-### Version 2.1 — October 20, 2026
-- **Documentation & Tracking**: Initialized `README.md` and `STATUS.md` with full architectural guides and standing push policies.
-- **Server Monitoring**: Restarted and verified PowerShell local server daemon (`server.ps1`) on port 8080 responding HTTP 200 OK.
-
-### Version 2.0 — October 17, 2026
-- **Comprehensive UI/UX Redesign**:
-  - Migrated entire application away from jarring dark cards to a clean Warm Ivory (`#F9F8F5`) aesthetic with Slate-900 controls.
-  - Eliminated cartoon emojis from all headers, badges, tabs, and action buttons.
-- **Production Pipeline Enhancements**:
-  - Added required sheet quantity calculation input alongside piece counts.
-  - Integrated bulk move-to-production capability.
-  - Added Paper Catalog editor and management view.
+  - Completely replaced generic SaaS/TagX copycat strings with proprietary garment accessory manufacturing studio branding.
+  - Balanced 2-column studio grid (~58% Specification Sheet, ~42% Visual Proof Canvas & Job Ticket).
+  - Interactive Blueprint Artwork Proof with 3mm drill hole punch guide and prepress toolstrip.
+  - Multi-card composition for Tag Kits and PU leather options.
 
 ---
 
 ## Active Roadmap & Upcoming Enhancements
 
+- [ ] **Production Stage Tracking**: Operator step-by-step sheet progression from sheet loading to offset printing, die-cutting, dori threading, and packing.
 - [ ] **Automated PDF Export**: Client-side direct PDF generation via html2canvas / jspdf fallback.
 - [ ] **SMS / WhatsApp Status Alerts**: Webhook notification triggers on production stage transitions.
 - [ ] **Barcode / QR Code Generation**: Printable job-card tracking slips for machine operators.

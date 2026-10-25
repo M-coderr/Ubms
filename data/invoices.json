@@ -1,7 +1,7 @@
-﻿[
+[
   {
     "id": "INV-2026-041",
-    "orderId": "ORD-2026-1044",
+    "orderId": "TGRS03-ORD-2026-MGC03",
     "customerId": "CUST-001",
     "customerName": "Mohit Samnani",
     "customerCompany": "MG Creation",
@@ -25,7 +25,7 @@
   },
   {
     "id": "INV-2026-042",
-    "orderId": "ORD-2026-1045",
+    "orderId": "TGRS02-ORD-2026-MGC02",
     "customerId": "CUST-001",
     "customerName": "Mohit Samnani",
     "customerCompany": "MG Creation",
@@ -55,7 +55,7 @@
   },
   {
     "id": "INV-2026-043",
-    "orderId": "ORD-2026-1047",
+    "orderId": "TGRS18-ORD-2026-TGX06",
     "customerId": "CUST-003",
     "customerName": "Parth Thakkar",
     "customerCompany": "TagX",

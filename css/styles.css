@@ -131,3 +131,83 @@ code, .font-mono {
     display: none !important;
   }
 }
+
+
+/* ==========================================================================
+   AI Dashboard & Sage Orb Video Reference Styles
+   ========================================================================== */
+
+@keyframes orbGlow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.45), 0 0 50px rgba(139, 92, 246, 0.35), inset 0 2px 12px rgba(255, 255, 255, 0.7);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 36px rgba(99, 102, 241, 0.65), 0 0 68px rgba(139, 92, 246, 0.55), inset 0 2px 18px rgba(255, 255, 255, 0.9);
+  }
+}
+
+@keyframes eyeBlink {
+  0%, 46%, 54%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes pulsePill {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.15);
+  }
+}
+
+.sage-orb-glow {
+  animation: orbGlow 3.5s infinite ease-in-out;
+}
+
+.sage-eye-blink {
+  animation: eyeBlink 4s infinite ease-in-out;
+  transform-origin: center;
+}
+
+.float-gentle {
+  animation: floatGentle 3s infinite ease-in-out;
+}
+
+.pulse-pill {
+  animation: pulsePill 2s infinite ease-in-out;
+}
+
+/* 3D Credit Card Stack Perspective */
+.card-stack-container {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.credit-card-3d {
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  transform-style: preserve-3d;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12), 0 10px 10px rgba(0, 0, 0, 0.08);
+}
+
+.credit-card-3d:hover {
+  transform: translateY(-8px) rotateX(12deg) rotateY(-8deg) rotateZ(3deg) scale(1.03) !important;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.18), 0 12px 15px rgba(0, 0, 0, 0.1);
+  z-index: 30 !important;
+}

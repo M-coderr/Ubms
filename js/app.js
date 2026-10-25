@@ -4,6 +4,8 @@ window.uBMS = window.uBMS || {};
 function App() {
   const [loading, setLoading] = React.useState(true);
   const [currentPortal, setPortal] = React.useState('customer'); // 'customer' or 'admin'
+  const [customerTab, setCustomerTab] = React.useState('dashboard');
+  const [adminTab, setAdminTab] = React.useState('dashboard');
   const [orders, setOrders] = React.useState([]);
   const [users, setUsers] = React.useState({ team: [], customers: [] });
   const [products, setProducts] = React.useState([]);
@@ -212,8 +214,28 @@ function App() {
     );
   }
 
+  const currentTab = currentPortal === 'customer' ? customerTab : adminTab;
+  const isDashboardMode = (currentTab === 'dashboard' || currentTab === 'profile');
+
   return (
-    <div className="min-h-screen flex flex-col text-stone-800 selection:bg-blue-600 selection:text-white" style={{ backgroundColor: '#F9F8F5' }}>
+    <div className="min-h-screen flex text-stone-800 selection:bg-stone-900 selection:text-white" style={{ backgroundColor: '#ECEAE4' }}>
+      {/* Floating White Sidebar Strip (from video reference Dashboard.mp4) */}
+      <window.uBMS.LeftSidebarStrip
+        currentPortal={currentPortal}
+        setPortal={setPortal}
+        currentTab={currentPortal === 'customer' ? customerTab : adminTab}
+        onTabChange={(tab) => {
+          if (currentPortal === 'customer') setCustomerTab(tab);
+          else setAdminTab(tab);
+        }}
+        activePersona={activePersona}
+        setActivePersona={setActivePersona}
+        users={users}
+        orders={orders}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
       
       {/* Toast Notification Container */}
       <div className="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none">
@@ -232,24 +254,29 @@ function App() {
         ))}
       </div>
 
-      {/* Main Header */}
-      <window.uBMS.Header
-        currentPortal={currentPortal}
-        setPortal={setPortal}
-        activePersona={activePersona}
-        setActivePersona={setActivePersona}
-        users={users}
-        orders={orders}
-        onNewOrderClick={() => {
-          setPortal('customer');
-        }}
-      />
+      {/* Main OMS Header (shown on secondary enterprise pages) */}
+      {!isDashboardMode && (
+        <window.uBMS.Header
+          currentPortal={currentPortal}
+          setPortal={setPortal}
+          activePersona={activePersona}
+          setActivePersona={setActivePersona}
+          users={users}
+          orders={orders}
+          onNewOrderClick={() => {
+            setPortal('customer');
+            setCustomerTab('place_order');
+          }}
+        />
+      )}
 
       {/* Main View Area */}
-      <main className="flex-1 max-w-[1750px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className={`flex-1 max-w-[1750px] w-full mx-auto px-4 sm:px-6 lg:px-8 ${isDashboardMode ? 'pt-3 pb-8' : 'py-6'}`}>
         {currentPortal === 'customer' ? (
           <window.uBMS.CustomerPortal
             customer={activePersona.isCustomer ? activePersona : users.customers[0]}
+            currentTab={customerTab}
+            onTabChange={setCustomerTab}
             orders={orders}
             estimates={estimates}
             invoices={invoices}
@@ -269,6 +296,8 @@ function App() {
         ) : (
           <window.uBMS.AdminPortal
             currentMember={!activePersona.isCustomer ? activePersona : users.team[0]}
+            currentTab={adminTab}
+            onTabChange={setAdminTab}
             orders={orders}
             invoices={invoices}
             payments={payments}
@@ -302,6 +331,7 @@ function App() {
       )}
 
       {/* Footer & Version Indicator */}
+      {!isDashboardMode && (
       <footer className="no-print border-t border-[#e8e5de] bg-[#f4f2ec] py-4 px-4 sm:px-8 text-xs text-stone-600">
         <div className="max-w-[1750px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center space-x-2">
@@ -316,7 +346,7 @@ function App() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-mono font-bold text-[11px]">
-              v2.4 beta
+              v2.7 beta
             </span>
             <span className="text-stone-500 text-[11px]">
               &bull; Warm Ivory Paper Theme
@@ -324,7 +354,9 @@ function App() {
           </div>
         </div>
       </footer>
+      )}
 
+      </div>
     </div>
   );
 }

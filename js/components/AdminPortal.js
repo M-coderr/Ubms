@@ -23,14 +23,28 @@ function AdminPortal({
   onUpdateProduction, 
   onUpdatePayroll, 
   onOpenInvoice, 
-  defaultTab = 'dashboard' 
+  defaultTab = 'dashboard',
+  currentTab,
+  onTabChange
 }) {
-  const [activeTab, setActiveTab] = React.useState(defaultTab);
+  const [internalTab, setInternalTab] = React.useState(defaultTab);
+  const activeTab = currentTab !== undefined ? currentTab : internalTab;
+  const setActiveTab = (tab) => {
+    setInternalTab(tab);
+    if (onTabChange) onTabChange(tab);
+  };
   const [viewMode, setViewMode] = React.useState('table'); // 'table' or 'kanban'
   const [selectedOrder, setSelectedOrder] = React.useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = React.useState([]);
   const [previewArtworkUrl, setPreviewArtworkUrl] = React.useState(null);
   const [bulkTargetStatus, setBulkTargetStatus] = React.useState('approved');
+  // Admin Order Register Search & Filter State (Same as Customer Side)
+  const [adminOrderStatusFilter, setAdminOrderStatusFilter] = React.useState('all');
+  const [adminSearchOrderId, setAdminSearchOrderId] = React.useState('');
+  const [adminSearchCustomer, setAdminSearchCustomer] = React.useState('');
+  const [adminSearchBrandSpecs, setAdminSearchBrandSpecs] = React.useState('');
+  const [adminSearchDoriPlastic, setAdminSearchDoriPlastic] = React.useState('');
+  const [adminSearchAmount, setAdminSearchAmount] = React.useState('');
   const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
 
   // Inventory Management State
@@ -98,6 +112,82 @@ function AdminPortal({
       activeStaffCount
     };
   }, [orders, invoices, payments, users, payroll]);
+
+  // Filtered Orders for Admin Order Register (Matching Customer Side Engine)
+  const filteredAdminOrders = React.useMemo(() => {
+    return orders.filter(o => {
+      // 1. Status Filter
+      if (adminOrderStatusFilter !== 'all') {
+        const s = (o.status || '').toLowerCase();
+        if (adminOrderStatusFilter === 'pending') {
+          if (s !== 'pending' && s !== 'placed') return false;
+        } else if (adminOrderStatusFilter === 'approved') {
+          if (s !== 'approved' && s !== 'confirmed') return false;
+        } else if (s !== adminOrderStatusFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // 2. Search: Order ID (matches admin TGRS ID or customer ID or creation date)
+      if (adminSearchOrderId.trim()) {
+        const q = adminSearchOrderId.trim().toLowerCase();
+        const idMatch = (o.id || '').toLowerCase().includes(q);
+        const custIdMatch = (o.customerOrderId || '').toLowerCase().includes(q);
+        const dateMatch = (formatDate(o.createdAt) || '').toLowerCase().includes(q);
+        if (!idMatch && !custIdMatch && !dateMatch) return false;
+      }
+
+      // 3. Search: Customer Name (matches company, contact person, email, phone)
+      if (adminSearchCustomer.trim()) {
+        const q = adminSearchCustomer.trim().toLowerCase();
+        const compMatch = (o.customerCompany || '').toLowerCase().includes(q);
+        const nameMatch = (o.customerName || '').toLowerCase().includes(q);
+        const emailMatch = (o.customerEmail || '').toLowerCase().includes(q);
+        const phoneMatch = (o.customerPhone || '').toLowerCase().includes(q);
+        if (!compMatch && !nameMatch && !emailMatch && !phoneMatch) return false;
+      }
+
+      const items = o.items && o.items.length > 0 ? o.items : [{}];
+
+      // 4. Search: Brand & Item Specs (matches brand name, item code, name, type, material)
+      if (adminSearchBrandSpecs.trim()) {
+        const q = adminSearchBrandSpecs.trim().toLowerCase();
+        const specsMatch = items.some(item => {
+          const brand = (item.brandName || '').toLowerCase();
+          const itemCode = (item.itemCode || item.name || '').toLowerCase();
+          const type = (item.type || '').toLowerCase();
+          const mat = (item.material || '').toLowerCase();
+          return brand.includes(q) || itemCode.includes(q) || type.includes(q) || mat.includes(q);
+        });
+        if (!specsMatch) return false;
+      }
+
+      // 5. Search: Dori & Plastic
+      if (adminSearchDoriPlastic.trim()) {
+        const q = adminSearchDoriPlastic.trim().toLowerCase();
+        const dpMatch = items.some(item => {
+          const dori = (item.dori || '').toLowerCase();
+          const plastic = (item.plastic || '').toLowerCase();
+          return dori.includes(q) || plastic.includes(q);
+        });
+        if (!dpMatch) return false;
+      }
+
+      // 6. Search: Amount / Qty / Rate
+      if (adminSearchAmount.trim()) {
+        const q = adminSearchAmount.trim().replace(/[₹,\s]/g, '').toLowerCase();
+        const totMatch = String(o.total || '').includes(q) || String(o.subtotal || '').includes(q);
+        const itemNumMatch = items.some(item => {
+          const qStr = String(item.quantity || '');
+          const rStr = String(item.unitPrice || '');
+          return qStr.includes(q) || rStr.includes(q);
+        });
+        if (!totMatch && !itemNumMatch) return false;
+      }
+
+      return true;
+    });
+  }, [orders, adminOrderStatusFilter, adminSearchOrderId, adminSearchCustomer, adminSearchBrandSpecs, adminSearchDoriPlastic, adminSearchAmount]);
 
   const availableTypes = labelTypes.length > 0 ? labelTypes : [
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
@@ -410,32 +500,84 @@ function AdminPortal({
     setActiveTab('production');
   };
 
-  // --- MODULE 1: PLACE ORDER (ON-BEHALF) STATE ---
+  // --- MODULE 1: PRODUCTION ORDER STUDIO (ADMIN ON-BEHALF) STATE ---
   const [adminOrderCustId, setAdminOrderCustId] = React.useState(users.customers[0]?.id || '');
   const selectedCust = users.customers.find(c => c.id === adminOrderCustId) || users.customers[0];
 
+  // Customer Party Search & Suggestion State (Identical to Brand Name Entry)
+  const [adminCustomerPartyQuery, setAdminCustomerPartyQuery] = React.useState(selectedCust?.company || '');
+  const [adminCustomerInputFocused, setAdminCustomerInputFocused] = React.useState(false);
+
+  const filteredCustomerSuggestions = React.useMemo(() => {
+    const q = (adminCustomerPartyQuery || '').trim().toLowerCase();
+    if (!q) return users.customers || [];
+    return (users.customers || []).filter(c => {
+      const comp = (c.company || '').toLowerCase();
+      const name = (c.name || '').toLowerCase();
+      const phone = (c.phone || '').toLowerCase();
+      const abbr = (c.abbr || '').toLowerCase();
+      return comp.includes(q) || name.includes(q) || phone.includes(q) || abbr.includes(q);
+    });
+  }, [users.customers, adminCustomerPartyQuery]);
+
+  const handleSelectCustomerParty = (cust) => {
+    if (!cust) return;
+    setAdminOrderCustId(cust.id);
+    setAdminCustomerPartyQuery(cust.company);
+    setAdminBrandName(cust.company);
+    setAdminRepeatSelectedItemCode('');
+    setAdminRepeatSelectedItemName('');
+    setAdminRepeatSearchQuery('');
+    setAdminCustomerInputFocused(false);
+  };
+
+  const [adminOrderType, setAdminOrderType] = React.useState('New Order'); // 'New Order' or 'Repeat Order'
   const [adminBrandName, setAdminBrandName] = React.useState(selectedCust?.company || '');
+  const [adminBrandInputFocused, setAdminBrandInputFocused] = React.useState(false);
   const [adminItemCode, setAdminItemCode] = React.useState('');
   const [adminItemCodeManual, setAdminItemCodeManual] = React.useState(false);
+
   const [adminSelectedType, setAdminSelectedType] = React.useState(availableTypes[0]?.name || 'Tag');
   const adminTypeObj = availableTypes.find(t => t.name === adminSelectedType) || availableTypes[0];
   const [adminSelectedMaterial, setAdminSelectedMaterial] = React.useState(adminTypeObj?.materials[0] || '100 GSM');
   const [adminSelectedCatalogId, setAdminSelectedCatalogId] = React.useState(availableCatalogs[0]?.id || 'CAT-IV350');
-  
-  // Admin Multi-Card Tag composition
+
+  // Single Card Dimension
+  const [adminSingleCardDimension, setAdminSingleCardDimension] = React.useState('');
+
+  // Multi-Card Tag composition
   const [adminIsMultiCard, setAdminIsMultiCard] = React.useState(false);
   const [adminTagCards, setAdminTagCards] = React.useState([
-    { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
-    { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+    { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+    { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
   ]);
 
+  // PU Leather options
+  const [adminPuOrigin, setAdminPuOrigin] = React.useState('Indian'); // 'Indian' or 'Imported'
+  const [adminPuThickness, setAdminPuThickness] = React.useState('1.8'); // '1.2', '1.8', '2.2'
+
+  // Commercials & Trims
   const [adminQty, setAdminQty] = React.useState(0);
   const [adminRate, setAdminRate] = React.useState(0);
   const [adminOrderImage, setAdminOrderImage] = React.useState('');
-  const [adminDoriOption, setAdminDoriOption] = React.useState('reg'); // 'reg' or 'custom'
+  const [adminDoriOption, setAdminDoriOption] = React.useState('reg'); // 'none', 'reg', 'custom'
   const [adminDoriCustom, setAdminDoriCustom] = React.useState('');
-  const [adminPlasticOption, setAdminPlasticOption] = React.useState('reg'); // 'reg' or 'custom'
+  const [adminPlasticOption, setAdminPlasticOption] = React.useState('reg'); // 'none', 'reg', 'custom'
   const [adminPlasticCustom, setAdminPlasticCustom] = React.useState('');
+
+  // Repeat Order State & Autocomplete
+  const [adminRepeatSelectedItemCode, setAdminRepeatSelectedItemCode] = React.useState('');
+  const [adminRepeatSelectedItemName, setAdminRepeatSelectedItemName] = React.useState('');
+  const [adminRepeatSearchQuery, setAdminRepeatSearchQuery] = React.useState('');
+  const [adminRepeatInputFocused, setAdminRepeatInputFocused] = React.useState(false);
+
+  // Batch items & notes
+  const [adminOrderItems, setAdminOrderItems] = React.useState([]);
+  const [adminOrderDiscount, setAdminOrderDiscount] = React.useState(0);
+  const [adminOrderNotes, setAdminOrderNotes] = React.useState('');
+  const [adminStepValidationErrors, setAdminStepValidationErrors] = React.useState({});
+  const [adminIsSubmitting, setAdminIsSubmitting] = React.useState(false);
+  const [adminShowCropModal, setAdminShowCropModal] = React.useState(false);
 
   // Rejection Modal & Shortage Alert States
   const [rejectionModalOrder, setRejectionModalOrder] = React.useState(null);
@@ -443,27 +585,182 @@ function AdminPortal({
   const [rejectionReasonCustom, setRejectionReasonCustom] = React.useState('');
   const [shortageAlertJob, setShortageAlertJob] = React.useState(null);
 
-  const [adminOrderItems, setAdminOrderItems] = React.useState([]);
-  const [adminOrderDiscount, setAdminOrderDiscount] = React.useState(0);
-  const [adminOrderNotes, setAdminOrderNotes] = React.useState('');
-
-  // Auto-generate item code for Admin if not manually modified
-  React.useEffect(() => {
-    if (!adminItemCodeManual) {
-      const party = selectedCust?.company || selectedCust?.name || adminBrandName;
-      const abbr = window.uBMS.generateCustomerAbbr(party);
-      const nextCode = window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
-      setAdminItemCode(nextCode);
+  // Collect all saved brands for selected customer
+  const adminCustomerSavedBrands = React.useMemo(() => {
+    const brandSet = new Set();
+    if (selectedCust?.brands && Array.isArray(selectedCust.brands)) {
+      selectedCust.brands.forEach(b => {
+        if (b && typeof b === 'string' && b.trim()) brandSet.add(b.trim());
+      });
     }
-  }, [adminOrderCustId, adminBrandName, adminOrderItems, orders, adminItemCodeManual]);
+    if (selectedCust?.company && typeof selectedCust.company === 'string' && selectedCust.company.trim()) {
+      brandSet.add(selectedCust.company.trim());
+    }
+    (orders || []).forEach(o => {
+      const isThisCust = (o.customerId && selectedCust?.id && o.customerId === selectedCust.id) ||
+                         (o.customerCompany && selectedCust?.company && o.customerCompany === selectedCust.company);
+      if (isThisCust && Array.isArray(o.items)) {
+        o.items.forEach(item => {
+          if (item.brandName && typeof item.brandName === 'string' && item.brandName.trim()) {
+            brandSet.add(item.brandName.trim());
+          }
+        });
+      }
+    });
+    return Array.from(brandSet).sort();
+  }, [selectedCust, orders]);
 
-  // Update material when type changes in Admin Order
+  // Filtered brand suggestions for selected customer
+  const adminFilteredBrandSuggestions = React.useMemo(() => {
+    if (!adminCustomerSavedBrands || adminCustomerSavedBrands.length === 0) return [];
+    const query = (adminBrandName || '').trim().toLowerCase();
+    if (!query) return adminCustomerSavedBrands;
+    return adminCustomerSavedBrands.filter(b => b.toLowerCase().includes(query));
+  }, [adminCustomerSavedBrands, adminBrandName]);
+
+  // List of all previous items ordered by this selected customer for Repeat Order selection
+  const adminCustomerPastItems = React.useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    (orders || []).forEach(o => {
+      const isThisCust = (o.customerId && selectedCust?.id && o.customerId === selectedCust.id) ||
+                         (o.customerCompany && selectedCust?.company && o.customerCompany === selectedCust.company);
+      if (isThisCust && Array.isArray(o.items)) {
+        o.items.forEach(item => {
+          const code = item.itemCode || item.name || item.id;
+          if (code && !seen.has(code)) {
+            seen.add(code);
+            list.push({
+              ...item,
+              orderId: o.id,
+              orderDate: o.createdAt
+            });
+          }
+        });
+      }
+    });
+    return list;
+  }, [orders, selectedCust]);
+
+  // Filtered list of past items based on admin search query
+  const adminFilteredRepeatItems = React.useMemo(() => {
+    if (!adminCustomerPastItems || adminCustomerPastItems.length === 0) return [];
+    const q = (adminRepeatSearchQuery || '').trim().toLowerCase();
+    if (!q) return adminCustomerPastItems;
+    return adminCustomerPastItems.filter(item => {
+      const code = (item.itemCode || '').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const brand = (item.brandName || '').toLowerCase();
+      const type = (item.type || '').toLowerCase();
+      const mat = (item.material || '').toLowerCase();
+      return code.includes(q) || name.includes(q) || brand.includes(q) || type.includes(q) || mat.includes(q);
+    });
+  }, [adminCustomerPastItems, adminRepeatSearchQuery]);
+
+  const handleAdminSelectRepeatItem = (code) => {
+    setAdminRepeatSelectedItemCode(code);
+    if (adminStepValidationErrors.repeatSelectedItemCode) {
+      setAdminStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
+    }
+    const found = adminCustomerPastItems.find(i => (i.itemCode || i.name) === code);
+    if (found) {
+      const displayName = found.name || found.itemCode || code;
+      const displayLabel = found.itemCode && found.name && found.itemCode !== found.name ? found.name + ' (' + found.itemCode + ')' : displayName;
+      setAdminRepeatSearchQuery(displayLabel);
+      setAdminRepeatSelectedItemName(displayName);
+      if (found.brandName) setAdminBrandName(found.brandName);
+      if (found.type) {
+        setAdminSelectedType(found.type);
+        const typeObj = availableTypes.find(t => t.name === found.type);
+        if (typeObj && typeObj.materials) setAdminSelectedMaterial(found.material || typeObj.materials[0]);
+      }
+      if (found.catalogId) setAdminSelectedCatalogId(found.catalogId);
+      if (found.material && found.material.includes('Indian PU')) {
+        setAdminPuOrigin('Indian');
+        if (found.material.includes('1.2')) setAdminPuThickness('1.2');
+        else if (found.material.includes('2.2')) setAdminPuThickness('2.2');
+        else setAdminPuThickness('1.8');
+      } else if (found.material && (found.material.includes('Imported') || found.material.includes('PU'))) {
+        setAdminPuOrigin('Imported');
+      }
+      if (found.image) setAdminOrderImage(found.image);
+      if (found.unitPrice) setAdminRate(found.unitPrice);
+      if (found.quantity) setAdminQty(found.quantity);
+      if (found.dori) {
+        if (found.dori === 'None') {
+          setAdminDoriOption('none');
+          setAdminDoriCustom('');
+        } else if (found.dori.startsWith('Custom:')) {
+          setAdminDoriOption('custom');
+          setAdminDoriCustom(found.dori.replace('Custom:', '').trim());
+        } else {
+          setAdminDoriOption('reg');
+          setAdminDoriCustom('');
+        }
+      }
+      if (found.plastic) {
+        if (found.plastic === 'None') {
+          setAdminPlasticOption('none');
+          setAdminPlasticCustom('');
+        } else if (found.plastic.startsWith('Custom:')) {
+          setAdminPlasticOption('custom');
+          setAdminPlasticCustom(found.plastic.replace('Custom:', '').trim());
+        } else {
+          setAdminPlasticOption('reg');
+          setAdminPlasticCustom('');
+        }
+      }
+      if (found.isMultiCard && found.cards && found.cards.length > 0) {
+        setAdminIsMultiCard(true);
+        setAdminTagCards(found.cards.map((c, i) => ({
+          id: i + 1,
+          title: c.title || (i === 0 ? 'Tag 1 (Base Tag)' : i === 1 ? 'Tag 2 (Upper Tag)' : 'Tag 3 (Overlay Tag)'),
+          catalogId: c.catalogId || availableCatalogs[0]?.id,
+          dimension: c.dimension || ''
+        })));
+      } else {
+        setAdminIsMultiCard(false);
+      }
+    }
+  };
+
+  // Auto-calculated unique Item Code for Admin Order
+  const adminPartyName = selectedCust?.company || selectedCust?.name || adminBrandName;
+  const adminCustomerAbbr = selectedCust?.abbr || window.uBMS.generateCustomerAbbr(adminPartyName);
+  const currentAdminItemCode = (adminItemCodeManual && adminItemCode)
+    ? adminItemCode.trim().toUpperCase()
+    : window.uBMS.getNextItemCode(adminCustomerAbbr, orders, adminOrderItems);
+  const currentAdminOrderId = window.uBMS.getNextAdminOrderId(selectedCust, orders);
+  const adminCustomerItemIndex = window.uBMS.getCustomerNextItemIndex(selectedCust, orders, adminOrderItems);
+  const currentAdminDraftItemName = window.uBMS.formatItemName(adminCustomerAbbr, adminSelectedType, adminBrandName, adminCustomerItemIndex);
+
+  // Type change handler
   const handleAdminTypeChange = (newType) => {
     setAdminSelectedType(newType);
     const typeObj = availableTypes.find(t => t.name === newType);
     if (typeObj) {
       setAdminSelectedMaterial(typeObj.materials[0] || '');
+      if (typeObj.defaultRate && (!adminRate || Number(adminRate) === 0)) {
+        setAdminRate(typeObj.defaultRate);
+      }
     }
+  };
+
+  const handleAdminUpdateCardCatalog = (cardIndex, newCatId) => {
+    setAdminTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, catalogId: newCatId } : c));
+  };
+  const handleAdminUpdateCardDimension = (cardIndex, newDim) => {
+    setAdminTagCards(prev => prev.map((c, i) => i === cardIndex ? { ...c, dimension: newDim } : c));
+  };
+  const handleAdminAddThirdCard = () => {
+    if (adminTagCards.length >= 3) return;
+    setAdminTagCards(prev => [
+      ...prev,
+      { id: 3, title: 'Tag 3 (Overlay Tag)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115', dimension: '' }
+    ]);
+  };
+  const handleAdminRemoveThirdCard = () => {
+    setAdminTagCards(prev => prev.slice(0, 2));
   };
 
   // Image Upload handler for Admin
@@ -476,25 +773,46 @@ function AdminPortal({
     }
   };
 
-  // Add Item to Admin Order and CLEAR ALL FIELDS
-  const handleAdminAddItem = (e) => {
-    e.preventDefault();
-    if (!adminBrandName.trim()) return alert('Please enter Brand Name.');
-    if (!adminQty || Number(adminQty) <= 0) return alert('Enter valid quantity.');
-    if (!adminRate || Number(adminRate) <= 0) return alert('Enter valid rate.');
-    if (adminDoriOption === 'custom' && !adminDoriCustom.trim()) return alert('Please enter the custom Dori specification.');
-    if (adminPlasticOption === 'custom' && !adminPlasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
+  // Form Validation
+  const validateAdminOrderForm = () => {
+    const errors = {};
+    if (adminOrderType === 'Repeat Order') {
+      if (!adminRepeatSelectedItemCode) {
+        errors.repeatSelectedItemCode = 'Please select a past manufactured item to repeat.';
+      }
+    } else {
+      if (!adminBrandName || !adminBrandName.trim()) {
+        errors.brandName = 'Please enter a brand name.';
+      }
+    }
+    if (!adminSelectedType) {
+      errors.selectedType = 'Please select a category.';
+    }
+    if (adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') {
+      if (!adminIsMultiCard && !adminSelectedCatalogId) {
+        errors.selectedCatalogId = 'Please select a paper catalog.';
+      }
+    } else if (adminSelectedType === 'PU Label' && !adminSelectedMaterial) {
+      errors.selectedMaterial = 'Please select a material gauge.';
+    }
+    if (adminDoriOption === 'custom' && (!adminDoriCustom || !adminDoriCustom.trim())) {
+      errors.doriCustom = 'Please specify custom dori details.';
+    }
+    if (adminPlasticOption === 'custom' && (!adminPlasticCustom || !adminPlasticCustom.trim())) {
+      errors.plasticCustom = 'Please specify custom plastic lock details.';
+    }
+    if (!adminQty || Number(adminQty) <= 0) {
+      errors.qty = 'Please enter a valid quantity in pieces (greater than 0).';
+    }
+    if (!adminRate || Number(adminRate) <= 0) {
+      errors.rate = 'Please enter a valid rate per piece (greater than 0).';
+    }
+    setAdminStepValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    const party = selectedCust?.company || selectedCust?.name || adminBrandName;
-    const abbr = window.uBMS.generateCustomerAbbr(party);
-    const finalCode = (adminItemCode && adminItemCode.trim())
-      ? adminItemCode.trim().toUpperCase()
-      : window.uBMS.getNextItemCode(abbr, orders, adminOrderItems);
-
-    const isTagKit = adminSelectedType === 'Tag Kit';
-    const doriValue = isTagKit ? 'None' : (adminDoriOption === 'custom' ? `Custom: ${adminDoriCustom.trim()}` : 'Reg. (₹0.20/pc)');
-    const plasticValue = isTagKit ? 'None' : (adminPlasticOption === 'custom' ? `Custom: ${adminPlasticCustom.trim()}` : 'Reg. (₹0.10/pc)');
-
+  // Live Current Draft Item Object
+  const adminCurrentDraftItem = React.useMemo(() => {
     let finalMaterial = adminSelectedMaterial;
     let chosenCards = [];
     let primaryCatalogId = null;
@@ -511,7 +829,8 @@ function AdminPortal({
             catalogCode: cat.code,
             name: cat.name,
             gsm: cat.gsm,
-            finish: cat.finish
+            finish: cat.finish,
+            dimension: c.dimension || ''
           };
         });
         finalMaterial = `${adminTagCards.length}-Card Set: ` + chosenCards.map(c => c.catalogCode.split(' - ')[1] || c.catalogCode).join(' + ');
@@ -526,19 +845,53 @@ function AdminPortal({
           catalogCode: cat.code,
           name: cat.name,
           gsm: cat.gsm,
-          finish: cat.finish
+          finish: cat.finish,
+          dimension: adminSingleCardDimension || ''
         }];
         finalMaterial = `${cat.code} (${cat.finish})`;
         primaryCatalogId = cat.id;
         primaryCatalogCode = cat.code;
       }
+    } else if (adminSelectedType === 'PU Label') {
+      if (adminPuOrigin === 'Indian') {
+        finalMaterial = `Indian PU - ${adminPuThickness}mm`;
+      } else {
+        finalMaterial = 'Imported PU (Standard Quality)';
+      }
     }
 
-    const newItem = {
+    const activeItemCode = (adminOrderType === 'Repeat Order' && adminRepeatSelectedItemCode)
+      ? adminRepeatSelectedItemCode
+      : currentAdminItemCode;
+    const activeItemName = (adminOrderType === 'Repeat Order' && adminRepeatSelectedItemCode)
+      ? (adminRepeatSelectedItemName || adminRepeatSelectedItemCode)
+      : currentAdminDraftItemName;
+
+    const isTagKit = adminSelectedType === 'Tag Kit';
+    const doriValue = isTagKit
+      ? 'None'
+      : adminDoriOption === 'custom'
+        ? `Custom: ${adminDoriCustom.trim()}`
+        : adminDoriOption === 'none'
+          ? 'None'
+          : 'Reg. (₹0.20/pc)';
+    const plasticValue = isTagKit
+      ? 'None'
+      : adminPlasticOption === 'custom'
+        ? `Custom: ${adminPlasticCustom.trim()}`
+        : adminPlasticOption === 'none'
+          ? 'None'
+          : 'Reg. (₹0.10/pc)';
+
+    const quantityNum = Number(adminQty) || 0;
+    const rateNum = Number(adminRate) || 0;
+    const itemTotal = quantityNum * rateNum;
+
+    return {
       id: 'ITEM-' + Date.now().toString().slice(-4),
-      itemCode: finalCode,
-      name: (window.uBMS.formatItemName && selectedCust) ? window.uBMS.formatItemName(abbr, adminSelectedType, adminBrandName, window.uBMS.getCustomerNextItemIndex(selectedCust, orders, adminOrderItems)) : finalCode,
-      brandName: adminBrandName.trim(),
+      itemCode: activeItemCode,
+      name: activeItemName,
+      brandName: (adminBrandName || selectedCust?.company || '').trim(),
       type: adminSelectedType,
       isMultiCard: (adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? adminIsMultiCard : false,
       cards: chosenCards,
@@ -546,20 +899,56 @@ function AdminPortal({
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: adminSelectedType === 'Tag Kit' ? 0 : 0.20,
+      doriRate: isTagKit || adminDoriOption === 'none' ? 0 : 0.20,
       plastic: plasticValue,
-      plasticRate: adminSelectedType === 'Tag Kit' ? 0 : 0.10,
+      plasticRate: isTagKit || adminPlasticOption === 'none' ? 0 : 0.10,
       image: adminOrderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(adminSelectedType),
-      quantity: Number(adminQty),
-      unitPrice: Number(adminRate),
-      total: Number(adminQty) * Number(adminRate)
+      quantity: quantityNum,
+      unitPrice: rateNum,
+      total: itemTotal
     };
+  }, [
+    adminSelectedType,
+    adminSelectedMaterial,
+    adminSelectedCatalogId,
+    adminIsMultiCard,
+    adminTagCards,
+    adminSingleCardDimension,
+    availableCatalogs,
+    adminPuOrigin,
+    adminPuThickness,
+    adminDoriOption,
+    adminDoriCustom,
+    adminPlasticOption,
+    adminPlasticCustom,
+    adminQty,
+    adminRate,
+    adminBrandName,
+    selectedCust,
+    adminOrderType,
+    adminRepeatSelectedItemCode,
+    adminRepeatSelectedItemName,
+    currentAdminItemCode,
+    currentAdminDraftItemName,
+    adminOrderImage
+  ]);
 
-    setAdminOrderItems(prev => [...prev, newItem]);
+  // Calculations
+  const adminStagedTotal = adminOrderItems.reduce((acc, i) => acc + i.total, 0);
+  const adminDraftTotal = (Number(adminQty) || 0) * (Number(adminRate) || 0);
+  const adminGrossTotal = adminStagedTotal + (adminOrderItems.length > 0 && (!adminBrandName.trim() || Number(adminQty) <= 0) ? 0 : adminDraftTotal);
+  const adminFinalTotal = Math.max(0, adminGrossTotal - Number(adminOrderDiscount || 0));
 
-    // CLEAR ALL FIELDS AFTER ADDING AN ITEM
+  // Add Item to Staged Items
+  const handleAdminAddItem = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!validateAdminOrderForm()) return;
+    setAdminOrderItems(prev => [...prev, adminCurrentDraftItem]);
+
+    // Reset inputs for next item
     setAdminBrandName('');
     setAdminOrderImage('');
+    setAdminSingleCardDimension('');
     setAdminItemCodeManual(false);
     const defaultType = availableTypes[0];
     setAdminSelectedType(defaultType?.name || 'Tag');
@@ -567,8 +956,8 @@ function AdminPortal({
     setAdminSelectedCatalogId(availableCatalogs[0]?.id || 'CAT-IV350');
     setAdminIsMultiCard(false);
     setAdminTagCards([
-      { id: 1, title: 'Card 1 (Main Brand Card)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350' },
-      { id: 2, title: 'Card 2 (Price & Care Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280' }
+      { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+      { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
     ]);
     setAdminQty(0);
     setAdminRate(0);
@@ -576,7 +965,7 @@ function AdminPortal({
     setAdminDoriCustom('');
     setAdminPlasticOption('reg');
     setAdminPlasticCustom('');
-
+    setAdminStepValidationErrors({});
     const fileInput = document.getElementById('admin-file-upload');
     if (fileInput) fileInput.value = '';
   };
@@ -585,82 +974,121 @@ function AdminPortal({
     setAdminOrderItems(prev => prev.filter(i => i.id !== id));
   };
 
-  // Calculations (NO TAXES, Subtotal = Grand Total)
-  const adminSubtotal = adminOrderItems.reduce((acc, i) => acc + i.total, 0) - Number(adminOrderDiscount || 0);
-  const adminTotal = Math.max(0, adminSubtotal);
+  // Submit Final Order (Single Click or Batch)
+  const handleAdminSubmitOrder = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (adminIsSubmitting) return;
 
-  const handleAdminSubmitOrder = (e) => {
-    e.preventDefault();
-    if (adminOrderItems.length === 0) return alert('Please add at least one tag or label item.');
+    let itemsToSubmit = [...adminOrderItems];
+    if (adminBrandName.trim() && Number(adminQty) > 0 && Number(adminRate) > 0) {
+      itemsToSubmit.push(adminCurrentDraftItem);
+    }
 
-    const orderId = 'ORD-2026-' + Math.floor(1000 + Math.random() * 9000);
-    const nowIso = new Date().toISOString();
-    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    if (itemsToSubmit.length === 0) {
+      if (!validateAdminOrderForm()) return;
+    }
 
-    const newOrder = {
-      id: orderId,
-      customerId: selectedCust.id,
-      customerName: selectedCust.name,
-      customerCompany: selectedCust.company || adminBrandName,
-      customerEmail: selectedCust.email,
-      customerPhone: selectedCust.phone,
-      status: 'confirmed',
-      paymentStatus: 'pending',
-      priority: 'standard',
-      createdAt: nowIso,
-      expectedDelivery: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
-      assignedTo: currentMember.name,
-      assignedToId: currentMember.id,
-      items: adminOrderItems.map(i => ({
-        id: i.id,
-        itemCode: i.itemCode || i.name,
-        name: i.itemCode || i.name,
-        brandName: i.brandName,
-        type: i.type,
-        isMultiCard: !!i.isMultiCard,
-        cards: i.cards || [],
-        catalogId: i.catalogId || null,
-        catalogCode: i.catalogCode || null,
-        material: i.material,
-        dori: i.dori,
-        doriRate: i.doriRate || 0.20,
-        plastic: i.plastic,
-        plasticRate: i.plasticRate || 0.10,
-        image: i.image,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        total: i.total
-      })),
-      subtotal: Math.max(0, adminSubtotal),
-      tax: 0,
-      shipping: 0,
-      total: adminTotal,
-      tracking: {
-        carrier: 'Standard Logistics',
-        trackingNumber: 'Processing',
-        status: 'Order Booked by ' + currentMember.name,
-        lastUpdate: formattedDate
-      },
-      timeline: [
-        {
-          stage: 'confirmed',
-          title: 'Order Created by Admin Team',
-          description: `Booked by ${currentMember.name} for ${selectedCust.company} (${adminOrderItems.length} item(s)).`,
-          timestamp: formattedDate,
-          author: currentMember.name
-        }
-      ],
-      internalNotes: [
-        { id: 'N-INIT', author: currentMember.name, text: 'Direct manufacturing order entered via Admin Portal.', timestamp: formattedDate }
-      ],
-      customerNotes: adminOrderNotes
-    };
+    setAdminIsSubmitting(true);
+    try {
+      const orderId = window.uBMS.getNextAdminOrderId(selectedCust, orders);
+      const customerOrderId = window.uBMS.getNextCustomerOrderId(selectedCust, orders);
+      const nowIso = new Date().toISOString();
+      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const orderGross = itemsToSubmit.reduce((acc, i) => acc + i.total, 0);
+      const orderFinal = Math.max(0, orderGross - Number(adminOrderDiscount || 0));
 
-    onSaveOrder(newOrder);
-    setAdminOrderItems([]);
-    setAdminOrderNotes('');
-    alert(`Order ${orderId} created successfully!`);
-    setActiveTab('all_orders');
+      const newOrder = {
+        id: orderId,
+        customerOrderId: customerOrderId,
+        orderType: adminOrderType || 'New Order',
+        customerId: selectedCust.id,
+        customerName: selectedCust.name,
+        customerCompany: selectedCust.company || itemsToSubmit[0]?.brandName || adminBrandName,
+        customerEmail: selectedCust.email,
+        customerPhone: selectedCust.phone,
+        status: 'confirmed',
+        paymentStatus: 'pending',
+        priority: 'standard',
+        createdAt: nowIso,
+        expectedDelivery: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
+        assignedTo: currentMember.name,
+        assignedToId: currentMember.id,
+        items: itemsToSubmit.map(i => ({
+          id: i.id || ('ITEM-' + Date.now().toString().slice(-4)),
+          itemCode: i.itemCode || i.name,
+          name: i.name || i.itemCode,
+          brandName: i.brandName,
+          type: i.type,
+          isMultiCard: !!i.isMultiCard,
+          cards: i.cards || [],
+          catalogId: i.catalogId || null,
+          catalogCode: i.catalogCode || null,
+          material: i.material,
+          dori: i.dori,
+          doriRate: i.doriRate || 0.20,
+          plastic: i.plastic,
+          plasticRate: i.plasticRate || 0.10,
+          image: i.image,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          total: i.total
+        })),
+        subtotal: orderGross,
+        tax: 0,
+        shipping: 0,
+        discount: Number(adminOrderDiscount || 0),
+        total: orderFinal,
+        tracking: {
+          carrier: 'Standard Logistics',
+          trackingNumber: 'Processing',
+          status: 'Order Booked by ' + currentMember.name,
+          lastUpdate: formattedDate
+        },
+        timeline: [
+          {
+            stage: 'confirmed',
+            title: 'Order Booked by Admin',
+            description: `Booked by ${currentMember.name} for ${selectedCust.company} (${itemsToSubmit.length} item(s)).`,
+            timestamp: formattedDate,
+            author: currentMember.name
+          }
+        ],
+        internalNotes: adminOrderNotes ? [
+          { id: 'N-1', author: currentMember.name, text: adminOrderNotes, timestamp: formattedDate }
+        ] : [],
+        customerNotes: adminOrderNotes
+      };
+
+      let bookedOrder = null;
+      if (window.uBMS.DataService && window.uBMS.DataService.createOrder) {
+        bookedOrder = await window.uBMS.DataService.createOrder(newOrder);
+      }
+      onSaveOrder(bookedOrder || newOrder);
+
+      // Reset
+      setAdminOrderItems([]);
+      setAdminOrderDiscount(0);
+      setAdminOrderNotes('');
+      setAdminBrandName(selectedCust?.company || '');
+      setAdminOrderImage('');
+      setAdminSingleCardDimension('');
+      setAdminQty(0);
+      setAdminRate(0);
+      setAdminDoriOption('reg');
+      setAdminDoriCustom('');
+      setAdminPlasticOption('reg');
+      setAdminPlasticCustom('');
+      setAdminStepValidationErrors({});
+      setAdminRepeatSelectedItemCode('');
+      setAdminRepeatSelectedItemName('');
+      setAdminRepeatSearchQuery('');
+      setAdminIsSubmitting(false);
+
+      setActiveTab('all_orders');
+    } catch (err) {
+      console.error(err);
+      setAdminIsSubmitting(false);
+    }
   };
 
   // --- MODULE 9: TAGS & LABELS CONFIG (ADD TYPES & MATERIALS) ---
@@ -1198,30 +1626,123 @@ function AdminPortal({
   };
 
   const handleToggleSelectAll = () => {
-    if (selectedOrderIds.length === orders.length) {
+    if (selectedOrderIds.length > 0 && selectedOrderIds.length === filteredAdminOrders.length) {
       setSelectedOrderIds([]);
     } else {
-      setSelectedOrderIds(orders.map(o => o.id));
+      setSelectedOrderIds(filteredAdminOrders.map(o => o.id));
     }
+  };
+
+  const createProductionJobsForOrder = (order) => {
+    let createdJobs = [];
+    (order.items || []).forEach((item, itemIdx) => {
+      const pcs = Number(item.quantity) || 1000;
+      const isMulti = !!item.isMultiCard;
+      const cardsList = isMulti && item.cards && item.cards.length > 0 ? item.cards : [
+        {
+          cardIndex: 1,
+          title: item.name || item.itemCode || 'Single Card Tag',
+          catalogCode: item.catalogCode || item.material || 'Standard Catalog',
+          gsm: 300,
+          finish: 'Matte'
+        }
+      ];
+
+      let mainSheets = Math.max(100, Math.ceil(pcs / 10));
+      const enrichedCards = cardsList.map((c) => ({
+        ...c,
+        ups: 10,
+        allocatedSheets: Math.max(100, Math.ceil(pcs / 10))
+      }));
+
+      const targetSheets = mainSheets;
+      const buffer = 40; // 20 sheets printing + 20 sheets punching
+      const issued = targetSheets + buffer;
+      const floor = Math.max(1, targetSheets - 40);
+
+      createdJobs.push({
+        jobId: `JOB-${Date.now().toString().slice(-4)}-${itemIdx + 1}-${Math.floor(Math.random() * 900 + 100)}`,
+        orderId: order.id,
+        customerName: order.customerName,
+        customerCompany: order.customerCompany || order.customerName,
+        itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
+        type: item.type || 'Tag',
+        isMultiCard: isMulti,
+        cards: enrichedCards,
+        targetQty: pcs,
+        targetSheets: targetSheets,
+        bufferSheets: buffer,
+        issuedSheets: issued,
+        minimumAllowedFloor: floor,
+        currentStage: 'printing',
+        priority: order.priority || 'standard',
+        printing: {
+          status: 'pending',
+          operatorName: 'Kanu',
+          startTime: null,
+          completedTime: null,
+          goodSheetsPrinted: null,
+          wasteSheets: null
+        },
+        punching: {
+          status: 'locked',
+          operatorName: 'Shivakant',
+          startTime: null,
+          completedTime: null,
+          goodSheetsPunched: null,
+          wasteSheets: null
+        },
+        handwork: {
+          status: 'locked',
+          doriType: item.dori || 'Reg. Cotton Dori',
+          doriRate: item.doriRate || 0.20,
+          plasticType: item.plastic || 'Reg. Plastic Lock',
+          plasticRate: item.plasticRate || 0.10,
+          totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+          assignedLabourerId: null,
+          assignedLabourerName: null,
+          startTime: null,
+          completedTime: null,
+          completedPieces: null,
+          earnedPayout: null
+        },
+        godown: {
+          status: 'pending'
+        }
+      });
+    });
+    return createdJobs;
   };
 
   const handleApproveOrder = (order) => {
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const updated = {
       ...order,
-      status: 'approved',
+      status: 'in_production',
       timeline: [
         ...(order.timeline || []),
         {
           stage: 'approved',
           title: 'Order Approved by Admin',
-          description: `Approved by ${currentMember.name}. Ready for production scheduling.`,
+          description: `Approved by ${currentMember.name}. Auto-moved to production.`,
+          timestamp: formattedDate,
+          author: currentMember.name
+        },
+        {
+          stage: 'in_production',
+          title: 'Production Job Form Created',
+          description: 'Production job cards created. Scheduled for printing.',
           timestamp: formattedDate,
           author: currentMember.name
         }
       ]
     };
     onUpdateOrder(updated);
+
+    const newJobs = createProductionJobsForOrder(order);
+    if (newJobs.length > 0) {
+      onUpdateProduction([...newJobs, ...(production || [])]);
+    }
   };
 
   const handleOpenRejectModal = (order) => {
@@ -1290,30 +1811,24 @@ function AdminPortal({
     setSelectedOrderIds([]);
   };
 
-  // 11 Admin Navigation Tabs
-  const adminTabs = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'place_order', label: 'Place Order' },
-    { key: 'all_orders', label: 'All Orders' },
-    { key: 'production', label: 'Production Flow' },
-    { key: 'inventory', label: 'Raw Materials & Stock' },
-    { key: 'payroll', label: 'Attendance & Payroll' },
-    { key: 'create_invoice', label: 'Create Invoice' },
-    { key: 'all_invoices', label: 'All Invoices' },
-    { key: 'ledgers', label: 'Ledgers Hub' },
-    { key: 'payments', label: 'Payment Entries' },
-    { key: 'label_config', label: 'Paper Catalogs & Types' }
-  ];
+  // Two-Tier Navigation: Active Group & its Sub-Tabs
+  const currentGroupId = window.uBMS.getAdminGroupForTab ? window.uBMS.getAdminGroupForTab(activeTab) : 'orders';
+  const activeGroup = (window.uBMS.ADMIN_NAV_GROUPS || []).find(g => g.id === currentGroupId) || (window.uBMS.ADMIN_NAV_GROUPS && window.uBMS.ADMIN_NAV_GROUPS[1]);
+  const groupTabs = activeGroup?.tabs || [];
 
   return (
     <div className="space-y-6">
       
-      {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
-      {bannerMinimized ? (
+      {/* Top Banner: Minimized Compact Bar (hidden on AI dashboard) */}
+      {activeTab !== 'dashboard' && (bannerMinimized ? (
         <div className="bg-white/95 rounded-2xl px-4 py-2.5 text-slate-800 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30 backdrop-blur-md">
-          {/* Navigation Tabs (Sleek row) */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
-            {adminTabs.map(tab => (
+          {/* Navigation Sub-Tabs for Active Group */}
+          <div className="flex items-center space-x-2 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
+            <span className="text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg shrink-0">
+              {activeGroup?.label || 'Orders'}
+            </span>
+            <span className="text-slate-300 text-xs">/</span>
+            {groupTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -1390,9 +1905,13 @@ function AdminPortal({
             </div>
           </div>
 
-          {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-6 pt-4 border-t border-slate-100 overflow-x-auto">
-            {adminTabs.map(tab => (
+          {/* Modular Sub-Navigation Bar */}
+          <div className="flex items-center space-x-2 mt-6 pt-4 border-t border-slate-100 overflow-x-auto">
+            <span className="text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg shrink-0">
+              {activeGroup?.label || 'Orders'}
+            </span>
+            <span className="text-slate-300 text-xs">/</span>
+            {groupTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -1407,556 +1926,526 @@ function AdminPortal({
             ))}
           </div>
         </div>
+      ))}
+
+      {/* MODULE 0: DASHBOARD V18 & PROFILE (Exact Replica of Video UI) */}
+      {(activeTab === 'dashboard' || activeTab === 'profile') && (
+        <window.uBMS.DashboardV18
+          activeTab={activeTab}
+          portalType="admin"
+          persona={currentMember}
+          orders={orders}
+          users={users}
+          onNavigateTab={setActiveTab}
+        />
       )}
 
-      {/* MODULE 0: ADMIN EXECUTIVE DASHBOARD */}
-      {activeTab === 'dashboard' && (
-        <div className="space-y-6 animate-fade-in">
-          {/* 4 Executive KPI Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Total Orders */}
-            <div 
-              onClick={() => setActiveTab('all_orders')}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Orders</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {adminStats.totalOrdersCount}
-              </div>
-              <div className="text-xs mt-1 flex items-center space-x-1 font-medium text-slate-500">
-                {adminStats.pendingCount > 0 ? (
-                  <span className="text-amber-700 font-semibold">{adminStats.pendingCount} Pending Approval</span>
-                ) : (
-                  <span className="text-slate-600 font-medium">All Orders Approved</span>
-                )}
-                <span>&bull;</span>
-                <span>{adminStats.deliveredOrdersCount} Delivered</span>
-              </div>
-            </div>
-
-            {/* 2. Total Invoiced Volume */}
-            <div 
-              onClick={() => setActiveTab('all_invoices')}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invoiced</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {formatCurrency(adminStats.totalInvoiced)}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Gross billed across {invoices.length} invoice(s)
-              </div>
-            </div>
-
-            {/* 3. Total Collections / Cash Inflow */}
-            <div 
-              onClick={() => setActiveTab('payments')}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Payments Collected</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {formatCurrency(adminStats.totalCollected)}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Revenue from {payments.length} payment voucher(s)
-              </div>
-            </div>
-
-            {/* 4. Total Accounts Receivable / Outstanding */}
-            <div 
-              onClick={() => setActiveTab('ledgers')}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Receivables</div>
-              <div className={`text-2xl sm:text-3xl font-extrabold mt-2 font-mono ${
-                adminStats.totalOutstanding > 0 ? 'text-amber-700' : 'text-slate-900'
-              }`}>
-                {formatCurrency(adminStats.totalOutstanding)}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Across {adminStats.totalClientsCount} registered client(s)
-              </div>
-            </div>
-          </div>
-
-          {/* Attention Required: Orders Awaiting Admin Approval */}
-          {adminStats.pendingCount > 0 && (
-            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-4 text-slate-800">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-amber-200/70">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    Action Required: {adminStats.pendingCount} Order(s) Awaiting Approval
-                  </h3>
-                  <p className="text-xs text-slate-600">Review client specifications, artwork, and confirm or reject.</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('all_orders')}
-                  className="text-xs text-slate-800 hover:text-black font-semibold bg-white border border-amber-200 px-3 py-1.5 rounded-lg transition-all shadow-2xs"
-                >
-                  Manage in Order Register &rarr;
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {adminStats.pendingOrders.slice(0, 3).map(po => {
-                  const firstItem = po.items[0] || {};
-                  return (
-                    <div key={po.id} className="bg-white border border-amber-200/80 rounded-xl p-4 space-y-3 shadow-2xs">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-mono font-bold text-slate-900 text-xs">{po.id}</span>
-                          <h4 className="font-bold text-slate-900 text-sm mt-0.5">{po.customerCompany}</h4>
-                          <p className="text-[11px] text-slate-500">{po.customerName}</p>
-                        </div>
-                        <span className="text-xs font-mono font-bold text-slate-900">{formatCurrency(po.total)}</span>
-                      </div>
-
-                      <div className="bg-slate-50 p-2.5 rounded-lg text-xs space-y-1 text-slate-600 border border-slate-100">
-                        <div><strong>Item:</strong> {firstItem.itemCode || firstItem.name || 'Custom'} &bull; {firstItem.type || 'Tag'}</div>
-                        <div><strong>Qty:</strong> {Number(firstItem.quantity || 0).toLocaleString()} pcs &bull; <strong>Rate:</strong> {formatCurrency(firstItem.unitPrice || 0)}</div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 pt-1">
-                        <button
-                          onClick={() => handleApproveOrder(po)}
-                          className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-1.5 rounded-lg transition-all"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleRejectOrder(po)}
-                          className="flex-1 bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-200 font-medium text-xs py-1.5 rounded-lg transition-all"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Live Operational Pipeline */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">
-                  Live Manufacturing &amp; Fulfillment Flow
-                </h3>
-                <p className="text-xs text-slate-500">Order distribution across factory production workstations.</p>
-              </div>
-              <span className="text-xs text-slate-600 font-mono font-semibold bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
-                {orders.length} Active System Orders
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
-              {[
-                { step: '01', key: 'pending', label: 'Pending Approval', count: adminStats.pendingCount },
-                { step: '02', key: 'approved', label: 'Approved & Scheduled', count: adminStats.approvedOrdersCount },
-                { step: '03', key: 'in_production', label: 'In Production', count: adminStats.inProdOrdersCount },
-                { step: '04', key: 'ready_dispatch', label: 'QC / Packaging', count: adminStats.readyOrdersCount },
-                { step: '05', key: 'shipped', label: 'In Transit', count: adminStats.shippedOrdersCount },
-                { step: '06', key: 'delivered', label: 'Delivered', count: adminStats.deliveredOrdersCount }
-              ].map(stg => (
-                <div
-                  key={stg.key}
-                  onClick={() => setActiveTab('all_orders')}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-400 rounded-xl p-3 transition-all cursor-pointer group text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-slate-400 font-bold">{stg.step}</span>
-                    <span className="text-base font-bold text-slate-900 font-mono">{stg.count}</span>
-                  </div>
-                  <div className="text-xs text-slate-700 font-medium mt-1 leading-snug">{stg.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Main Grid: Recent Orders (Left 2 cols) & Quick Operations Center (Right 1 col) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left 2 Cols: Recent Manufacturing Orders */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">
-                    Recent Orders Across All Clients
-                  </h3>
-                  <p className="text-xs text-slate-500">Real-time incoming client orders feed.</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab('all_orders')}
-                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline flex items-center space-x-1"
-                >
-                  <span>View Full Register ({orders.length})</span>
-                  <span>&rarr;</span>
-                </button>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
-                    <tr>
-                      <th className="py-3 px-3">Order ID</th>
-                      <th className="py-3 px-3">Client</th>
-                      <th className="py-3 px-3">Artwork</th>
-                      <th className="py-3 px-3">Item / Brand</th>
-                      <th className="py-3 px-3">Qty</th>
-                      <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3 text-right">Amt</th>
-                      <th className="py-3 px-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {orders.slice(0, 5).map(o => {
-                      const firstItem = o.items[0] || {};
-                      const isApproved = o.status === 'approved';
-
-                      return (
-                        <tr key={o.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-3 font-mono font-bold text-slate-900">
-                            {o.id}
-                            <div className="text-[10px] text-slate-400 font-normal">{formatDate(o.createdAt)}</div>
-                          </td>
-                          <td className="py-3 px-3">
-                            <div className="font-bold text-slate-900 text-xs">{o.customerCompany}</div>
-                            <div className="text-[10px] text-slate-500">{o.customerName}</div>
-                          </td>
-                          <td className="py-3 px-3">
-                            {firstItem.image ? (
-                              <img 
-                                src={firstItem.image} 
-                                alt="Artwork" 
-                                onClick={() => setPreviewArtworkUrl(firstItem.image)}
-                                className="w-10 h-10 object-contain rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition-transform bg-white shadow-2xs" 
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                                ART
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-3 px-3">
-                            <div className="font-bold text-slate-900 text-xs">{firstItem.brandName || o.customerCompany}</div>
-                            <div className="text-[11px] text-slate-500 font-mono">{firstItem.itemCode || firstItem.type}</div>
-                          </td>
-                          <td className="py-3 px-3 font-mono font-bold text-slate-800">
-                            {Number(firstItem.quantity || 0).toLocaleString()} pcs
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                              o.status === 'approved' || o.status === 'confirmed' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                              o.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
-                              o.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
-                              o.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
-                              o.status === 'shipped' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
-                              o.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                              'bg-amber-50 text-amber-800 border border-amber-200'
-                            }`}>
-                              <span>{o.status === 'pending' || o.status === 'placed' ? 'Pending' : o.status.replace(/_/g, ' ')}</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
-                            {formatCurrency(o.total)}
-                          </td>
-                          <td className="py-3 px-3 text-center">
-                            {!isApproved ? (
-                              <button
-                                onClick={() => handleApproveOrder(o)}
-                                className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-medium shadow-xs transition-all"
-                              >
-                                Approve
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  const linkedOrder = orders.find(ord => ord.id === o.id) || o;
-                                  onOpenInvoice(linkedOrder);
-                                }}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-medium"
-                              >
-                                Invoice
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Right Col: Operations Console Quick Launch Hub */}
-            <div className="space-y-6">
-              
-              {/* Operations Launchpad */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
-                <h3 className="font-bold text-slate-900 text-sm">
-                  Operations Launchpad
-                </h3>
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
-                  <button
-                    onClick={() => setActiveTab('place_order')}
-                    className="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-semibold text-xs">+ Book Order</div>
-                    <div className="text-[10px] text-slate-300 mt-0.5 leading-tight">On-behalf client entry</div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('all_orders')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Order Register</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Inspect, approve, move</div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('create_invoice')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">New Invoice</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Bill completed orders</div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('payments')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Record Payment</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Post NEFT / Cash voucher</div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('production')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Production Floor</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Machine cards &amp; flow</div>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('payroll')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Payroll &amp; Staff</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Attendance &amp; wages</div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Factory Status Summary */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                    MFG
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Facility Status</div>
-                    <div className="font-bold text-slate-900 text-sm">Industrial Apparel Park Hub</div>
-                    <div className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      <span>Weaving &amp; Die Press Active</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">Active Workers</span>
-                    <span className="text-base font-bold text-slate-900 font-mono">{adminStats.activeStaffCount} on Shift</span>
-                  </div>
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">Client Accounts</span>
-                    <span className="text-base font-bold text-slate-900 font-mono">{adminStats.totalClientsCount} Registered</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODULE 1: PLACE ORDER (TAGS & LABELS SPECIFICATION) */}
+      {/* MODULE 1: PRODUCTION ORDER STUDIO (ADMIN ON-BEHALF STUDIO) */}
       {activeTab === 'place_order' && (
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in">
+        <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16">
           
-          <div className="xl:col-span-3 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Book Manufacturing Order (Tags &amp; Labels)</h3>
-                <p className="text-xs text-slate-500">Precision manufacturing order entry with dynamic materials, custom trims &amp; artwork.</p>
+          {/* Studio Top Header: Refined uBMS Design */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                  Production Order Studio
+                </h1>
+                <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Auto-generated sequential Order ID">
+                  {currentAdminOrderId}
+                </span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-900 text-white font-medium">
+                  Admin Entry Console
+                </span>
               </div>
-              <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-medium">
-                Admin Entry Console
-              </span>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Precision manufacturing order entry with dynamic materials, custom trims, prepress proof &amp; instant booking.
+              </p>
             </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={handleAdminSubmitOrder}
+                disabled={adminIsSubmitting}
+                className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white px-6 py-2.5 rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-2 cursor-pointer"
+              >
+                {adminIsSubmitting ? (
+                  <span>Booking Order...</span>
+                ) : (
+                  <>
+                    <span>Confirm &amp; Book Order</span>
+                    <span className="font-bold">&rarr;</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
-            {/* Line Item Creation Form */}
-            <form onSubmit={handleAdminAddItem} className="space-y-5 bg-slate-50/70 p-5 rounded-2xl border border-slate-200/80">
+          {/* Main Studio Workspace: 2-Column Split */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+            
+            {/* LEFT COLUMN (7 cols): The Production Specification Sheet */}
+            <div className="lg:col-span-7 space-y-5">
               
-              {/* TIER 1: CORE IDENTIFIERS (5-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Customer Account Party *</label>
-                  <select
-                    value={adminOrderCustId}
-                    onChange={(e) => {
-                      setAdminOrderCustId(e.target.value);
-                      const cust = users.customers.find(c => c.id === e.target.value);
-                      if (cust) setAdminBrandName(cust.company || cust.name);
-                    }}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
-                  >
-                    {users.customers.map(c => (
-                      <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Brand Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Urban Stitch / Denim Club"
-                    value={adminBrandName}
-                    onChange={(e) => setAdminBrandName(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
-                  />
-                </div>
-
+              {/* SECTION 1: Customer Account & Production Run Type */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                
+                {/* Customer Account Party Selection - Structured Same as Brand Name Entry */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Item Code *</label>
-                    <span className="text-[10px] text-slate-500 font-mono">Auto / Admin Edit</span>
+                    <label className="text-[11px] font-semibold text-slate-700">
+                      Customer Account Party <span className="text-rose-500">*</span>
+                    </label>
+                    {users.customers.length > 0 && (
+                      <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                        <span>Parties:</span>
+                        {users.customers.slice(0, 4).map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleSelectCustomerParty(c)}
+                            className={`px-2 py-0.5 rounded transition-colors cursor-pointer font-medium ${
+                              selectedCust?.id === c.id 
+                                ? 'bg-slate-900 text-white shadow-2xs' 
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {c.company}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. MGC01"
-                    value={adminItemCode}
-                    onChange={(e) => {
-                      setAdminItemCode(e.target.value.toUpperCase());
-                      setAdminItemCodeManual(true);
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Type customer party name (e.g. MG Creation / Aariya Creation / TagX)..."
+                      value={adminCustomerPartyQuery}
+                      onFocus={() => setAdminCustomerInputFocused(true)}
+                      onChange={(e) => {
+                        setAdminCustomerPartyQuery(e.target.value);
+                        setAdminCustomerInputFocused(true);
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setAdminCustomerInputFocused(false), 200);
+                      }}
+                      className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 focus:ring-slate-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all"
+                      autoComplete="off"
+                    />
+                    {/* Floating Customer Suggestions */}
+                    {adminCustomerInputFocused && filteredCustomerSuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-56 overflow-y-auto">
+                        <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                          <span>Registered Customer Parties</span>
+                          <span>{filteredCustomerSuggestions.length} found</span>
+                        </div>
+                        {filteredCustomerSuggestions.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectCustomerParty(c);
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                              selectedCust?.id === c.id ? 'bg-indigo-50/70' : ''
+                            }`}
+                          >
+                            <div>
+                              <div className="font-bold text-xs text-slate-900">{c.company}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">
+                                {c.name} {c.phone ? `• ${c.phone}` : ''} {c.abbr ? `[${c.abbr}]` : ''}
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-brand-600 font-semibold">
+                              {selectedCust?.id === c.id ? '✓ Selected' : 'Select →'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Production Run Type
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Choose whether you are booking a new design run or repeating a past manufactured order.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Elegant Segmented Switcher */}
+                <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminOrderType('New Order');
+                      setAdminRepeatSelectedItemCode('');
+                      setAdminRepeatSelectedItemName('');
+                      setAdminRepeatSearchQuery('');
+                      if (adminStepValidationErrors.orderType) {
+                        setAdminStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                      }
                     }}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs uppercase tracking-wider"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Type *</label>
-                  <select
-                    value={adminSelectedType}
-                    onChange={(e) => handleAdminTypeChange(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                      adminOrderType === 'New Order'
+                        ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
-                    {availableTypes.map(t => (
-                      <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                  </select>
+                    <span>+ New Design Order</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminOrderType('Repeat Order');
+                      if (adminStepValidationErrors.orderType) {
+                        setAdminStepValidationErrors(prev => ({ ...prev, orderType: null }));
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+                      adminOrderType === 'Repeat Order'
+                        ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>&#8635; Repeat Past Item</span>
+                  </button>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                    {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? 'Paper Catalog *' : 'Material *'}{' '}
-                    <span className="text-slate-400 font-normal">({adminSelectedType})</span>
-                  </label>
-                  {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? (
-                    <select
-                      value={adminSelectedCatalogId}
-                      onChange={(e) => setAdminSelectedCatalogId(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs font-medium"
-                    >
-                      {availableCatalogs.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.code} ({cat.gsm} GSM - {cat.finish})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <select
-                      value={adminSelectedMaterial}
-                      onChange={(e) => setAdminSelectedMaterial(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
-                    >
-                      {(adminTypeObj?.materials || []).map((m, idx) => (
-                        <option key={idx} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                {/* IF REPEAT ORDER: Searchable Autocomplete Picker */}
+                {adminOrderType === 'Repeat Order' && (
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-700">
+                        Select Item to Repeat for {selectedCust?.company} <span className="text-rose-500">*</span>
+                      </label>
+                      {adminRepeatSelectedItemCode && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                            &#10003; {adminRepeatSelectedItemCode} Loaded
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdminRepeatSelectedItemCode('');
+                              setAdminRepeatSelectedItemName('');
+                              setAdminRepeatSearchQuery('');
+                            }}
+                            className="text-[10px] text-slate-400 hover:text-rose-600 underline font-medium cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {adminCustomerPastItems.length > 0 ? (
+                      <div className="relative">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Type to search customer's past items by code, brand, or name..."
+                            value={adminRepeatSearchQuery}
+                            onFocus={() => setAdminRepeatInputFocused(true)}
+                            onChange={(e) => {
+                              setAdminRepeatSearchQuery(e.target.value);
+                              setAdminRepeatInputFocused(true);
+                              if (!e.target.value.trim()) {
+                                setAdminRepeatSelectedItemCode('');
+                                setAdminRepeatSelectedItemName('');
+                              }
+                              if (adminStepValidationErrors.repeatSelectedItemCode) {
+                                setAdminStepValidationErrors(prev => ({ ...prev, repeatSelectedItemCode: null }));
+                              }
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => setAdminRepeatInputFocused(false), 200);
+                            }}
+                            className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${adminStepValidationErrors.repeatSelectedItemCode ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                            autoComplete="off"
+                          />
+                          {adminRepeatSearchQuery && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setAdminRepeatSearchQuery('');
+                                setAdminRepeatSelectedItemCode('');
+                                setAdminRepeatSelectedItemName('');
+                              }}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs px-1 cursor-pointer"
+                              title="Clear search"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                        {/* Floating Suggestion Cards */}
+                        {adminRepeatInputFocused && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-60 overflow-y-auto">
+                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                              <span>Previously Manufactured Items ({selectedCust?.company})</span>
+                              <span>{adminFilteredRepeatItems.length} found</span>
+                            </div>
+                            {adminFilteredRepeatItems.length > 0 ? (
+                              adminFilteredRepeatItems.map((item, idx) => {
+                                const code = item.itemCode || item.name;
+                                const isSelected = adminRepeatSelectedItemCode === code;
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      handleAdminSelectRepeatItem(code);
+                                      setAdminRepeatInputFocused(false);
+                                    }}
+                                    className={`w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                                      isSelected ? 'bg-indigo-50/70' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center space-x-3 overflow-hidden">
+                                      {item.image ? (
+                                        <img
+                                          src={item.image}
+                                          alt={item.name || code}
+                                          className="w-9 h-9 rounded-lg object-contain bg-slate-100 border border-slate-200 shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
+                                          {(item.type || 'TAG').slice(0, 3).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-mono font-bold text-xs text-slate-900 truncate">{code}</span>
+                                          <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-medium">{item.type || 'Tag'}</span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                          {item.brandName ? <strong className="text-slate-700 font-semibold">{item.brandName}</strong> : 'Item'} &bull; {item.material || 'Standard Board'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-3">
+                                      <div className="text-xs font-mono font-bold text-slate-900">{formatCurrency(item.unitPrice || 0)}</div>
+                                      <span className="text-[10px] text-brand-600 font-semibold">{isSelected ? '✓ Loaded' : 'Select →'}</span>
+                                    </div>
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <div className="p-4 text-center text-xs text-slate-500">
+                                No previous items matching "{adminRepeatSearchQuery}"
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/70">
+                        No previous manufactured orders found for this customer. Switch to <strong>+ New Design Order</strong> to create an article.
+                      </div>
+                    )}
+                    {adminStepValidationErrors.repeatSelectedItemCode && (
+                      <p className="text-[11px] text-rose-600 font-medium">
+                        &#9888; {adminStepValidationErrors.repeatSelectedItemCode}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* IF NEW ORDER: Brand Name & Automatic Article Identification */}
+                {adminOrderType === 'New Order' && (
+                  <div className="pt-2 border-t border-slate-100 space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[11px] font-semibold text-slate-700">
+                          Brand / Client Label <span className="text-rose-500">*</span>
+                        </label>
+                        {adminCustomerSavedBrands.length > 0 && (
+                          <div className="flex items-center space-x-1 text-[10px] text-slate-400">
+                            <span>Saved:</span>
+                            {adminCustomerSavedBrands.slice(0, 3).map((sb, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  setAdminBrandName(sb);
+                                  if (adminStepValidationErrors.brandName) {
+                                    setAdminStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                                  }
+                                }}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                              >
+                                {sb}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Type brand name (e.g. Urban Stitch / Denim Club)..."
+                          value={adminBrandName}
+                          onFocus={() => setAdminBrandInputFocused(true)}
+                          onChange={(e) => {
+                            setAdminBrandName(e.target.value);
+                            setAdminBrandInputFocused(true);
+                            if (adminStepValidationErrors.brandName) {
+                              setAdminStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => setAdminBrandInputFocused(false), 200);
+                          }}
+                          className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${adminStepValidationErrors.brandName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'} rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+                          autoComplete="off"
+                        />
+                        {/* Floating Brand Suggestions */}
+                        {adminBrandInputFocused && adminFilteredBrandSuggestions.length > 0 && (
+                          <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 max-h-48 overflow-y-auto">
+                            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                              Saved Brands ({selectedCust?.company})
+                            </div>
+                            {adminFilteredBrandSuggestions.map((sb, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setAdminBrandName(sb);
+                                  setAdminBrandInputFocused(false);
+                                  if (adminStepValidationErrors.brandName) {
+                                    setAdminStepValidationErrors(prev => ({ ...prev, brandName: null }));
+                                  }
+                                }}
+                                className="w-full text-left px-3.5 py-2 text-xs text-slate-800 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer"
+                              >
+                                <span>{sb}</span>
+                                <span className="text-[10px] text-slate-400">Select &rarr;</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {adminStepValidationErrors.brandName && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1">
+                          &#9888; {adminStepValidationErrors.brandName}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Auto-Assigned Article Reference */}
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/70 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-500 font-medium">Assigned Production Reference:</span>
+                        <span className="font-mono font-bold text-slate-900 ml-2">{currentAdminDraftItemName}</span>
+                      </div>
+                      <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600 font-medium">
+                        Standardized Naming
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* SPECIALIZED TAG COMPOSITION: SINGLE vs MULTI-CARD TAG FOR ADMIN */}
-              {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') && (
-                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-900">
-                        Tag Composition &amp; Paper Cards
-                      </span>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        Does this tag have a single paper card or multiple cards bound together with Dori &amp; Plastic?
-                      </p>
-                    </div>
+              {/* SECTION 2: Product Category & Structural Specifications */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Product Architecture &amp; Specifications
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Select the garment accessory category and configure physical dimensions and paper board qualities.
+                  </p>
+                </div>
 
-                    <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setAdminIsMultiCard(false)}
-                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                          !adminIsMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Single Card Tag
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminIsMultiCard(true)}
-                        className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
-                          adminIsMultiCard ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Multi-Card Tag Set ({adminTagCards.length} Cards)
-                      </button>
-                    </div>
+                {/* Category & Piece Format Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                      Product Category <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={adminSelectedType}
+                      onChange={(e) => handleAdminTypeChange(e.target.value)}
+                      className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                    >
+                      {availableTypes.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  {adminIsMultiCard && (
-                    <div className="mt-3 space-y-2.5 pt-3 border-t border-slate-100">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {adminTagCards.map((card, idx) => (
-                          <div key={card.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-semibold text-slate-800">
-                                Card #{idx + 1}: {card.title}
-                              </span>
-                              {idx === 2 && (
-                                <button
-                                  type="button"
-                                  onClick={() => setAdminTagCards(prev => prev.slice(0, 2))}
-                                  className="text-rose-600 hover:text-rose-700 text-xs font-semibold"
-                                  title="Remove 3rd Card"
-                                >
-                                  &times; Remove
-                                </button>
-                              )}
-                            </div>
-                            <label className="text-[10px] text-slate-500 block font-semibold">Select Paper Catalog:</label>
+                  {/* Format / Pieces (For Hangtags & Tag Kits) */}
+                  {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? (
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Piece Composition / Format
+                      </label>
+                      <select
+                        value={adminIsMultiCard ? (adminTagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '1 PC') {
+                            setAdminIsMultiCard(false);
+                          } else if (val === '2 PC') {
+                            setAdminIsMultiCard(true);
+                            if (adminTagCards.length > 2) handleAdminRemoveThirdCard();
+                          } else if (val === '3 PC') {
+                            setAdminIsMultiCard(true);
+                            if (adminTagCards.length < 3) handleAdminAddThirdCard();
+                          }
+                        }}
+                        className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                      >
+                        <option value="1 PC">1 PC (Single Tag)</option>
+                        <option value="2 PC">2 PC (2-Piece Tag Set)</option>
+                        <option value="3 PC">3 PC (3-Piece Tag Kit)</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                        Format
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value="Single Unit Patch"
+                        className="w-full bg-slate-100/70 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-600 font-medium cursor-not-allowed"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* MATERIAL ENGINEERING: Hangtag / Tag Kit vs PU Label */}
+                <div className="pt-2 border-t border-slate-100">
+                  {(adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit') ? (
+                    <div className="space-y-3">
+                      {!adminIsMultiCard ? (
+                        /* Single Card Tag */
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Paper Catalog Board <span className="text-rose-500">*</span>
+                            </label>
                             <select
-                              value={card.catalogId}
+                              value={adminSelectedCatalogId}
                               onChange={(e) => {
-                                const newCatId = e.target.value;
-                                setAdminTagCards(prev => prev.map((c, i) => i === idx ? { ...c, catalogId: newCatId } : c));
+                                setAdminSelectedCatalogId(e.target.value);
+                                if (adminStepValidationErrors.selectedCatalogId) {
+                                  setAdminStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
+                                }
                               }}
-                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                             >
                               {availableCatalogs.map(cat => (
                                 <option key={cat.id} value={cat.id}>
@@ -1965,318 +2454,648 @@ function AdminPortal({
                               ))}
                             </select>
                           </div>
-                        ))}
-                      </div>
-
-                      {adminTagCards.length < 3 && (
-                        <button
-                          type="button"
-                          onClick={() => setAdminTagCards(prev => [
-                            ...prev,
-                            { id: 3, title: 'Card 3 (Story / Overlay Card)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115' }
-                          ])}
-                          className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1 mt-2"
-                        >
-                          <span>+ Add 3rd Card (e.g. Tracing Butter Paper Overlay)</span>
-                        </button>
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Die-Cut Dimensions (Size L x Size B)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
+                              value={adminSingleCardDimension}
+                              onChange={(e) => setAdminSingleCardDimension(e.target.value)}
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        /* Multi-Card Tag Configuration */
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-800">
+                              Multi-Piece Layer Configuration ({adminTagCards.length} Pieces)
+                            </span>
+                            {adminTagCards.length < 3 && (
+                              <button
+                                type="button"
+                                onClick={handleAdminAddThirdCard}
+                                className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 cursor-pointer"
+                              >
+                                + Add 3rd Piece
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {adminTagCards.map((card, idx) => (
+                              <div key={card.id} className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-slate-800">
+                                    {card.title}
+                                  </span>
+                                  {idx === 2 && (
+                                    <button
+                                      type="button"
+                                      onClick={handleAdminRemoveThirdCard}
+                                      className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
+                                    >
+                                      &times; Remove
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                      Paper Board Quality
+                                    </label>
+                                    <select
+                                      value={card.catalogId}
+                                      onChange={(e) => handleAdminUpdateCardCatalog(idx, e.target.value)}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
+                                    >
+                                      {availableCatalogs.map(cat => (
+                                        <option key={cat.id} value={cat.id}>
+                                          {cat.code} - {cat.gsm} GSM
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                      Finished Dimensions
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
+                                      value={card.dimension}
+                                      onChange={(e) => handleAdminUpdateCardDimension(idx, e.target.value)}
+                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
-                      
-                      <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-                        Each card will receive its own printing &amp; punching job form, and will merge at the Handwork (Dori &amp; Plastic) stage.
+                    </div>
+                  ) : (
+                    /* PU Label Leather Material Options */
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                            PU Leather Origin
+                          </label>
+                          <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+                            <button
+                              type="button"
+                              onClick={() => setAdminPuOrigin('Indian')}
+                              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                adminPuOrigin === 'Indian'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Indian PU
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAdminPuOrigin('Imported')}
+                              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                adminPuOrigin === 'Imported'
+                                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+                                  : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                            >
+                              Imported PU
+                            </button>
+                          </div>
+                        </div>
+                        {adminPuOrigin === 'Indian' ? (
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Thickness Gauge
+                            </label>
+                            <select
+                              value={adminPuThickness}
+                              onChange={(e) => setAdminPuThickness(e.target.value)}
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium shadow-2xs"
+                            >
+                              <option value="1.2">1.2 mm (Standard)</option>
+                              <option value="1.8">1.8 mm (Medium Heavy)</option>
+                              <option value="2.2">2.2 mm (Ultra Heavy Duty)</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                              Imported Grade
+                            </label>
+                            <input
+                              type="text"
+                              readOnly
+                              value="Premium Imported Synthetic Grain"
+                              className="w-full bg-slate-100/70 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-600 font-medium cursor-not-allowed"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
+                          Patch Finished Size (L x B)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 45 x 70 mm or 50 x 85 mm"
+                          value={adminSingleCardDimension}
+                          onChange={(e) => setAdminSingleCardDimension(e.target.value)}
+                          className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium shadow-2xs"
+                        />
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* SECTION 3: Handwork Fasteners & Attachments */}
+              {adminSelectedType !== 'Tag Kit' && (
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Handwork Fasteners &amp; Attachments
+                    </label>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Configure tag hanging cords (Dori) and molded barcode seal locks.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Dori */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
+                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdminDoriOption('none');
+                              setAdminDoriCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminDoriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            None
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdminDoriOption('reg');
+                              setAdminDoriCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminDoriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Reg. (₹0.20)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAdminDoriOption('custom')}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminDoriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                      </div>
+                      {adminDoriOption === 'custom' ? (
+                        <input
+                          type="text"
+                          placeholder="Specify custom dori (e.g. Waxed Cotton / Satin cord)"
+                          value={adminDoriCustom}
+                          onChange={(e) => setAdminDoriCustom(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                        />
+                      ) : (
+                        <div className="text-[11px] text-slate-500">
+                          {adminDoriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (₹0.20/pc)'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Barcode Plastic Seal */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-800">Barcode Plastic Seal</span>
+                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdminPlasticOption('none');
+                              setAdminPlasticCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminPlasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            None
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdminPlasticOption('reg');
+                              setAdminPlasticCustom('');
+                            }}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminPlasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Reg. (₹0.10)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAdminPlasticOption('custom')}
+                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+                              adminPlasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                      </div>
+                      {adminPlasticOption === 'custom' ? (
+                        <input
+                          type="text"
+                          placeholder="Specify custom seal (e.g. Embossed Square Seal)"
+                          value={adminPlasticCustom}
+                          onChange={(e) => setAdminPlasticCustom(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                        />
+                      ) : (
+                        <div className="text-[11px] text-slate-500">
+                          {adminPlasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (₹0.10/pc)'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* TIER 2: ACCESSORIES & ARTWORK (3-COLUMNS) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* DORI FIELD */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700">Dori</label>
-                    <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setAdminDoriOption('reg'); setAdminDoriCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-medium transition-all ${
-                          adminDoriOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminDoriOption('custom')}
-                        className={`px-3 py-1 rounded-md font-medium transition-all ${
-                          adminDoriOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Custom
-                      </button>
+              {/* SECTION 4: Production Volume & Commercial Rates */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Production Volume &amp; Commercials
+                  </label>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Specify required pieces and agreed unit manufacturing pricing.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                  {/* Quantity Input with Presets */}
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-700">
+                        Order Quantity (Pcs) <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="flex items-center space-x-1">
+                        {[1000, 2500, 5000, 10000].map(val => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => {
+                              setAdminQty(val);
+                              if (adminStepValidationErrors.qty) setAdminStepValidationErrors(prev => ({ ...prev, qty: null }));
+                            }}
+                            className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                              Number(adminQty) === val
+                                ? 'bg-slate-900 text-white border-slate-900 font-bold'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            {val >= 1000 ? `${val / 1000}k` : val}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                    <input
+                      type="number"
+                      placeholder="e.g. 5000"
+                      value={adminQty || ''}
+                      onChange={(e) => {
+                        setAdminQty(e.target.value);
+                        if (adminStepValidationErrors.qty) setAdminStepValidationErrors(prev => ({ ...prev, qty: null }));
+                      }}
+                      className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${adminStepValidationErrors.qty ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
+                    />
+                    {adminStepValidationErrors.qty && (
+                      <p className="text-[11px] text-rose-600 font-medium">&#9888; {adminStepValidationErrors.qty}</p>
+                    )}
                   </div>
 
-                  {adminDoriOption === 'custom' ? (
+                  {/* Rate Input */}
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-700 block">
+                      Agreed Unit Rate (₹/pc) <span className="text-rose-500">*</span>
+                    </label>
                     <input
-                      type="text"
-                      required
-                      placeholder="Specify custom dori (e.g. Waxed Cotton Black 7-in)"
-                      value={adminDoriCustom}
-                      onChange={(e) => setAdminDoriCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
+                      type="number"
+                      step="0.05"
+                      placeholder="e.g. 3.50"
+                      value={adminRate || ''}
+                      onChange={(e) => {
+                        setAdminRate(e.target.value);
+                        if (adminStepValidationErrors.rate) setAdminStepValidationErrors(prev => ({ ...prev, rate: null }));
+                      }}
+                      className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${adminStepValidationErrors.rate ? 'border-rose-400' : 'border-slate-200'} rounded-xl px-3.5 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400`}
                     />
-                  ) : (
-                    <div className="text-xs text-slate-500 py-1.5 px-2 bg-slate-50 rounded-xl border border-slate-200">
-                      Standard / Regular Dori assigned
+                    {adminStepValidationErrors.rate && (
+                      <p className="text-[11px] text-rose-600 font-medium">&#9888; {adminStepValidationErrors.rate}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Packaging Instructions */}
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                    Packaging Instructions / Special Production Notes (Optional)
+                  </label>
+                  <textarea
+                    rows="2"
+                    placeholder="e.g. Bundle packaging in 100s, urgent dispatch deadline, shrink wrap rolls..."
+                    value={adminOrderNotes}
+                    onChange={(e) => setAdminOrderNotes(e.target.value)}
+                    className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs"
+                  />
+                </div>
+
+                {/* Staged Additional Items Table (if any) */}
+                {adminOrderItems.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Staged Batch Items ({adminOrderItems.length})
+                    </h4>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white text-xs">
+                      {adminOrderItems.map((item, idx) => (
+                        <div key={idx} className="p-3 border-b border-slate-100 last:border-0 flex items-center justify-between">
+                          <div>
+                            <span className="font-mono font-bold text-slate-900 mr-2">{item.itemCode || item.name}</span>
+                            <span className="font-semibold text-slate-800 mr-2">{item.brandName}</span>
+                            <span className="text-slate-500 font-mono">({item.quantity} pcs @ {formatCurrency(item.unitPrice)})</span>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className="font-mono font-bold text-slate-900">{formatCurrency(item.total)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleAdminRemoveItem(item.id)}
+                              className="text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Batch Item Button */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={handleAdminAddItem}
+                    className="text-xs text-slate-700 hover:text-slate-900 font-semibold flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <span>+ Add Another Article to this Order Batch</span>
+                  </button>
+                  <span className="text-[11px] text-slate-400">
+                    Combine multiple tag references into one job card
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN (5 cols): Visual Artwork Proof Canvas & Production Job Ticket */}
+            <div className="lg:col-span-5 space-y-6 sticky top-20">
+              
+              {/* COMPONENT 1: Interactive Artwork Proof Canvas */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Artwork &amp; Prepress Proof</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Visual framing and prepress alignment for offset printing.
+                    </p>
+                  </div>
+                  {adminOrderImage && (
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                      &#10003; Print File Ready
+                    </span>
                   )}
                 </div>
 
-                {/* PLASTIC FIELD */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700">Plastic Lock</label>
-                    <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setAdminPlasticOption('reg'); setAdminPlasticCustom(''); }}
-                        className={`px-3 py-1 rounded-md font-medium transition-all ${
-                          adminPlasticOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAdminPlasticOption('custom')}
-                        className={`px-3 py-1 rounded-md font-medium transition-all ${
-                          adminPlasticOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-                  </div>
-
-                  {adminPlasticOption === 'custom' ? (
-                    <input
-                      type="text"
-                      required
-                      placeholder="Specify custom plastic (e.g. Matte Embossed Square)"
-                      value={adminPlasticCustom}
-                      onChange={(e) => setAdminPlasticCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
-                    />
-                  ) : (
-                    <div className="text-xs text-slate-500 py-1.5 px-2 bg-slate-50 rounded-xl border border-slate-200">
-                      Standard / Regular Plastic lock assigned
-                    </div>
-                  )}
-                </div>
-
-                {/* ARTWORK UPLOAD & PREVIEW */}
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                  <label className="text-xs font-semibold text-slate-700 block">Order Image / Artwork</label>
-                  <div className="flex items-center space-x-2">
+                {/* Artwork Framing Area */}
+                {!adminOrderImage ? (
+                  <div className="bg-slate-50/70 hover:bg-white border-2 border-dashed border-slate-300 hover:border-slate-400 rounded-2xl p-7 min-h-[240px] flex flex-col items-center justify-center text-center relative group transition-all cursor-pointer">
                     <input
                       id="admin-file-upload"
                       type="file"
                       accept="image/*"
                       onChange={handleAdminImageUpload}
-                      className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
-                    {adminOrderImage && (
-                      <div className="flex items-center space-x-2 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200 flex-shrink-0">
-                        <img src={adminOrderImage} alt="Preview" className="w-7 h-7 object-cover rounded" />
+                    
+                    {/* Simulated Hangtag Silhouette */}
+                    <div className="w-16 h-24 rounded-xl border-2 border-slate-300 group-hover:border-slate-500 bg-white shadow-2xs flex flex-col items-center justify-between p-2 mb-3 transition-colors">
+                      <div className="w-2 h-2 rounded-full border border-slate-300 bg-slate-100"></div>
+                      <div className="text-xl font-light text-slate-400 group-hover:text-slate-800 transition-colors">+</div>
+                      <div className="w-8 h-1 rounded bg-slate-100"></div>
+                    </div>
+                    <div className="text-xs font-bold text-slate-800">
+                      Upload Production Artwork
+                    </div>
+                    <p className="text-[11px] text-slate-500 max-w-xs mt-1 leading-relaxed">
+                      Drag &amp; drop customer logo or tag artwork file (JPG, PNG, WEBP).
+                    </p>
+                    <span className="text-[10px] text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
+                      Optional: Offset studio generates prepress proof if blank
+                    </span>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col items-center justify-center min-h-[220px]">
+                      {/* Realistic Hangtag Frame */}
+                      <div className="relative group w-40 h-56 bg-white rounded-2xl border-2 border-slate-300/80 shadow-md flex flex-col items-center justify-between p-3 overflow-hidden">
+                        {/* Simulated Tag Hole Punch Guide */}
+                        <div className="w-3 h-3 rounded-full border border-slate-300 bg-slate-200/70 shrink-0 z-10" title="Drill Hole Guide (3mm)"></div>
+                        
+                        {/* Artwork Preview Image */}
+                        <div 
+                          onClick={() => setPreviewArtworkUrl(adminOrderImage)}
+                          className="w-full flex-1 flex items-center justify-center overflow-hidden cursor-pointer py-1"
+                          title="Click to inspect enlarged artwork"
+                        >
+                          <img
+                            src={adminOrderImage}
+                            alt="Order Artwork Proof"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        {/* Tag Dimensions Badge */}
+                        <div className="text-[9px] font-mono text-slate-400 uppercase tracking-widest shrink-0">
+                          {adminSingleCardDimension || '50 x 90 mm'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Prepress Toolstrip */}
+                    <div className="flex items-center justify-between pt-1 text-xs">
+                      <div className="flex items-center space-x-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            setAdminOrderImage('');
-                            const el = document.getElementById('admin-file-upload');
-                            if (el) el.value = '';
-                          }}
-                          className="text-rose-600 hover:text-rose-700 text-xs font-bold"
+                          onClick={() => setAdminShowCropModal(true)}
+                          className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors flex items-center space-x-1 cursor-pointer"
                         >
-                          &times;
+                          <span>Crop &amp; Frame</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewArtworkUrl(adminOrderImage)}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
+                        >
+                          Inspect Lightbox
                         </button>
                       </div>
-                    )}
+                      <div className="flex items-center space-x-2">
+                        <label className="text-slate-600 hover:text-slate-900 underline text-xs cursor-pointer font-medium">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAdminImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-slate-300">&bull;</span>
+                        <button
+                          type="button"
+                          onClick={() => setAdminOrderImage('')}
+                          className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* COMPONENT 2: Production Job Ticket (Manufacturing Order Summary) */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-slate-400 font-bold">#</span>
+                    <h3 className="font-bold text-slate-900 text-sm">Production Job Ticket</h3>
+                  </div>
+                  <div>
+                    <span className="text-[10px] bg-slate-900 text-white px-2.5 py-1 rounded font-mono font-bold" title="Order ID">
+                      {currentAdminOrderId}
+                    </span>
                   </div>
                 </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Customer Party:</span>
+                    <span className="font-bold text-slate-900 text-right">{selectedCust?.company}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Brand:</span>
+                    <span className="font-semibold text-slate-900 text-right">{adminBrandName || selectedCust?.company || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Product:</span>
+                    <span className="font-semibold text-slate-900 text-right">{adminSelectedType}</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Composition:</span>
+                    <span className="font-semibold text-slate-900 text-right">
+                      {adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit' ? (adminIsMultiCard ? `${adminTagCards.length}-Piece Set` : 'Single Card Tag') : 'Standard Unit'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Material Board:</span>
+                    <span className="font-semibold text-slate-900 text-right text-[11px] max-w-[160px] truncate">
+                      {adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit'
+                        ? (availableCatalogs.find(c => c.id === adminSelectedCatalogId)?.code || 'Stock Board')
+                        : `${adminPuOrigin} PU (${adminPuThickness}mm)`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Volume:</span>
+                    <span className="font-semibold font-mono text-slate-900 text-right">{Number(adminQty || 0).toLocaleString()} pcs</span>
+                  </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-500 text-[11px]">Unit Rate:</span>
+                    <span className="font-semibold font-mono text-slate-900 text-right">{formatCurrency(Number(adminRate || 0))}/pc</span>
+                  </div>
+                  
+                  {adminSelectedType !== 'Tag Kit' && (
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
+                      <span className="text-[11px] text-slate-600 text-right">
+                        Dori ({adminDoriOption === 'custom' ? 'Custom' : adminDoriOption === 'none' ? 'None' : '₹0.20'}) | Seal ({adminPlasticOption === 'custom' ? 'Custom' : adminPlasticOption === 'none' ? 'None' : '₹0.10'})
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Commercial Adjustments */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-semibold text-slate-600">Special Discount (₹):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={adminOrderDiscount || ''}
+                        onChange={(e) => setAdminOrderDiscount(Number(e.target.value) || 0)}
+                        placeholder="0"
+                        className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono font-bold text-slate-900 focus:outline-none focus:bg-white focus:border-slate-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
+                    <span className="font-bold text-slate-900 text-xs uppercase tracking-wider">Estimated Total:</span>
+                    <span className="text-xl font-bold font-mono text-slate-900">
+                      {formatCurrency(adminFinalTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Booking Action */}
+                <button
+                  type="button"
+                  onClick={handleAdminSubmitOrder}
+                  disabled={adminIsSubmitting}
+                  className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  {adminIsSubmitting ? (
+                    <span>Booking Manufacturing Order...</span>
+                  ) : (
+                    <>
+                      <span>Confirm &amp; Book Order</span>
+                      <span className="font-bold">&rarr;</span>
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
+                  Direct manufacturing entry. Press cards and jobs will be scheduled immediately.
+                </p>
               </div>
 
-              {/* TIER 3: COMMERCIALS & ACTION (4-COLUMNS) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pt-2 border-t border-slate-200">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Quantity (Pcs) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={adminQty}
-                    onFocus={() => { if (Number(adminQty) === 0) setAdminQty(''); }}
-                    onBlur={() => { if (adminQty === '' || isNaN(adminQty)) setAdminQty(0); }}
-                    onChange={(e) => setAdminQty(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Rate per Pc (₹) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    value={adminRate}
-                    onFocus={() => { if (Number(adminRate) === 0) setAdminRate(''); }}
-                    onBlur={() => { if (adminRate === '' || isNaN(adminRate)) setAdminRate(0); }}
-                    onChange={(e) => setAdminRate(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500 shadow-2xs"
-                  />
-                </div>
-
-                <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 flex flex-col justify-center">
-                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Item Subtotal</span>
-                  <span className="text-slate-900 font-extrabold text-sm font-mono">{formatCurrency(adminQty * adminRate)}</span>
-                </div>
-
-                <div>
-                  <button
-                    type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5"
-                  >
-                    <span>+ Add Line Item</span>
-                  </button>
-                </div>
-              </div>
-
-            </form>
-
-            {/* Configured Line Items Table */}
-            <div className="space-y-3 pt-2">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">
-                Order Line Items ({adminOrderItems.length})
-              </h4>
-
-              {adminOrderItems.length === 0 ? (
-                <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
-                  No items added yet. Configure fields above and click &quot;+ Add Line Item&quot;.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 border-b border-slate-200 font-bold">
-                      <tr>
-                        <th className="py-3 px-4">Item &amp; Artwork</th>
-                        <th className="py-3 px-4">Brand</th>
-                        <th className="py-3 px-4">Type &amp; Material</th>
-                        <th className="py-3 px-4">Dori</th>
-                        <th className="py-3 px-4">Plastic Lock</th>
-                        <th className="py-3 px-4 text-center">Qty</th>
-                        <th className="py-3 px-4 text-right">Rate</th>
-                        <th className="py-3 px-4 text-right">Total</th>
-                        <th className="py-3 px-4 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {adminOrderItems.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center space-x-2.5">
-                              {item.image ? (
-                                <img src={item.image} alt={item.type} className="w-9 h-9 object-contain rounded-lg border border-slate-200 bg-white" />
-                              ) : (
-                                <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">ART</div>
-                              )}
-                              <div className="flex flex-col">
-                                <span className="font-mono font-bold text-xs text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded inline-block w-fit">
-                                  {item.itemCode || item.name}
-                                </span>
-                                <span className="font-mono text-[10px] text-slate-400 mt-0.5">#{idx + 1}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-bold text-slate-900">{item.brandName}</td>
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 mr-1.5 font-medium">{item.type}</span>
-                            <span className="text-slate-800 font-medium">{item.material}</span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-600">{item.dori}</td>
-                          <td className="py-3 px-4 text-slate-600">{item.plastic}</td>
-                          <td className="py-3 px-4 text-center font-mono font-medium">{item.quantity.toLocaleString()}</td>
-                          <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.unitPrice)}</td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(item.total)}</td>
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleAdminRemoveItem(item.id)}
-                              className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold transition-colors inline-flex items-center justify-center"
-                            >
-                              &times;
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
 
-          </div>
-
-          {/* Admin Order Finalization */}
-          <div className="xl:col-span-1 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4 self-start sticky top-24">
-            <h3 className="font-bold text-slate-900 text-base pb-3 border-b border-slate-100 flex justify-between">
-              <span>Order Summary</span>
-              <span className="text-xs text-slate-600 font-mono font-semibold">{selectedCust?.company}</span>
-            </h3>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-[10px] text-slate-600 block font-bold mb-1">Special Discount (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={adminOrderDiscount}
-                  onChange={(e) => setAdminOrderDiscount(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-slate-600 block font-bold mb-1">Internal / Production Note</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Color matching approved offline"
-                  value={adminOrderNotes}
-                  onChange={(e) => setAdminOrderNotes(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100 focus:border-slate-500"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                <div className="flex justify-between text-slate-500">
-                  <span>Subtotal</span>
-                  <span className="font-mono">{formatCurrency(Math.max(0, adminSubtotal))}</span>
-                </div>
-                <div className="flex justify-between text-slate-900 font-bold text-sm pt-2 border-t border-slate-100">
-                  <span>Total Amount</span>
-                  <span className="font-mono font-extrabold">{formatCurrency(adminTotal)}</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAdminSubmitOrder}
-                disabled={adminOrderItems.length === 0}
-                className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-medium text-xs py-2.5 rounded-xl transition-all shadow-xs mt-2"
-              >
-                Confirm &amp; Create Order
-              </button>
-            </div>
           </div>
 
         </div>
@@ -2633,20 +3452,63 @@ function AdminPortal({
                 <h3 className="font-bold text-slate-900 text-base">Admin Order Register</h3>
                 <p className="text-xs text-slate-500">Complete registry with artwork inspection, 1-click Approve/Reject, and bulk status movement.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-slate-600 font-mono font-semibold mr-2">{orders.length} Total Orders</span>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${viewMode === 'table' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:text-slate-900'}`}
-                >
-                  Table View
-                </button>
-                <button
-                  onClick={() => setViewMode('kanban')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:text-slate-900'}`}
-                >
-                  Kanban View
-                </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Status Dropdown Filter */}
+                <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                  <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Status:</span>
+                  <select
+                    value={adminOrderStatusFilter}
+                    onChange={(e) => setAdminOrderStatusFilter(e.target.value)}
+                    className="bg-transparent text-xs text-slate-800 font-semibold outline-none cursor-pointer pr-1"
+                  >
+                    <option value="all" className="bg-white text-slate-800">All Statuses ({orders.length})</option>
+                    <option value="pending" className="bg-white text-slate-800">Pending Approval ({orders.filter(o => o.status === 'pending' || o.status === 'placed').length})</option>
+                    <option value="approved" className="bg-white text-slate-800">Approved ({orders.filter(o => o.status === 'approved' || o.status === 'confirmed').length})</option>
+                    <option value="in_production" className="bg-white text-slate-800">In Production ({orders.filter(o => o.status === 'in_production').length})</option>
+                    <option value="ready_dispatch" className="bg-white text-slate-800">Ready / QC ({orders.filter(o => o.status === 'ready_dispatch').length})</option>
+                    <option value="shipped" className="bg-white text-slate-800">Dispatched ({orders.filter(o => o.status === 'shipped').length})</option>
+                    <option value="delivered" className="bg-white text-slate-800">Delivered ({orders.filter(o => o.status === 'delivered').length})</option>
+                    <option value="rejected" className="bg-white text-slate-800">Rejected ({orders.filter(o => o.status === 'rejected').length})</option>
+                  </select>
+                </div>
+
+                {/* Clear Filters Button */}
+                {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchAmount) && (
+                  <button
+                    onClick={() => {
+                      setAdminOrderStatusFilter('all');
+                      setAdminSearchOrderId('');
+                      setAdminSearchCustomer('');
+                      setAdminSearchBrandSpecs('');
+                      setAdminSearchDoriPlastic('');
+                      setAdminSearchAmount('');
+                    }}
+                    className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors font-medium flex items-center space-x-1"
+                    title="Reset all search and status filters"
+                  >
+                    <span>Clear Filters</span>
+                  </button>
+                )}
+
+                <span className="text-xs text-slate-700 font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
+                  {filteredAdminOrders.length} of {orders.length} Order(s)
+                </span>
+
+                {/* View Mode Toggle */}
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 ml-1">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${viewMode === 'table' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    Table View
+                  </button>
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${viewMode === 'kanban' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    Kanban View
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2658,7 +3520,7 @@ function AdminPortal({
                       <th className="py-3 px-3 text-center w-10">
                         <input
                           type="checkbox"
-                          checked={orders.length > 0 && selectedOrderIds.length === orders.length}
+                          checked={filteredAdminOrders.length > 0 && selectedOrderIds.length === filteredAdminOrders.length}
                           onChange={handleToggleSelectAll}
                           className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400 cursor-pointer"
                           title="Select / Deselect All Orders"
@@ -2669,13 +3531,149 @@ function AdminPortal({
                       <th className="py-3 px-4">Customer Name</th>
                       <th className="py-3 px-4">Brand &amp; Item Specs</th>
                       <th className="py-3 px-4">Dori &amp; Plastic</th>
-                      <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Total Amt</th>
-                      <th className="py-3 px-4 text-center">Approve / Reject</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                    </tr>
+                    {/* Individual search bar below columns matching Customer Side Order Register */}
+                    <tr className="bg-slate-50/70 border-b border-slate-200">
+                      <th className="py-2.5 px-3 text-center font-normal"></th>
+                      {/* Search: Order ID */}
+                      <th className="py-2.5 px-4 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchOrderId}
+                            onChange={(e) => setAdminSearchOrderId(e.target.value)}
+                            placeholder="Search order ID..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                          />
+                          {adminSearchOrderId && (
+                            <button
+                              onClick={() => setAdminSearchOrderId('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Artwork column spacer */}
+                      <th className="py-2.5 px-4 font-normal"></th>
+                      {/* Search: Customer Name */}
+                      <th className="py-2.5 px-4 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchCustomer}
+                            onChange={(e) => setAdminSearchCustomer(e.target.value)}
+                            placeholder="Search customer..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                          />
+                          {adminSearchCustomer && (
+                            <button
+                              onClick={() => setAdminSearchCustomer('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Search: Brand & Item Specs */}
+                      <th className="py-2.5 px-4 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchBrandSpecs}
+                            onChange={(e) => setAdminSearchBrandSpecs(e.target.value)}
+                            placeholder="Search specs..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                          />
+                          {adminSearchBrandSpecs && (
+                            <button
+                              onClick={() => setAdminSearchBrandSpecs('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Search: Dori & Plastic */}
+                      <th className="py-2.5 px-4 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchDoriPlastic}
+                            onChange={(e) => setAdminSearchDoriPlastic(e.target.value)}
+                            placeholder="Search dori / plastic..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                          />
+                          {adminSearchDoriPlastic && (
+                            <button
+                              onClick={() => setAdminSearchDoriPlastic('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Search: Amount / Qty / Rate */}
+                      <th className="py-2.5 px-4 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchAmount}
+                            onChange={(e) => setAdminSearchAmount(e.target.value)}
+                            placeholder="Filter amt / qty..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                          />
+                          {adminSearchAmount && (
+                            <button
+                              onClick={() => setAdminSearchAmount('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Clear Button */}
+                      <th className="py-2.5 px-4 text-center font-normal">
+                        {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchAmount) && (
+                          <button
+                            onClick={() => {
+                              setAdminOrderStatusFilter('all');
+                              setAdminSearchOrderId('');
+                              setAdminSearchCustomer('');
+                              setAdminSearchBrandSpecs('');
+                              setAdminSearchDoriPlastic('');
+                              setAdminSearchAmount('');
+                            }}
+                            className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold underline"
+                            title="Reset search fields"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {orders.map(o => {
+                    {filteredAdminOrders.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="py-12 text-center text-slate-400 text-xs">
+                          No orders match the current search filters.
+                        </td>
+                      </tr>
+                    )}
+                    {filteredAdminOrders.map(o => {
                       const firstItem = o.items[0] || {};
                       const isSelected = selectedOrderIds.includes(o.id);
                       const isApproved = o.status === 'approved';
@@ -2729,10 +3727,6 @@ function AdminPortal({
                           {/* 3. CUSTOMER NAME */}
                           <td className="py-4 px-4">
                             <div className="font-bold text-slate-900 text-sm">{o.customerCompany}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5">{o.customerName}</div>
-                            {o.customerPhone && (
-                              <div className="text-[10px] text-slate-400 font-mono">{o.customerPhone}</div>
-                            )}
                           </td>
 
                           {/* 4. BRAND AND ITEM SPECS */}
@@ -2773,112 +3767,136 @@ function AdminPortal({
                             </div>
                           </td>
 
-                          {/* 6. STATUS */}
-                          <td className="py-4 px-4 space-y-1.5">
-                            <div>
-                              <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                                o.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                                o.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
-                                o.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
-                                o.status === 'delivered' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
-                                o.status === 'pending' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
-                                'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}>
-                                <span>{STAGES.find(s => s.key === o.status)?.label || o.status}</span>
-                              </span>
-                            </div>
-
-                            {/* Quick single-row stage selector */}
-                            <select
-                              value={o.status}
-                              onChange={(e) => {
-                                const newStg = e.target.value;
-                                const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-                                const updated = { 
-                                  ...o, 
-                                  status: newStg,
-                                  timeline: [
-                                    ...(o.timeline || []),
-                                    {
-                                      stage: newStg,
-                                      title: `Status Changed to ${newStg.replace(/_/g, ' ')}`,
-                                      description: `Updated by ${currentMember.name}.`,
-                                      timestamp: formattedDate,
-                                      author: currentMember.name
-                                    }
-                                  ]
-                                };
-                                onUpdateOrder(updated);
-                              }}
-                              className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-[11px] text-slate-900 focus:outline-none focus:border-slate-500 w-full"
-                            >
-                              {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                            </select>
-                          </td>
-
-                          {/* 7. TOTAL AMT */}
+                          {/* 6. TOTAL AMT */}
                           <td className="py-4 px-4 text-right font-bold text-slate-900 font-mono text-sm whitespace-nowrap">
                             {formatCurrency(o.total)}
                           </td>
 
-                          {/* 8. APPROVE / REJECT */}
+                          {/* 7. STATUS & ACTIONS (LAST COLUMN) */}
                           <td className="py-4 px-4 text-center">
-                            <div className="flex flex-col items-center gap-1.5">
-                              <div className="flex flex-wrap items-center justify-center gap-1.5">
-                                {o.status === 'in_production' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveTab('production')}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
-                                    title="View this job in production flow"
-                                  >
-                                    <span>In Production &rarr;</span>
-                                  </button>
-                                ) : isApproved ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMoveToProduction(o)}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
-                                    title="Create Production Job Form &amp; dispatch to Printing team"
-                                  >
-                                    <span>Send to Production</span>
-                                  </button>
-                                ) : (
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              {/* Status Pill Badge */}
+                              <div>
+                                <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase inline-flex items-center space-x-1.5 shadow-2xs ${
+                                  o.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                                  o.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                                  o.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
+                                  o.status === 'ready_dispatch' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
+                                  o.status === 'shipped' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                                  o.status === 'delivered' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
+                                  o.status === 'pending' || o.status === 'placed' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                  'bg-slate-100 text-slate-700 border border-slate-200'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${
+                                    o.status === 'approved' ? 'bg-emerald-500' :
+                                    o.status === 'rejected' ? 'bg-rose-500' :
+                                    o.status === 'in_production' ? 'bg-sky-500 animate-pulse' :
+                                    o.status === 'ready_dispatch' ? 'bg-indigo-500' :
+                                    o.status === 'shipped' ? 'bg-blue-500' :
+                                    o.status === 'delivered' ? 'bg-purple-500' :
+                                    'bg-amber-500'
+                                  }`}></span>
+                                  <span>{STAGES.find(s => s.key === o.status)?.label || (o.status || 'PENDING').replace(/_/g, ' ').toUpperCase()}</span>
+                                </span>
+                              </div>
+
+                              {/* Unapproved / Pending Orders: Show Approve & Reject buttons */}
+                              {(!o.status || o.status === 'pending' || o.status === 'placed') ? (
+                                <div className="flex items-center justify-center gap-2 pt-0.5">
                                   <button
                                     type="button"
                                     onClick={() => handleApproveOrder(o)}
-                                    disabled={isApproved || isRejected}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
-                                    title="Approve this manufacturing order"
+                                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs hover:shadow transition-all flex items-center space-x-1.5 cursor-pointer"
+                                    title="Approve order & auto-move to production"
                                   >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
                                     <span>Approve</span>
                                   </button>
-                                )}
 
-                                {!isApproved && o.status !== 'in_production' && (
                                   <button
                                     type="button"
                                     onClick={() => handleOpenRejectModal(o)}
-                                    disabled={isRejected}
-                                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                                      isRejected 
-                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' 
-                                        : 'bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 shadow-xs'
-                                    }`}
-                                    title={isRejected ? 'Order already rejected' : 'Reject this order with structured reason'}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 hover:border-rose-300 shadow-2xs transition-all flex items-center space-x-1.5 cursor-pointer"
+                                    title="Reject this order with structured reason"
                                   >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                     <span>Reject</span>
                                   </button>
-                                )}
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => onOpenInvoice(o)}
-                                className="text-[11px] text-slate-500 hover:text-slate-900 hover:underline mt-0.5"
-                              >
-                                View Invoice
-                              </button>
+                                </div>
+                              ) : o.status === 'in_production' ? (
+                                <div className="flex flex-col items-center gap-1.5 w-full max-w-[150px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveTab('production')}
+                                    className="w-full px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors flex items-center justify-center space-x-1"
+                                    title="View this job in production flow"
+                                  >
+                                    <span>Production Flow &rarr;</span>
+                                  </button>
+                                  <select
+                                    value={o.status}
+                                    onChange={(e) => {
+                                      const newStg = e.target.value;
+                                      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                                      const updated = { 
+                                        ...o, 
+                                        status: newStg,
+                                        timeline: [
+                                          ...(o.timeline || []),
+                                          {
+                                            stage: newStg,
+                                            title: `Status Changed to ${newStg.replace(/_/g, ' ')}`,
+                                            description: `Updated by ${currentMember.name}.`,
+                                            timestamp: formattedDate,
+                                            author: currentMember.name
+                                          }
+                                        ]
+                                      };
+                                      onUpdateOrder(updated);
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-[11px] text-slate-800 focus:outline-none focus:border-slate-500 w-full"
+                                  >
+                                    {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="w-full max-w-[150px] space-y-1">
+                                  {o.status === 'rejected' && o.rejectionReason && (
+                                    <div className="text-[10px] text-rose-600 truncate max-w-[140px] mx-auto font-medium" title={o.rejectionReason}>
+                                      {o.rejectionReason}
+                                    </div>
+                                  )}
+                                  <select
+                                    value={o.status}
+                                    onChange={(e) => {
+                                      const newStg = e.target.value;
+                                      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                                      const updated = { 
+                                        ...o, 
+                                        status: newStg,
+                                        timeline: [
+                                          ...(o.timeline || []),
+                                          {
+                                            stage: newStg,
+                                            title: `Status Changed to ${newStg.replace(/_/g, ' ')}`,
+                                            description: `Updated by ${currentMember.name}.`,
+                                            timestamp: formattedDate,
+                                            author: currentMember.name
+                                          }
+                                        ]
+                                      };
+                                      onUpdateOrder(updated);
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-[11px] text-slate-800 focus:outline-none focus:border-slate-500 w-full"
+                                  >
+                                    {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                                  </select>
+                                </div>
+                              )}
                             </div>
                           </td>
 
@@ -2889,17 +3907,72 @@ function AdminPortal({
                 </table>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                {['pending', 'approved', 'in_production', 'delivered'].map(stg => (
+              <div className="space-y-4 mt-4">
+                {/* Kanban Quick Search Bar */}
+                <div className="flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <div className="flex-1 min-w-[200px]">
+                    <input
+                      type="text"
+                      value={adminSearchBrandSpecs}
+                      onChange={(e) => setAdminSearchBrandSpecs(e.target.value)}
+                      placeholder="Search specs, brand, or item..."
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[180px]">
+                    <input
+                      type="text"
+                      value={adminSearchCustomer}
+                      onChange={(e) => setAdminSearchCustomer(e.target.value)}
+                      placeholder="Filter by customer name..."
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="w-48">
+                    <input
+                      type="text"
+                      value={adminSearchOrderId}
+                      onChange={(e) => setAdminSearchOrderId(e.target.value)}
+                      placeholder="Search Order ID..."
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors font-mono"
+                    />
+                  </div>
+                  {(adminSearchBrandSpecs || adminSearchCustomer || adminSearchOrderId) && (
+                    <button
+                      onClick={() => {
+                        setAdminSearchBrandSpecs('');
+                        setAdminSearchCustomer('');
+                        setAdminSearchOrderId('');
+                      }}
+                      className="text-xs text-slate-600 hover:text-slate-900 font-semibold px-2"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {['pending', 'approved', 'in_production', 'delivered'].map(stg => {
+                  const stageOrders = filteredAdminOrders.filter(o => {
+                    if (stg === 'pending') return o.status === 'pending' || o.status === 'placed';
+                    if (stg === 'approved') return o.status === 'approved' || o.status === 'confirmed';
+                    return o.status === stg;
+                  });
+                  return (
                   <div key={stg} className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                     <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600 mb-3 flex items-center justify-between">
                       <span>{stg.replace('_', ' ')}</span>
                       <span className="text-[10px] bg-white px-2 py-0.5 rounded-full border border-slate-200 font-mono">
-                        {orders.filter(o => o.status === stg).length}
+                        {stageOrders.length}
                       </span>
                     </h4>
                     <div className="space-y-2">
-                      {orders.filter(o => o.status === stg).map(o => (
+                      {stageOrders.length === 0 && (
+                        <div className="text-center py-6 text-slate-400 text-xs italic">
+                          No orders in this stage
+                        </div>
+                      )}
+                      {stageOrders.map(o => (
                         <div key={o.id} className="bg-white border border-slate-200 rounded-xl p-3 text-xs space-y-2 shadow-2xs">
                           <div className="flex justify-between font-mono font-bold text-slate-900">
                             <span>{o.id}</span>
@@ -2933,7 +4006,7 @@ function AdminPortal({
                                 <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded font-medium">Approve</button>
                               )}
                               {o.status !== 'rejected' && o.status !== 'in_production' && (
-                                <button onClick={() => handleRejectOrder(o)} className="text-[10px] bg-white text-rose-700 border border-slate-200 px-2 py-0.5 rounded font-medium">Reject</button>
+                                <button onClick={() => handleOpenRejectModal(o)} className="text-[10px] bg-white text-rose-700 border border-slate-200 px-2 py-0.5 rounded font-medium">Reject</button>
                               )}
                             </div>
                           </div>
@@ -2941,7 +4014,9 @@ function AdminPortal({
                       ))}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
+              </div>
               </div>
             )}
 
@@ -4780,6 +5855,17 @@ function AdminPortal({
         </div>
       )}
 
+      {/* CROP MODAL FOR ADMIN PLACE ORDER ARTWORK */}
+      {adminShowCropModal && adminOrderImage && (
+        <window.uBMS.ImageCropModal
+          imageSrc={adminOrderImage}
+          onSave={(croppedUrl) => {
+            setAdminOrderImage(croppedUrl);
+            setAdminShowCropModal(false);
+          }}
+          onClose={() => setAdminShowCropModal(false)}
+        />
+      )}
     </div>
   );
 }

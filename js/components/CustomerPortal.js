@@ -14,9 +14,16 @@ function CustomerPortal({
   onUpdateOrder,
   onSaveMessage, 
   onOpenInvoice, 
-  defaultTab = 'dashboard' 
+  defaultTab = 'dashboard',
+  currentTab,
+  onTabChange
 }) {
-  const [activeTab, setActiveTab] = React.useState(defaultTab);
+  const [internalTab, setInternalTab] = React.useState(defaultTab);
+  const activeTab = currentTab !== undefined ? currentTab : internalTab;
+  const setActiveTab = (tab) => {
+    setInternalTab(tab);
+    if (onTabChange) onTabChange(tab);
+  };
   const [previewArtworkUrl, setPreviewArtworkUrl] = React.useState(null);
   const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
   // Automatically minimize on non-dashboard tabs, expand on dashboard
@@ -64,7 +71,7 @@ function CustomerPortal({
       if (searchBrandSpecs.trim()) {
         const query = searchBrandSpecs.trim().toLowerCase();
         const matchesSpecs = items.some(item => {
-          const brand = (item.brandName || order.customerCompany || '').toLowerCase();
+          const brand = (item.brandName || '').toLowerCase();
           const itemCode = (item.itemCode || item.name || '').toLowerCase();
           const type = (item.type || '').toLowerCase();
           const material = (item.material || '').toLowerCase();
@@ -232,6 +239,14 @@ function CustomerPortal({
     });
     return Array.from(brandSet).sort();
   }, [customer, orders, localSavedBrands]);
+
+  // Filtered brand suggestions matching user input in real-time
+  const filteredBrandSuggestions = React.useMemo(() => {
+    if (!customerSavedBrands || customerSavedBrands.length === 0) return [];
+    const query = (brandName || '').trim().toLowerCase();
+    if (!query) return customerSavedBrands;
+    return customerSavedBrands.filter(b => b.toLowerCase().includes(query));
+  }, [customerSavedBrands, brandName]);
   // Persist brand to customer profile and backend storage
   const saveCustomerBrand = async (brandToSave) => {
     if (!brandToSave || !brandToSave.trim() || !customer) return;
@@ -431,8 +446,9 @@ function CustomerPortal({
   const formatDate = window.uBMS.formatDate;
   // Auto-calculated unique Item Code for Customer (e.g. MGC01, MGC02)
   const customerPartyName = customer?.company || customer?.name || brandName;
-  const customerAbbr = window.uBMS.generateCustomerAbbr(customerPartyName);
+  const customerAbbr = customer?.abbr || window.uBMS.generateCustomerAbbr(customerPartyName);
   const currentCustomerItemCode = window.uBMS.getNextItemCode(customerAbbr, orders, orderItems);
+  const currentCustomerOrderId = window.uBMS.getNextCustomerOrderId(customer || customerPartyName, orders);
   const customerItemIndex = window.uBMS.getCustomerNextItemIndex(customer, orders, orderItems);
   const currentDraftItemName = window.uBMS.formatItemName(customerAbbr, selectedType, brandName, customerItemIndex);
   // Unified Form Validation (Matching modern single-view layout)
@@ -716,7 +732,9 @@ function CustomerPortal({
       id: 'ITEM-' + Date.now().toString().slice(-4) + '-' + idx
     }));
     setOrderItems(clonedItems);
-    setBrandName(rejectedOrder.items[0]?.brandName || rejectedOrder.customerCompany || '');
+    const rejBrand = rejectedOrder.items[0]?.brandName;
+    const isRejCust = rejBrand && (rejBrand.toLowerCase() === (customer?.company || '').toLowerCase() || rejBrand.toLowerCase() === (customer?.name || '').toLowerCase());
+    setBrandName(rejBrand && !isRejCust ? rejBrand : '');
     setOrderNotes(`Re-order following rejected order #${rejectedOrder.id}`);
     const first = rejectedOrder.items[0];
     if (first) {
@@ -774,12 +792,14 @@ function CustomerPortal({
     }
     setIsSubmitting(true);
     try {
-      const orderId = 'ORD-2026-' + Math.floor(1000 + Math.random() * 9000);
+      const orderId = window.uBMS.getNextAdminOrderId(customer, orders);
+      const customerOrderId = window.uBMS.getNextCustomerOrderId(customer, orders);
       const nowIso = new Date().toISOString();
       const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       const orderGrandTotal = itemsToSubmit.reduce((acc, i) => acc + i.total, 0);
       const newOrder = {
         id: orderId,
+        customerOrderId: customerOrderId,
         orderType: orderType || 'New Order',
         customerId: customer.id,
         customerName: customer.name,
@@ -833,7 +853,11 @@ function CustomerPortal({
         internalNotes: [],
         customerNotes: orderNotes
       };
-      onSaveOrder(newOrder);
+      let bookedOrder = null;
+      if (window.uBMS.DataService && window.uBMS.DataService.createOrder) {
+        bookedOrder = await window.uBMS.DataService.createOrder(newOrder);
+      }
+      onSaveOrder(bookedOrder || newOrder);
       
       // Reset state and transition instantly to Order Register
       setOrderItems([]);
@@ -871,7 +895,9 @@ function CustomerPortal({
   const handleOpenEditModal = (order) => {
     setEditingOrder(order);
     const item = order.items[0] || {};
-    setEditBrandName(item.brandName || order.customerCompany || '');
+    const itemBrand = item.brandName;
+    const isCust = itemBrand && (itemBrand.toLowerCase() === (customer?.company || '').toLowerCase() || itemBrand.toLowerCase() === (customer?.name || '').toLowerCase() || itemBrand.toLowerCase() === (order.customerCompany || '').toLowerCase());
+    setEditBrandName(itemBrand && !isCust ? itemBrand : '');
     setEditSelectedType(item.type || 'Tag');
     setEditSelectedMaterial(item.material || '100 GSM');
     
@@ -973,25 +999,23 @@ function CustomerPortal({
     onSaveMessage(updatedThread);
     setChatInput('');
   };
-  // 7 Customer Tabs
-  const customerTabs = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'place_order', label: 'Place Order' },
-    { key: 'order_register', label: 'Order Register' },
-    { key: 'invoice_register', label: 'Invoice Register' },
-    { key: 'outstanding_ledger', label: 'Outstanding Ledger' },
-    { key: 'general_ledger', label: 'General Ledger' },
-    { key: 'chat', label: 'Chat with Acc Manager' }
-  ];
+  // Two-Tier Navigation: Active Group & its Sub-Tabs
+  const currentGroupId = window.uBMS.getCustomerGroupForTab ? window.uBMS.getCustomerGroupForTab(activeTab) : 'orders';
+  const activeGroup = (window.uBMS.CUSTOMER_NAV_GROUPS || []).find(g => g.id === currentGroupId) || (window.uBMS.CUSTOMER_NAV_GROUPS && window.uBMS.CUSTOMER_NAV_GROUPS[1]);
+  const groupTabs = activeGroup?.tabs || [];
   return (
     <div className="space-y-6">
       
-      {/* Top Banner: Minimized Compact Bar (when not on dashboard or manually minimized) */}
-      {bannerMinimized ? (
+      {/* Top Banner: Minimized Compact Bar (hidden on AI dashboard) */}
+      {activeTab !== 'dashboard' && (bannerMinimized ? (
         <div className="bg-white rounded-2xl px-4 py-2.5 text-slate-800 shadow-xs border border-slate-200 flex flex-wrap items-center justify-between gap-3 animate-fade-in sticky top-16 z-30">
-          {/* Navigation Tabs (Sleek row) */}
-          <div className="flex items-center space-x-1 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
-            {customerTabs.map(tab => (
+          {/* Navigation Sub-Tabs for Active Group */}
+          <div className="flex items-center space-x-2 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[280px]">
+            <span className="text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg shrink-0">
+              {activeGroup?.label || 'Orders'}
+            </span>
+            <span className="text-slate-300 text-xs">/</span>
+            {groupTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -1059,9 +1083,13 @@ function CustomerPortal({
               <span className="text-lg font-bold font-mono text-slate-900">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
             </div>
           </div>
-          {/* Modular Navigation Bar */}
-          <div className="flex items-center space-x-1.5 mt-5 pt-4 border-t border-slate-100 overflow-x-auto">
-            {customerTabs.map(tab => (
+          {/* Modular Sub-Navigation Bar */}
+          <div className="flex items-center space-x-2 mt-5 pt-4 border-t border-slate-100 overflow-x-auto">
+            <span className="text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg shrink-0">
+              {activeGroup?.label || 'Orders'}
+            </span>
+            <span className="text-slate-300 text-xs">/</span>
+            {groupTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -1076,303 +1104,19 @@ function CustomerPortal({
             ))}
           </div>
         </div>
+      ))}
+      {/* MODULE 0: DASHBOARD V18 & PROFILE (Exact Replica of Video UI) */}
+      {(activeTab === 'dashboard' || activeTab === 'profile') && (
+        <window.uBMS.DashboardV18
+          activeTab={activeTab}
+          portalType="customer"
+          persona={customer}
+          orders={customerOrders}
+          users={users}
+          onNavigateTab={setActiveTab}
+        />
       )}
-      {/* MODULE 0: CUSTOMER DASHBOARD */}
-      {activeTab === 'dashboard' && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Top KPI Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* 1. Total Orders */}
-            <div 
-              onClick={() => {
-                setOrderStatusFilter('all');
-                setActiveTab('order_register');
-              }}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Orders</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {customerStats.totalOrders}
-              </div>
-              <div className="text-xs text-slate-500 mt-1 font-medium">
-                <span>{customerStats.pendingOrders} Pending</span> &bull; <span>{customerStats.deliveredOrders} Delivered</span>
-              </div>
-            </div>
-            {/* 2. Total Business Spend */}
-            <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Order Value</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {formatCurrency(customerStats.totalSpend)}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                Manufacturing volume booked
-              </div>
-            </div>
-            {/* 3. Outstanding Dues */}
-            <div 
-              onClick={() => setActiveTab('outstanding_ledger')}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outstanding Dues</div>
-              <div className={`text-2xl sm:text-3xl font-extrabold mt-2 font-mono ${
-                customerStats.totalOutstanding > 0 ? 'text-amber-700' : 'text-slate-900'
-              }`}>
-                {formatCurrency(customerStats.totalOutstanding)}
-              </div>
-              <div className="text-xs mt-1">
-                {customerStats.totalOutstanding > 0 ? (
-                  <span className="text-amber-700 font-semibold">{customerStats.unpaidInvoicesCount} unpaid bill(s) &rarr;</span>
-                ) : (
-                  <span className="text-slate-500 font-medium">Account fully settled</span>
-                )}
-              </div>
-            </div>
-            {/* 4. Active in Production / Dispatched */}
-            <div 
-              onClick={() => {
-                setOrderStatusFilter('in_production');
-                setActiveTab('order_register');
-              }}
-              className="bg-white border border-slate-200/90 hover:border-slate-400 p-5 rounded-2xl shadow-xs transition-all cursor-pointer group"
-            >
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">In Production / Transit</div>
-              <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 font-mono">
-                {customerStats.activeOrders}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                {customerStats.inProdOrders} in machine &bull; {customerStats.shippedOrders} dispatched
-              </div>
-            </div>
-          </div>
-          {/* Interactive Manufacturing Pipeline Status Tracker */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">
-                  Manufacturing Stage Tracker
-                </h3>
-                <p className="text-xs text-slate-500">Click any stage to filter the Order Register.</p>
-              </div>
-              <span className="text-xs text-slate-600 font-mono font-semibold bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
-                {customerOrders.length} Total Orders Tracked
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-3">
-              {[
-                { step: '01', key: 'pending', label: 'Pending Approval', count: customerStats.pendingOrders },
-                { step: '02', key: 'approved', label: 'Approved', count: customerStats.approvedOrders },
-                { step: '03', key: 'in_production', label: 'In Production', count: customerStats.inProdOrders },
-                { step: '04', key: 'ready_dispatch', label: 'Ready / QC', count: customerStats.readyOrders },
-                { step: '05', key: 'shipped', label: 'Dispatched', count: customerStats.shippedOrders },
-                { step: '06', key: 'delivered', label: 'Delivered', count: customerStats.deliveredOrders }
-              ].map(stg => (
-                <div
-                  key={stg.key}
-                  onClick={() => {
-                    setOrderStatusFilter(stg.key);
-                    setActiveTab('order_register');
-                  }}
-                  className="bg-slate-50 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-400 rounded-xl p-3 transition-all cursor-pointer group text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-slate-400 font-bold">{stg.step}</span>
-                    <span className="text-base font-bold text-slate-900 font-mono">{stg.count}</span>
-                  </div>
-                  <div className="text-xs text-slate-700 font-medium mt-1 leading-snug">{stg.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Main Grid: Recent Orders (Left) & Quick Actions / Financial Summary (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left 2 Cols: Recent Manufacturing Orders */}
-            <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base">
-                    Recent Orders
-                  </h3>
-                  <p className="text-xs text-slate-500">Latest manufacturing orders submitted by your company.</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setOrderStatusFilter('all');
-                    setActiveTab('order_register');
-                  }}
-                  className="text-xs text-slate-700 hover:text-slate-900 font-semibold hover:underline flex items-center space-x-1"
-                >
-                  <span>View Full Register ({customerOrders.length})</span>
-                  <span>&rarr;</span>
-                </button>
-              </div>
-              {customerOrders.length === 0 ? (
-                <div className="py-12 text-center text-slate-400">
-                  <p className="text-sm font-medium text-slate-600">No orders placed yet.</p>
-                  <button
-                    onClick={() => setActiveTab('place_order')}
-                    className="mt-3 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium transition-all shadow-xs"
-                  >
-                    + Place Your First Order
-                  </button>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-                  <table className="w-full text-left text-xs text-slate-700">
-                    <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
-                      <tr>
-                        <th className="py-3 px-3">Order ID</th>
-                        <th className="py-3 px-3">Artwork</th>
-                        <th className="py-3 px-3">Item / Brand</th>
-                        <th className="py-3 px-3">Qty</th>
-                        <th className="py-3 px-3">Status</th>
-                        <th className="py-3 px-3 text-right">Amt</th>
-                        <th className="py-3 px-3 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {customerOrders.slice(0, 5).map(order => {
-                        const firstItem = order.items[0] || {};
-                        const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
-                        return (
-                          <tr key={order.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-3 px-3 font-mono font-bold text-slate-900">
-                              {order.id}
-                              <div className="text-[10px] text-slate-400 font-normal">{formatDate(order.createdAt)}</div>
-                            </td>
-                            <td className="py-3 px-3">
-                              {firstItem.image ? (
-                                <img 
-                                  src={firstItem.image} 
-                                  alt="Artwork" 
-                                  onClick={() => setPreviewArtworkUrl(firstItem.image)}
-                                  className="w-10 h-10 object-contain rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition-transform bg-white shadow-2xs" 
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                                  ART
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-3 px-3">
-                              <div className="font-bold text-slate-900 text-xs">{firstItem.brandName || order.customerCompany}</div>
-                              <div className="text-[11px] text-slate-500 font-mono">{firstItem.itemCode || firstItem.type}</div>
-                            </td>
-                            <td className="py-3 px-3 font-mono font-bold text-slate-800">
-                              {Number(firstItem.quantity || 0).toLocaleString()} pcs
-                            </td>
-                            <td className="py-3 px-3">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase inline-flex items-center space-x-1 ${
-                                order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                                order.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
-                                order.status === 'in_production' ? 'bg-sky-50 text-sky-800 border border-sky-200' :
-                                order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-800 border border-purple-200' :
-                                order.status === 'shipped' ? 'bg-orange-50 text-orange-800 border border-orange-200' :
-                                order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
-                                'bg-amber-50 text-amber-800 border border-amber-200'
-                              }`}>
-                                <span>{order.status === 'pending' || order.status === 'placed' ? 'Pending' : order.status.replace(/_/g, ' ')}</span>
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
-                              {formatCurrency(order.total)}
-                            </td>
-                            <td className="py-3 px-3 text-center">
-                              {isEditable ? (
-                                <button
-                                  onClick={() => handleOpenEditModal(order)}
-                                  className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-[11px] font-medium shadow-xs transition-all"
-                                >
-                                  Edit
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => onOpenInvoice(order)}
-                                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-[11px] border border-slate-200 transition-colors font-medium"
-                                >
-                                  Invoice
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-            {/* Right Column: Quick Navigation Hub & Dedicated Support */}
-            <div className="space-y-6">
-              
-              {/* Quick Actions Hub */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
-                <h3 className="font-bold text-slate-900 text-sm">
-                  Quick Shortcuts
-                </h3>
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
-                  <button
-                    onClick={() => setActiveTab('place_order')}
-                    className="bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-semibold text-xs">+ New Order</div>
-                    <div className="text-[10px] text-slate-300 mt-0.5 leading-tight">Configure tags &amp; labels</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setOrderStatusFilter('all');
-                      setActiveTab('order_register');
-                    }}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Order Register</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Search &amp; edit orders</div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('invoice_register')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Invoices</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Tax bills &amp; receipts</div>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('general_ledger')}
-                    className="bg-slate-50 hover:bg-slate-100 text-slate-800 p-3 rounded-xl text-left border border-slate-200 transition-all group"
-                  >
-                    <div className="font-semibold text-xs text-slate-900">Ledger (SOA)</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">Statement of account</div>
-                  </button>
-                </div>
-              </div>
-              {/* Dedicated Support Card */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs text-slate-800 space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs border border-slate-200">
-                    AM
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Account Manager</div>
-                    <div className="font-bold text-slate-900 text-sm">{customerThread.accountManager || 'Parth'}</div>
-                    <div className="text-[11px] text-emerald-700 font-medium flex items-center space-x-1 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      <span>Active &bull; Factory Support</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Need urgent revisions, custom sample approvals, or dispatch priority? Chat directly with your production account lead.
-                </p>
-                <button
-                  onClick={() => setActiveTab('chat')}
-                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2 rounded-lg border border-slate-200 transition-all flex items-center justify-center space-x-1"
-                >
-                  <span>Open Dedicated Chat</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
       {/* MODULE 1: PRODUCTION ORDER STUDIO (BESPOKE UBMS DESIGN) */}
       {activeTab === 'place_order' && (
         <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16">
@@ -1384,8 +1128,8 @@ function CustomerPortal({
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
                   Production Order Studio
                 </h1>
-                <span className="text-xs bg-slate-100 text-slate-700 font-mono font-semibold px-2 py-0.5 rounded-md border border-slate-200">
-                  {currentCustomerItemCode}
+                <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Your sequential Order ID">
+                  {currentCustomerOrderId}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -2343,9 +2087,11 @@ function CustomerPortal({
                     <span className="text-sm text-slate-400 font-bold">#</span>
                     <h3 className="font-bold text-slate-900 text-sm">Production Job Ticket</h3>
                   </div>
-                  <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">
-                    {orderType === 'Repeat Order' && repeatSelectedItemCode ? repeatSelectedItemCode : currentCustomerItemCode}
-                  </span>
+                  <div>
+                    <span className="text-[10px] bg-slate-900 text-white px-2.5 py-1 rounded font-mono font-bold" title="Order ID">
+                      {currentCustomerOrderId}
+                    </span>
+                  </div>
                 </div>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-start gap-2">
@@ -2477,7 +2223,7 @@ function CustomerPortal({
                     <th className="py-3 px-4 font-semibold">Qty</th>
                     <th className="py-3 px-4 font-semibold">Rate</th>
                     <th className="py-3 px-4 text-right font-semibold">Amt</th>
-                    <th className="py-3 px-4 text-center font-semibold">Action</th>
+                    <th className="py-3 px-4 text-center font-semibold">Status</th>
                   </tr>
                   {/* Individual search bar below brand and item spec | dori plastic | qty | rate */}
                   <tr className="bg-slate-50/70 border-b border-slate-200">
@@ -2589,31 +2335,31 @@ function CustomerPortal({
                 <tbody className="divide-y divide-slate-100">
                   {filteredCustomerOrders.map(order => {
                     const firstItem = order.items[0] || {};
-                    const isEditable = !order.status || order.status === 'pending' || order.status === 'placed' || order.status === 'rejected';
+                    const isApproved = order.status === 'approved' || 
+                                       order.status === 'confirmed' || 
+                                       order.status === 'in_production' || 
+                                       order.status === 'ready_dispatch' || 
+                                       order.status === 'shipped' || 
+                                       order.status === 'delivered';
+                    const isCustIdentity = (val) => {
+                      if (!val || typeof val !== 'string') return true;
+                      const v = val.trim().toLowerCase();
+                      return (
+                        v === (order.customerCompany || '').trim().toLowerCase() ||
+                        v === (order.customerName || '').trim().toLowerCase() ||
+                        v === (customer?.company || '').trim().toLowerCase() ||
+                        v === (customer?.name || '').trim().toLowerCase()
+                      );
+                    };
+                    const distinctBrand = firstItem.brandName && !isCustIdentity(firstItem.brandName) ? firstItem.brandName.trim() : null;
                     return (
                       <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* 1. ORDER ID */}
+                        {/* 1. ORDER ID (CUSTOMER-FACING NUMBER) */}
                         <td className="py-4 px-4 align-top">
-                          <div className="font-mono font-semibold text-slate-900 text-sm">{order.id}</div>
-                          <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(order.createdAt)}</div>
-                          <div className="mt-1.5">
-                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase inline-flex items-center space-x-1 ${
-                              order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                              order.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                              order.status === 'in_production' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
-                              order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
-                              order.status === 'shipped' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                              order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
-                              'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
-                              <span>
-                                {order.status === 'pending' || order.status === 'placed' ? 'Pending' :
-                                 order.status === 'approved' || order.status === 'confirmed' ? 'Approved' :
-                                 order.status === 'rejected' ? 'Rejected' :
-                                 (order.status || '').replace(/_/g, ' ')}
-                              </span>
-                            </span>
+                          <div className="font-mono font-bold text-slate-900 text-sm" title={order.id}>
+                            {order.customerOrderId || (order.id.includes('-') ? order.id.split('-').pop() : order.id)}
                           </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(order.createdAt)}</div>
                         </td>
                         {/* 2. ARTWORK (LARGER SIZE WITH CLICK TO ENLARGE) */}
                         <td className="py-4 px-4 align-top">
@@ -2644,9 +2390,11 @@ function CustomerPortal({
                             <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                               {firstItem.itemCode || firstItem.name || 'ITEM'}
                             </span>
-                            <span className="font-bold text-slate-900 text-sm">
-                              {firstItem.brandName || order.customerCompany}
-                            </span>
+                            {distinctBrand && (
+                              <span className="font-bold text-slate-900 text-sm">
+                                {distinctBrand}
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
                             <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200 font-medium text-[11px]">
@@ -2708,40 +2456,34 @@ function CustomerPortal({
                             {formatCurrency(order.total)}
                           </span>
                         </td>
-                        {/* 8. EDIT / RE-ORDER */}
+                        {/* 8. STATUS & ACTIONS */}
                         <td className="py-4 px-4 align-top text-center">
                           <div className="flex flex-col items-center justify-center gap-1.5">
-                            {order.status === 'rejected' ? (
-                              <button
-                                onClick={() => handleDuplicateOrder(order)}
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-xs flex items-center justify-center space-x-1"
-                                title="Duplicate order details into a new draft with new order number"
-                              >
-                                <span>Place New Order</span>
-                              </button>
-                            ) : isEditable ? (
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase inline-flex items-center justify-center space-x-1 whitespace-nowrap ${
+                              order.status === 'approved' || order.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              order.status === 'rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                              order.status === 'in_production' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
+                              order.status === 'ready_dispatch' ? 'bg-purple-50 text-purple-700 border border-purple-200' :
+                              order.status === 'shipped' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                              order.status === 'delivered' ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
+                              'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              <span>
+                                {order.status === 'pending' || order.status === 'placed' ? 'Pending' :
+                                 order.status === 'approved' || order.status === 'confirmed' ? 'Approved' :
+                                 order.status === 'rejected' ? 'Rejected' :
+                                 (order.status || 'Pending').replace(/_/g, ' ')}
+                              </span>
+                            </span>
+                            {!isApproved && (
                               <button
                                 onClick={() => handleOpenEditModal(order)}
-                                className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-xs flex items-center space-x-1"
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-xl text-xs font-medium transition-colors shadow-xs flex items-center justify-center space-x-1"
                                 title="Edit order specifications"
                               >
                                 <span>Edit</span>
                               </button>
-                            ) : (
-                              <span 
-                                className="text-[11px] text-slate-500 flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200" 
-                                title="Order approved by admin. Editing locked."
-                              >
-                                <span>Locked</span>
-                              </span>
                             )}
-                            <button
-                              onClick={() => onOpenInvoice(order)}
-                              className="w-full bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 px-2.5 py-1.5 rounded-xl text-xs border border-slate-300 transition-colors flex items-center justify-center space-x-1 font-medium"
-                              title="View Invoice & Receipt"
-                            >
-                              <span>Invoice</span>
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -2797,7 +2539,12 @@ function CustomerPortal({
                   {customerInvoices.map(inv => (
                     <tr key={inv.id} className="hover:bg-slate-50/70">
                       <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-500">{inv.orderId}</td>
+                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-700" title={inv.orderId}>
+                        {(() => {
+                          const linked = orders.find(o => o.id === inv.orderId);
+                          return linked?.customerOrderId || (inv.orderId && inv.orderId.includes('-') ? inv.orderId.split('-').pop() : inv.orderId);
+                        })()}
+                      </td>
                       <td className="py-3.5 px-4">{formatDate(inv.issueDate)}</td>
                       <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(inv.total)}</td>
                       <td className="py-3.5 px-4 text-emerald-600 font-bold">{formatCurrency(inv.paidAmount)}</td>

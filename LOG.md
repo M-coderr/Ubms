@@ -4,6 +4,70 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-26] — Version 2.7
+
+### 🧭 Two-Tier Navigation Architecture (Groups on Left, Sub-Tabs on Top)
+- **High-Level Module Groups on Left Sidebar (`LeftSidebarStrip.js`)**:
+  - Transformed the left floating white navigation strip into high-level functional groups, eliminating cluttered icon stacks:
+    - **Customer Portal**: `Dashboard`, `Orders`, `Billing`, `Support` + User Profile Avatar.
+    - **Admin Portal**: `Dashboard`, `Orders`, `Operations`, `Billing & Finance` + User Profile Avatar.
+  - Active group indicator highlighted in solid black with subtle scale transitions and instant tooltip popovers.
+- **Dynamic Group-Based Sub-Navigation on Top Bar (`CustomerPortal.js`, `AdminPortal.js`)**:
+  - Eliminated the crowded 11-pill single-row top tab bar.
+  - Top bar dynamically filters and displays only the sub-tabs belonging to the active group:
+    - **Orders Group**: `Place Order`, `Order Register` + category breadcrumb badge (`Orders /`).
+    - **Operations Group (Admin)**: `Production Flow`, `Raw Materials & Stock`, `Attendance & Payroll`, `Paper Catalogs & Types`.
+    - **Billing & Finance Group (Admin)**: `All Invoices`, `Create Invoice`, `Payment Entries`, `Ledgers Hub`.
+    - **Billing Group (Customer)**: `Invoice Register`, `Outstanding Ledger`, `General Ledger`.
+    - **Support Group (Customer)**: `Chat with Acc Manager`.
+- **Bi-Directional State Synchronization (`data.js`)**:
+  - Universal mapping helper functions `getCustomerGroupForTab` and `getAdminGroupForTab` ensure seamless switching.
+  - Action-driven cross-module navigation (e.g., clicking "Production Flow →" inside the Order Register or "Create Invoice") automatically updates both the Left Sidebar group highlight and the Top Bar sub-navigation tabs.
+
+### 🔍 Admin Order Register Per-Column Search & Filtering
+- **Per-Column Real-Time Search Row**:
+  - Added dedicated search input fields directly beneath the table header row, establishing full feature parity with the Customer Order Register:
+    - **Order ID**: Real-time filtering matching Admin ID (`TGRS25-ORD-2026-MGC07`), Customer ID (`MGC07`), or order date with inline clear `×` button.
+    - **Customer Name**: Filters company name, contact person, phone, or email.
+    - **Brand & Item Specs**: Matches brand name, item code, tag category, or board material.
+    - **Dori & Plastic**: Filters cord fasteners and plastic bullet lock seal specifications.
+    - **Total Amt / Qty**: Filters by order grand total, item quantity, or unit rate.
+- **Top Filter & Status Control Bar**:
+  - Added interactive Status dropdown filter with live order count metrics for every workflow stage (*All Statuses, Pending Approval, Approved, In Production, Ready / QC, Dispatched, Delivered, Rejected*).
+  - Dynamic order counter badge: `{filteredAdminOrders.length} of {orders.length} Order(s)`.
+  - One-click "Clear Filters" button resetting all search inputs and stage dropdown filters simultaneously.
+- **Dual View Support (Table & Kanban)**:
+  - Preserved both Table View and Kanban View.
+  - Search queries and status filters apply in real-time across both views, ensuring Kanban boards dynamically filter their cards.
+  - "Select All" bulk checkbox automatically syncs with the currently filtered order subset.
+
+### 🔒 Multi-User Concurrency & Guaranteed Unique Dual Order IDs
+- **Thread-Monitor Locked Server Endpoint (`/api/create-order`)**:
+  - Implemented an atomic order creation endpoint in `server.ps1` guarded by `[System.Threading.Monitor]::Enter($ordersLock)`.
+  - Solved potential race conditions and ID collisions when multiple LAN or remote users place orders simultaneously.
+  - Fixed Windows PowerShell Culture-sensitive `.StartsWith([char]0xFEFF)` collation bug to ensure robust JSON parsing.
+- **Atomic Dual Order ID Scheme**:
+  - **Admin Format**: `TGRS{GlobalSeq}-ORD-{Year}-{CustSeq}` (*e.g., `TGRS25-ORD-2026-MGC07`*).
+  - **Customer Format**: `{CustSeq}` (*e.g., `MGC07`*).
+  - Built-in collision guard loops guarantee strict uniqueness across global and customer-specific sequences.
+- **Client Service Layer (`DataService.createOrder`)**:
+  - Submits order payloads directly to `/api/create-order`, updating client state and transitioning smoothly to the Order Register upon confirmation.
+
+### 🏢 Admin Place Order Party Entry UX Enhancement
+- **Searchable Autocomplete Party Input**:
+  - Replaced legacy `<select>` dropdown in the Admin Studio with quick-clickable party chips (`[MG Creation]`, `[Aariya Creation]`, `[TagX]`, `[D Tag]`) and real-time text input matching the exact UX of the Brand Name field.
+  - Floating autocomplete suggestion card shows company name, contact person, phone number, and abbreviation badge (`[MGC]`, `[ARC]`, `[TGX]`, `[DTAG]`).
+  - Selecting any customer party automatically pre-fills default brand, loads historical items, saved brands, and generates the sequential order reference.
+
+### 🧹 Stray Reference Badge Cleanup & Database Migration
+- **Cleaned Leftover MGC01 References**:
+  - Removed stray `MGC01` badges from the studio header bar, item code preview lines, and job tickets across both Customer and Admin portals.
+- **Standardized Customer Abbreviations & Historical Migration**:
+  - Standardized customer abbreviations (`MGC`, `ARC`, `TGX`, `DTAG`) in `users.json`.
+  - Migrated all historical dummy orders in `orders.json` to the dual ID format and synchronized all cross-references across `invoices.json`, `production.json`, `payments.json`, `estimates.json`, `messages.json`, and `payroll.json`.
+
+---
+
 ## [2026-10-24] — Version 2.6
 
 ### 🛠️ Complete Elimination of Mojibake & Encoding Artifacts

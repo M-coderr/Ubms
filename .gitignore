@@ -7,7 +7,8 @@ Desktop.ini
 # Logs
 *.log
 
-# Temp / Editor
+# Temp / Editor / Media
 *.tmp
+*.mp4
 .vscode/
 .idea/
