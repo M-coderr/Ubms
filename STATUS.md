@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 2.7  
-**Last Updated**: October 26, 2026  
+**Version**: 3.0  
+**Last Updated**: October 28, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -40,8 +40,14 @@
 | | All Orders & Kanban | ✅ Complete | Per-column search row matching customer side, view mode toggle (Table/Kanban) |
 | | Multi-User Concurrency Engine | ✅ Complete | Thread-monitor mutex locked `/api/create-order` endpoint guaranteeing unique dual IDs |
 | | Party & Brand Search Studio | ✅ Complete | Quick-clickable party chips and floating autocomplete dropdown matching brand UX |
-| | Production Floor Pipeline | ✅ Complete | Pieces-to-sheets conversion, multi-card handling, bulk promotion to printing |
-| | Paper Catalog Management | ✅ Complete | Master paper sizes, GSM, finishes, vendor rates, and reorder levels |
+| | Production Flow Pipeline | ✅ Complete | Dynamic 5-step cycle, multi-card split job tickets, 9 mandatory fields, exact sheet issuance |
+| | Artwork Preview & Crop | ✅ Complete | Visual image preview thumbnail on each job card with integrated hover crop editor and upload action |
+| | Compact Job Card Identification | ✅ Complete | Formatted as `JO_01_P1`, `JO_01_P2` with Customer Order ID (`Order: MGC01`) right below |
+| | Dynamic Operator Assignment | ✅ Complete | Configurable operator dropdowns in Cutting (`Ramesh`), Printing (`Kanu`), and Punching (`Shivakant`) |
+| | Automated Wastage Tracking | ✅ Complete | Operators enter good sheets/tags; system auto-calculates live wastage without manual waste typing |
+| | Handwork Tag Piece-Rate Count | ✅ Complete | Handwork output recorded strictly in finished completed tags (pcs/tags, not sheets) |
+| | Wastage Rule Engine | ✅ Complete | 200 extra tags per 5,000 tags (5k→5.2k, 10k→10.4k) with exact sheets issued without post-buffers |
+| | Paper Catalog Management | ✅ Complete | Master paper sizes, GSM, finishes, vendor rates, Paper# numbering, 30 preserved actual papers |
 | | Inventory & Raw Materials | ✅ Complete | Real-time stock counts for boards, dori spools, plastic locks, and ink |
 | | Invoice Generator | ✅ Complete | Tax-exempt & commercial invoice generation with custom terms |
 | | Payment Receipts | ✅ Complete | Record client payments, balance reconciliation |
@@ -53,6 +59,60 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.0 — October 28, 2026
+- **Artwork Preview & In-Card Cropping**:
+  - Rendered artwork thumbnail on every job card with hover "✂️ Crop" action opening `ImageCropModal`.
+  - Fallback upload button allowing artwork to be attached or replaced on the fly.
+  - Component image preview rendered inside the Job Card Creation modal.
+- **Compact Job Number & Customer Order Reference**:
+  - Replaced long job card numbers with compact `JO_01_P1`, `JO_01_P2`, `JO_02_P1`, etc.
+  - Displayed Customer Order Number (e.g. `Order: MGC01`) prominently right below the Job Number.
+- **Operator Assignment in Printing & Punching**:
+  - Added dynamic operator assignment dropdowns to Paper Cutting, Printing Press, and Punching & Die Press.
+- **Handwork Process: Tags/Pcs Input**:
+  - Handwork operator enters final tags produced (pcs/tags, NOT sheets).
+- **Automated Wastage Calculation**:
+  - Live 3-box summary of Input, Good Output, and System Calculated Wastage across all 4 production stations without manual waste typing.
+    4. **Handwork Process**: Piece-rate Dori attachment & plastic seal lock.
+    5. **Dispatch**: Final verification & shipping godown packing.
+  - Production Cycle Manager: Dynamically loads cycles from `/api/production_cycles` (`data/production_cycles.json`) with ability for admins to create and select alternative cycles.
+- **Mandatory 9 Job Card Fields**:
+  - Standardized all job cards in the Production Flow and Job Card Creation modal to display and edit the 9 required fields:
+    1. Date
+    2. Job Number
+    3. Order Number
+    4. Party Name
+    5. Paper Name
+    6. Order Quantity
+    7. Number of Printing Colors
+    8. Name of Printing Colors
+    9. Priority
+- **Wastage Rule & Exact Sheet Issuance (Zero Post-Sheet Buffers)**:
+  - Formulated tag-level wastage rule: **200 extra tags per 5,000 tags** (`Math.round((orderQty / 5000) * 200)`):
+    - `5,000 tags` &rarr; `5,200 tags to produce` &rarr; `520 sheets issued (@ 10 ups)`
+    - `10,000 tags` &rarr; `10,400 tags to produce` &rarr; `1,040 sheets issued (@ 10 ups)`
+    - `15,000 tags` &rarr; `15,600 tags to produce` &rarr; `1,560 sheets issued (@ 10 ups)`
+  - Completely eliminated the legacy `+40 sheets` buffer rule (`bufferSheets = 0; issuedSheets = targetSheets`).
+  - Added live 4-column summary metric boxes (`Net Order`, `Wastage (200/5k)`, `Total Tags`, `Issued Sheets`) in both the Job Card Creation modal and the active Production Flow view.
+- **Paper Catalog Refinements & 30 Real Papers Preserved**:
+  - Increased typography size and readability in the Catalog Grid.
+  - Standardized paper naming convention to `Paper #01`, `Paper #02`, etc., replacing `Cat#103`.
+  - Removed redundant `Recommended Application` field from paper forms and cards.
+  - Preserved all 30 actual papers in catalog.
+
+### Version 2.8 — October 28, 2026
+- **Locked Table Column Layout (`table-layout: fixed` & Explicit Colgroup)**:
+  - Addressed and resolved the issue where entering search terms or filtering orders caused the `Brand & Item Specs` column to expand horizontally and `Status` to shrink.
+  - Implemented `table-fixed` and `<colgroup>` width locking across both Admin Portal and Customer Portal order registers.
+  - Explicit column widths: Checkbox (`44px`), Order ID (`130px`), Artwork (`84px`), Customer Name (`150px`), Dori & Plastic (`150px`), Qty (`95px`), Rate & Total (`135px`), Status (`230px`), with remaining width cleanly assigned to Brand & Item Specs.
+  - Verified with automated CDP browser tests that column widths remain 100% frozen and invariant regardless of how many rows are displayed (24 orders, 1 order, or 0 matching orders).
+- **Admin Order Register Layout Optimization (Dedicated Qty & Rate Columns)**:
+  - **Separate QTY Column**: Introduced a dedicated right-aligned Quantity column showing formatted volume (`10,000 pcs`, batch totals) with its own real-time search input (`Filter qty...`).
+  - **Merged RATE & TOTAL Column**: Consolidated unit price (`₹1.45 /pc`) and bold grand total (`₹17,110.00`) into a single unified column, eliminating the redundant standalone "TOTAL AMT" column. Added dual search filter (`Filter rate...`).
+  - **Compacted ORDER ID Column**: Narrowed column width (`w-32`) with bold monospace ID, customer reference pill (`MGC01`), and compact date to eliminate horizontal table congestion.
+  - **Cleaned Brand & Item Specs**: Removed redundant `Qty • Rate` subtext from the specifications column, providing clean breathing room for item codes, brand badges, and material pills.
+  - **Server Socket Resilience**: Added socket timeout controls (`ReceiveTimeout` / `SendTimeout`) in `server.ps1` to prevent TCP hangs on idle browser connections.
 
 ### Version 2.7 — October 26, 2026
 - **Two-Tier Navigation Architecture (Groups on Left, Sub-Tabs on Top)**:
@@ -81,24 +141,6 @@
 - **Cleaned Stray Reference Badges & Migrated Historical Data**:
   - Removed stray `MGC01` badge references from studio headers, preview lines, and job tickets.
   - Standardized customer abbreviations (`MGC`, `ARC`, `TGX`, `DTAG`) in `users.json` and migrated all orders across `invoices.json`, `production.json`, `payments.json`, `estimates.json`, and `payroll.json`.
-
----
-
-### Version 2.6 — October 24, 2026
-- **Complete Elimination of Mojibake & Encoding Artifacts**:
-  - Scanned repository and isolated character corruption in `CustomerPortal.js` caused by multi-byte UTF-8 bytes previously read in Windows-1252 code pages.
-  - Converted the codebase to 100% pure 7-bit ASCII, completely immune to cross-platform encoding anomalies across web servers, browsers, and operating systems.
-  - Cleaned all 38 corrupted symbols and replaced them with standard HTML entities and JavaScript Unicode escapes (`&#8377;`, `&rarr;`, `&times;`, `&bull;`).
-  - Validated 0 Babel transpilation errors via in-browser headless Edge test runner.
-
----
-
-### Version 2.5 — October 24, 2026
-- **Bespoke "Production Order Studio" (Eliminated TagX Clone Layout)**:
-  - Completely replaced generic SaaS/TagX copycat strings with proprietary garment accessory manufacturing studio branding.
-  - Balanced 2-column studio grid (~58% Specification Sheet, ~42% Visual Proof Canvas & Job Ticket).
-  - Interactive Blueprint Artwork Proof with 3mm drill hole punch guide and prepress toolstrip.
-  - Multi-card composition for Tag Kits and PU leather options.
 
 ---
 

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$Port = 8080,
     [string]$Root = $PSScriptRoot
 )
@@ -60,6 +60,8 @@ function SendJsonResponse($stream, $statusCode, $statusText, $jsonString) {
 
 function HandleClient($tcpClient, $rootDir, $types) {
     try {
+        $tcpClient.ReceiveTimeout = 4000
+        $tcpClient.SendTimeout = 4000
         $stream = $tcpClient.GetStream()
         $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8)
         
@@ -211,7 +213,7 @@ function HandleClient($tcpClient, $rootDir, $types) {
         # Generic Dynamic REST API Router for /api/{collection}
         if ($urlPath.StartsWith("/api/")) {
             $endpoint = $urlPath.Substring(5).Trim("/").ToLower()
-            $validCollections = @("orders", "users", "products", "estimates", "invoices", "payments", "production", "payroll", "messages", "label_types", "catalogs", "inventory")
+            $validCollections = @("orders", "users", "products", "estimates", "invoices", "payments", "production", "payroll", "messages", "label_types", "catalogs", "inventory", "production_cycles")
             
             if ($validCollections -contains $endpoint) {
                 $targetFile = [System.IO.Path]::Combine($rootDir, "data", "$endpoint.json")
@@ -279,8 +281,13 @@ function HandleClient($tcpClient, $rootDir, $types) {
 
 try {
     while ($true) {
-        $client = $listener.AcceptTcpClient()
-        HandleClient $client $Root $mimeTypes
+        try {
+            $client = $listener.AcceptTcpClient()
+            HandleClient $client $Root $mimeTypes
+        }
+        catch {
+            Start-Sleep -Milliseconds 10
+        }
     }
 }
 finally {

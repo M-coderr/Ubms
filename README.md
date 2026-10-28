@@ -10,7 +10,7 @@
 - **Dual-Portal Architecture**: Tailored interfaces for both **Customers** (placing orders, tracking stages, viewing ledgers) and the **Internal Team** (executives, printing/punching operators, handwork laborers).
 - **Multi-User Concurrency & Guaranteed Unique Dual IDs**: Thread-monitor locked atomic endpoint (`/api/create-order`) prevents race conditions, issuing dual sequential IDs: Admin format `TGRS25-ORD-2026-MGC07` and Customer format `MGC07`.
 - **Per-Column Search & Register Filtering**: Full feature parity across Customer and Admin Order Registers, with dedicated per-column search inputs (`Order ID`, `Customer`, `Specs`, `Dori/Plastic`, `Amt/Qty`) and interactive status counters.
-- **Manufacturing-First Production Pipeline**: Bridges order quantities in **pieces (pcs)** with manufacturing execution in **sheets**, supporting multi-card layouts, sheet calculation, and bulk promotion across pipeline stages.
+- **Dynamic Production Flow Pipeline**: Seamless workflow from approved orders into active manufacturing. Features visual artwork thumbnail previews with hover-crop and file upload, compact job card numbering (`JO_01_P1`), prominent Customer Order Number displays (`Order: MGC01`), operator assignment dropdowns (Cutting, Printing, Punching), finished tags produced input in Handwork (pcs/tags, not sheets), system-automated live wastage calculation, customizable production cycles, multi-card component job cards, mandatory 9-field job tickets, proportional tag wastage (200 extra tags per 5,000 tags), and exact sheet issuance without post-sheet buffers.
 - **In-Browser Artwork Studio**: Live artwork cropping with industry-standard hangtag aspect ratios (2:3 standard, 1:1 square, 1:2 slim tag, 3:4 card tag), zoom, rotate, and pan.
 - **Zero-Dependency Lightweight Stack**: Runs pure React 18 and Tailwind CSS directly in the browser via a standalone PowerShell HTTP server (`server.ps1`) with flat-file JSON persistence—no heavy Node/npm runtime required.
 - **Enterprise Minimalist Aesthetic**: Designed with an off-white Warm Ivory Paper Linen palette (`#F9F8F5`), crisp slate-900 typography, semantic status badges, and an emoji-free professional UI.
@@ -32,7 +32,7 @@
 │    - Support (Account Chat)       │    - Billing & Finance (Invoices)  │
 │  • Level 2 Dynamic Top Sub-Nav    │  • Level 2 Dynamic Top Sub-Nav     │
 │  • In-Browser Artwork Cropper     │  • Kanban & Order Register Search  │
-│  • Order Status & Live Timeline   │  • Production Pipeline (Sheets/Pcs)│
+│  • Order Status & Live Timeline   │  • Production Flow (5-Step Cycle)  │
 │  • Aging Outstanding Ledger       │  • Paper Catalog & Inventory       │
 │  • General Ledger (Debit/Credit)  │  • Piece-Rate Payroll & Attendance │
 └───────────────────────────────────┴────────────────────────────────────┘
@@ -87,14 +87,16 @@ uBMS comes pre-configured with operational team members and customer accounts:
 - **In-Browser Image Cropping**: Interactive cropping tool with presets (`2:3`, `1:1`, `1:2`, `3:4`), rotate 90°, zoom, and drag-to-pan.
 - **Approval Lifecycle**: Orders submitted by customers enter `pending_approval` status before committing raw materials.
 
-### 3. Manufacturing & Production Floor
-- **Pieces to Sheets Conversion**: Orders measured in pieces are automatically scheduled by allocating required sheet quantities (e.g. 500 sheets of 300 GSM Art Card for 12,000 tags).
-- **Multi-Card Handling**: Manage multi-card gang runs where multiple tag designs share a common print run.
-- **Bulk Production Movement**: Batch move multiple approved orders into printing with one click.
-- **Stage Pipeline**: `Queued` -> `Printing` -> `Punching` -> `Dori / Plastic` -> `Ready for Dispatch` -> `Delivered`.
+### 3. Manufacturing & Production Flow
+- **Dynamic 5-Step Production Cycle**: Standard sequence (`Paper Cutting` -> `Printing` -> `Punching & Packing` -> `Handwork Process` -> `Dispatch`) loaded dynamically from `production_cycles.json`, with full extensible support for Admins to create and assign alternative cycles.
+- **Multi-Card Component Job Cards**: Tags containing multiple paper components (e.g. 2-piece or 3-piece tag sets) generate individual job cards for each individual paper component.
+- **Mandatory 9 Job Card Fields**: Standardized job records capturing: Date, Job Number, Order Number, Party Name, Paper Name, Order Quantity, Number of Printing Colors, Name of Printing Colors, and Priority.
+- **Wastage Rule & Exact Sheet Issuance**: Proportional tag wastage applied directly at the source (200 extra tags per 5,000 tags ordered; 5,000 -> 5,200 tags, 10,000 -> 10,400 tags). Exact sheets issued from total production tags (`ceil(productionQty / ups)`) without adding arbitrary post-sheet buffers. Minimum floor threshold (`ceil(orderQty / ups)`) safeguards fulfillment.
+- **Bulk Production Movement**: Batch move multiple approved orders into production with one click.
 
 ### 4. Inventory & Paper Catalog
 - Complete tracking of master sheet stocks (e.g. 18x23, 20x30, 23x36), GSM (250, 300, 350, 400), finishes (Gloss, Matte, Velvet), and reel inventory.
+- Preserved 30 actual papers with standardized `Paper #01`, `Paper #02` nomenclature.
 - Real-time stock alerts and reorder thresholds.
 
 ### 5. Billing, Ledgers & Payroll
@@ -117,7 +119,7 @@ Ubms/
 ├── css/
 │   └── styles.css               # Theme overrides, custom scrollbars, printing styles
 ├── js/
-│   ├── app.js                   # Root React orchestrator & state manager (v2.7 beta)
+│   ├── app.js                   # Root React orchestrator & state manager (v2.9)
 │   ├── data.js                  # Navigation groups, mock seed & state persistence helpers
 │   └── components/
 │       ├── Header.js            # Global navigation & persona switcher
@@ -138,6 +140,7 @@ Ubms/
 │   ├── payments.json
 │   ├── payroll.json
 │   ├── production.json
+│   ├── production_cycles.json
 │   ├── products.json
 │   └── users.json
 └── lib/                         # Bundled offline libraries (no node_modules needed)

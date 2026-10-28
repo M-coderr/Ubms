@@ -1,4 +1,4 @@
-// Main uBMS App Component
+﻿// Main uBMS App Component
 window.uBMS = window.uBMS || {};
 
 function App() {
@@ -18,6 +18,7 @@ function App() {
   const [labelTypes, setLabelTypes] = React.useState([]);
   const [catalogs, setCatalogs] = React.useState([]);
   const [inventory, setInventory] = React.useState([]);
+  const [productionCycles, setProductionCycles] = React.useState([]);
   const [activePersona, setActivePersona] = React.useState(null);
   const [invoiceOrder, setInvoiceOrder] = React.useState(null);
   const [toasts, setToasts] = React.useState([]);
@@ -46,7 +47,8 @@ function App() {
           loadedMessages,
           loadedLabelTypes,
           loadedCatalogs,
-          loadedInventory
+          loadedInventory,
+          loadedProductionCycles
         ] = await Promise.all([
           window.uBMS.DataService.fetchOrders(),
           window.uBMS.DataService.fetchUsers(),
@@ -59,7 +61,8 @@ function App() {
           window.uBMS.DataService.fetchMessages(),
           window.uBMS.DataService.fetchLabelTypes(),
           window.uBMS.DataService.fetchCatalogs(),
-          window.uBMS.DataService.fetchInventory()
+          window.uBMS.DataService.fetchInventory(),
+          window.uBMS.DataService.fetchProductionCycles()
         ]);
 
         setOrders(loadedOrders);
@@ -74,6 +77,7 @@ function App() {
         setLabelTypes(loadedLabelTypes);
         setCatalogs(loadedCatalogs || []);
         setInventory(loadedInventory || []);
+        setProductionCycles(loadedProductionCycles || []);
 
         // Default Persona: First Customer
         if (loadedUsers.customers && loadedUsers.customers.length > 0) {
@@ -203,6 +207,13 @@ function App() {
     showToast('Paper catalog master updated', 'success');
   };
 
+  // Update Production Cycles
+  const handleUpdateProductionCycles = (updatedCycles) => {
+    setProductionCycles(updatedCycles);
+    window.uBMS.DataService.saveProductionCycles(updatedCycles);
+    showToast('Production cycles updated', 'success');
+  };
+
   if (loading || !activePersona) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-stone-800" style={{ backgroundColor: '#F9F8F5' }}>
@@ -308,9 +319,11 @@ function App() {
             labelTypes={labelTypes}
             catalogs={catalogs}
             inventory={inventory}
+            productionCycles={productionCycles}
             onUpdateLabelTypes={handleUpdateLabelTypes}
             onUpdateInventory={handleUpdateInventory}
             onUpdateCatalogs={handleUpdateCatalogs}
+            onUpdateProductionCycles={handleUpdateProductionCycles}
             onUpdateOrder={handleUpdateOrder}
             onSaveOrder={handleSaveOrder}
             onSaveInvoice={handleSaveInvoice}

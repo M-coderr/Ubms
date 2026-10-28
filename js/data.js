@@ -1,4 +1,4 @@
-// uBMS Core Data & State Management Layer (Comprehensive ERP & OMS Architecture)
+﻿// uBMS Core Data & State Management Layer (Comprehensive ERP & OMS Architecture)
 window.uBMS = window.uBMS || {};
 
 const STAGES = [
@@ -160,7 +160,23 @@ const DataService = {
   saveCatalogs: (data) => saveEntity('catalogs', data),
 
   fetchInventory: () => fetchEntity('inventory', []),
-  saveInventory: (data) => saveEntity('inventory', data)
+  saveInventory: (data) => saveEntity('inventory', data),
+
+  fetchProductionCycles: () => fetchEntity('production_cycles', [
+    {
+      id: 'CYCLE-STD-5',
+      name: 'Standard 5-Step Tag Cycle',
+      isDefault: true,
+      steps: [
+        { key: 'cutting', name: 'Paper Cutting', stepNumber: 1, description: 'Guillotine sheet cutting & sizing' },
+        { key: 'printing', name: 'Printing', stepNumber: 2, description: 'Offset / digital press ink application' },
+        { key: 'punching', name: 'Punching & Packing', stepNumber: 3, description: 'Die-cutting, creasing & stripping' },
+        { key: 'handwork', name: 'Handwork Process', stepNumber: 4, description: 'Dori attachment & plastic seal lock' },
+        { key: 'dispatch', name: 'Dispatch', stepNumber: 5, description: 'Quality check & dispatch packing' }
+      ]
+    }
+  ]),
+  saveProductionCycles: (data) => saveEntity('production_cycles', data)
 };
 
 // Financial Calculations & Ledger Engine

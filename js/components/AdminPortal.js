@@ -13,9 +13,11 @@ function AdminPortal({
   labelTypes = [],
   catalogs = [],
   inventory = [],
+  productionCycles = [],
   onUpdateLabelTypes,
   onUpdateInventory,
   onUpdateCatalogs,
+  onUpdateProductionCycles,
   onUpdateOrder, 
   onSaveOrder, 
   onSaveInvoice, 
@@ -44,7 +46,8 @@ function AdminPortal({
   const [adminSearchCustomer, setAdminSearchCustomer] = React.useState('');
   const [adminSearchBrandSpecs, setAdminSearchBrandSpecs] = React.useState('');
   const [adminSearchDoriPlastic, setAdminSearchDoriPlastic] = React.useState('');
-  const [adminSearchAmount, setAdminSearchAmount] = React.useState('');
+  const [adminSearchQty, setAdminSearchQty] = React.useState('');
+  const [adminSearchRateTotal, setAdminSearchRateTotal] = React.useState('');
   const [bannerMinimized, setBannerMinimized] = React.useState(activeTab !== 'dashboard');
 
   // Inventory Management State
@@ -173,21 +176,30 @@ function AdminPortal({
         if (!dpMatch) return false;
       }
 
-      // 6. Search: Amount / Qty / Rate
-      if (adminSearchAmount.trim()) {
-        const q = adminSearchAmount.trim().replace(/[₹,\s]/g, '').toLowerCase();
-        const totMatch = String(o.total || '').includes(q) || String(o.subtotal || '').includes(q);
-        const itemNumMatch = items.some(item => {
+      // 6. Search: Quantity
+      if (adminSearchQty.trim()) {
+        const q = adminSearchQty.trim().replace(/[,pcs\s]/gi, '').toLowerCase();
+        const matchesQty = items.some(item => {
           const qStr = String(item.quantity || '');
-          const rStr = String(item.unitPrice || '');
-          return qStr.includes(q) || rStr.includes(q);
+          return qStr.includes(q);
         });
-        if (!totMatch && !itemNumMatch) return false;
+        if (!matchesQty) return false;
+      }
+
+      // 7. Search: Rate & Total Amount
+      if (adminSearchRateTotal.trim()) {
+        const q = adminSearchRateTotal.trim().replace(/[\u20B9,\s]/g, '').toLowerCase();
+        const totMatch = String(o.total || '').includes(q) || String(o.subtotal || '').includes(q);
+        const matchesRate = items.some(item => {
+          const rStr = String(item.unitPrice || '');
+          return rStr.includes(q);
+        });
+        if (!totMatch && !matchesRate) return false;
       }
 
       return true;
     });
-  }, [orders, adminOrderStatusFilter, adminSearchOrderId, adminSearchCustomer, adminSearchBrandSpecs, adminSearchDoriPlastic, adminSearchAmount]);
+  }, [orders, adminOrderStatusFilter, adminSearchOrderId, adminSearchCustomer, adminSearchBrandSpecs, adminSearchDoriPlastic, adminSearchQty, adminSearchRateTotal]);
 
   const availableTypes = labelTypes.length > 0 ? labelTypes : [
     { id: 'TYPE-TAG', name: 'Tag', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 2.50 },
@@ -195,13 +207,117 @@ function AdminPortal({
   ];
 
   const availableCatalogs = catalogs.length > 0 ? catalogs : [
-    { id: 'CAT-IV350', code: 'Cat #101 - Art Ivory 350', name: 'Art & Ivory Board 350 GSM', gsm: 350, finish: 'Silk Matte Coated', sheetRate: 3.20 },
-    { id: 'CAT-KF280', code: 'Cat #102 - Natural Kraft 280', name: 'Virgin Eco Kraft Paper 280 GSM', gsm: 280, finish: 'Raw Fibrous Texture', sheetRate: 2.40 },
-    { id: 'CAT-SP300', code: 'Cat #103 - Sappi Black 300', name: 'Sappi Velvet Jet Black 300 GSM', gsm: 300, finish: 'Solid Deep Black Matte', sheetRate: 4.50 },
-    { id: 'CAT-TR115', code: 'Cat #104 - Tracing Butter 115', name: 'Translucent Butter Paper 115 GSM', gsm: 115, finish: 'Semi-Transparent Frosted', sheetRate: 1.90 },
-    { id: 'CAT-MT400', code: 'Cat #105 - Metallic Pearl 400', name: 'Champagne Shimmer Board 400 GSM', gsm: 400, finish: 'Subtle Pearl Luster', sheetRate: 5.80 },
-    { id: 'CAT-DUP250', code: 'Cat #106 - Sturdy Duplex 250', name: 'Greyback Duplex Board 250 GSM', gsm: 250, finish: 'Semi-Gloss Single Sided', sheetRate: 1.60 }
+    { id: 'CAT-PAPER0', code: 'Paper #01', name: 'Plastic', gsm: 250, finish: 'Gloss', sheetRate: 29.5, stockSheets: 350 },
+    { id: 'CAT-PAPER02', code: 'Paper #02', name: 'Grey Velvet', gsm: 120, finish: 'Velvet', sheetRate: 59, stockSheets: 50 },
+    { id: 'CAT-PAPER03', code: 'Paper #03', name: 'Al Grey Handmade', gsm: 250, finish: 'Matt', sheetRate: 29.5, stockSheets: 180 },
+    { id: 'CAT-PAPER04', code: 'Paper #04', name: 'Sky Blue', gsm: 320, finish: 'Textured Chex', sheetRate: 30.7, stockSheets: 1050 },
+    { id: 'CAT-PAPER05', code: 'Paper #05', name: 'Red Velvet', gsm: 280, finish: 'Velvet', sheetRate: 26, stockSheets: 2125 },
+    { id: 'CAT-PAPER06', code: 'Paper #06', name: 'Al Greyish Green', gsm: 380, finish: 'Matt', sheetRate: 44, stockSheets: 2000 },
+    { id: 'CAT-PAPER07', code: 'Paper #07', name: 'White Cloudy', gsm: 290, finish: 'Printed Matt', sheetRate: 26, stockSheets: 450 },
+    { id: 'CAT-PAPER08', code: 'Paper #08', name: 'Al Light Green', gsm: 320, finish: 'Matt', sheetRate: 28.5, stockSheets: 2000 },
+    { id: 'CAT-PAPER09', code: 'Paper #09', name: 'P Cream', gsm: 360, finish: 'Matt', sheetRate: 35.4, stockSheets: 30 },
+    { id: 'CAT-PAPER10', code: 'Paper #10', name: 'Linning Cream', gsm: 220, finish: 'Linning', sheetRate: 26, stockSheets: 1000 },
+    { id: 'CAT-PAPER11', code: 'Paper #11', name: 'Khakhi', gsm: 350, finish: 'Matt', sheetRate: 23.6, stockSheets: 700 },
+    { id: 'CAT-PAPER12', code: 'Paper #12', name: 'Dark Blue (M.2094)', gsm: 350, finish: 'Matt', sheetRate: 33.1, stockSheets: 150 },
+    { id: 'CAT-PAPER13', code: 'Paper #13', name: 'Al Brown', gsm: 290, finish: 'Matt', sheetRate: 24.8, stockSheets: 2400 },
+    { id: 'CAT-PAPER14', code: 'Paper #14', name: 'BJ Green', gsm: 280, finish: 'Matt', sheetRate: 33.1, stockSheets: 0 },
+    { id: 'CAT-PAPER15', code: 'Paper #15', name: 'Navy Blue', gsm: 300, finish: 'Matt', sheetRate: 25, stockSheets: 0 },
+    { id: 'CAT-PAPER16', code: 'Paper #16', name: 'Burgandy', gsm: 290, finish: 'Matt', sheetRate: 29.5, stockSheets: 200 },
+    { id: 'CAT-PAPER17', code: 'Paper #17', name: 'Grey Linning', gsm: 300, finish: 'Linnig', sheetRate: 35.4, stockSheets: 0 },
+    { id: 'CAT-PAPER18', code: 'Paper #18', name: 'Light Grey', gsm: 320, finish: 'Matt', sheetRate: 37.8, stockSheets: 200 },
+    { id: 'CAT-PAPER19', code: 'Paper #19', name: 'Dark Grey', gsm: 250, finish: 'Matt', sheetRate: 29.5, stockSheets: 130 },
+    { id: 'CAT-PAPER20', code: 'Paper #20', name: 'SCM White Chex', gsm: 190, finish: 'Chex', sheetRate: 59, stockSheets: 100 },
+    { id: 'CAT-PAPER21', code: 'Paper #21', name: 'Al White Chex', gsm: 230, finish: 'Self Chex', sheetRate: 13, stockSheets: 280 },
+    { id: 'CAT-PAPER22', code: 'Paper #22', name: 'Al White Gloss', gsm: 220, finish: 'Gloss', sheetRate: 29.5, stockSheets: 450 },
+    { id: 'CAT-PAPER23', code: 'Paper #23', name: 'SCM Black', gsm: 400, finish: 'Matt', sheetRate: 36, stockSheets: 0 },
+    { id: 'CAT-PAPER24', code: 'Paper #24', name: 'Black Linning', gsm: 350, finish: 'Linning', sheetRate: 41.3, stockSheets: 100 },
+    { id: 'CAT-PAPER25', code: 'Paper #25', name: 'SCM Black', gsm: 250, finish: 'Matt', sheetRate: 23.6, stockSheets: 0 },
+    { id: 'CAT-PAPER26', code: 'Paper #26', name: 'Black Chex', gsm: 350, finish: 'Chex', sheetRate: 41.3, stockSheets: 900 },
+    { id: 'CAT-PAPER27', code: 'Paper #27', name: 'Black Velvet', gsm: 220, finish: 'Velvet', sheetRate: 33.1, stockSheets: 0 },
+    { id: 'CAT-PAPER28', code: 'Paper #28', name: 'Al Cream Handmade', gsm: 250, finish: 'Matt', sheetRate: 30.7, stockSheets: 700 },
+    { id: 'CAT-PAPER29', code: 'Paper #29', name: 'Black Velvet', gsm: 540, finish: 'Velvet', sheetRate: 22, stockSheets: 3000 },
+    { id: 'CAT-PAPER30', code: 'Paper #30', name: 'Fbb', gsm: 250, finish: 'Matt', sheetRate: 18.6, stockSheets: 3800 }
   ];
+
+  // Default Manufacturing Production Cycles
+  const DEFAULT_CYCLES = [
+    {
+      id: 'CYCLE-STD-5',
+      name: 'Standard 5-Step Tag Cycle',
+      isDefault: true,
+      steps: [
+        { key: 'cutting', name: 'Paper Cutting', stepNumber: 1, description: 'Guillotine sheet cutting & sizing' },
+        { key: 'printing', name: 'Printing', stepNumber: 2, description: 'Offset / digital press ink application' },
+        { key: 'punching', name: 'Punching & Packing', stepNumber: 3, description: 'Die-cutting, creasing & stripping' },
+        { key: 'handwork', name: 'Handwork Process', stepNumber: 4, description: 'Dori attachment & plastic seal lock' },
+        { key: 'dispatch', name: 'Dispatch', stepNumber: 5, description: 'Quality check & dispatch packing' }
+      ]
+    },
+    {
+      id: 'CYCLE-DIRECT-4',
+      name: 'Direct Tag Cycle (No Handwork)',
+      isDefault: false,
+      steps: [
+        { key: 'cutting', name: 'Paper Cutting', stepNumber: 1, description: 'Guillotine sheet cutting & sizing' },
+        { key: 'printing', name: 'Printing', stepNumber: 2, description: 'Offset / digital press ink application' },
+        { key: 'punching', name: 'Punching & Packing', stepNumber: 3, description: 'Die-cutting, creasing & stripping' },
+        { key: 'dispatch', name: 'Dispatch', stepNumber: 4, description: 'Quality check & dispatch packing' }
+      ]
+    }
+  ];
+
+  const availableCycles = (productionCycles && productionCycles.length > 0) ? productionCycles : DEFAULT_CYCLES;
+
+  // Production Cycle Management State
+  const [showCycleManagerModal, setShowCycleManagerModal] = React.useState(false);
+  const [newCycleName, setNewCycleName] = React.useState('');
+  const [selectedCycleSteps, setSelectedCycleSteps] = React.useState(['cutting', 'printing', 'punching', 'handwork', 'dispatch']);
+
+  const handleSaveNewCycle = (e) => {
+    e.preventDefault();
+    if (!newCycleName.trim()) return alert('Please enter a Cycle Name');
+    if (selectedCycleSteps.length === 0) return alert('Please select at least one process step for the cycle');
+
+    const ALL_STEPS_DEF = {
+      cutting: { key: 'cutting', name: 'Paper Cutting', description: 'Guillotine sheet cutting & sizing' },
+      printing: { key: 'printing', name: 'Printing', description: 'Offset / digital press ink application' },
+      punching: { key: 'punching', name: 'Punching & Packing', description: 'Die-cutting, creasing & stripping' },
+      handwork: { key: 'handwork', name: 'Handwork Process', description: 'Dori attachment & plastic seal lock' },
+      dispatch: { key: 'dispatch', name: 'Dispatch', description: 'Quality check & dispatch packing' }
+    };
+
+    const orderedSteps = ['cutting', 'printing', 'punching', 'handwork', 'dispatch']
+      .filter(k => selectedCycleSteps.includes(k))
+      .map((k, idx) => ({
+        ...ALL_STEPS_DEF[k],
+        stepNumber: idx + 1
+      }));
+
+    const newCycle = {
+      id: 'CYCLE-' + Date.now().toString().slice(-4),
+      name: newCycleName.trim(),
+      isDefault: false,
+      steps: orderedSteps
+    };
+
+    const updated = [...availableCycles, newCycle];
+    if (onUpdateProductionCycles) {
+      onUpdateProductionCycles(updated);
+    }
+    setShowCycleManagerModal(false);
+    setNewCycleName('');
+    setSelectedCycleSteps(['cutting', 'printing', 'punching', 'handwork', 'dispatch']);
+  };
+
+  const getNextCycleStep = (job, currentKey) => {
+    const cycleObj = availableCycles.find(c => c.id === job.cycleId) || availableCycles[0];
+    const steps = job.cycleSteps || (cycleObj?.steps) || DEFAULT_CYCLES[0].steps;
+    const idx = steps.findIndex(s => s.key === currentKey);
+    if (idx !== -1 && idx + 1 < steps.length) {
+      return steps[idx + 1].key;
+    }
+    return 'completed';
+  };
 
   // Paper Catalog Management State & Handlers
   const [catalogSubTab, setCatalogSubTab] = React.useState('catalogs'); // 'catalogs' or 'types'
@@ -211,18 +327,36 @@ function AdminPortal({
   const [catName, setCatName] = React.useState('');
   const [catGsm, setCatGsm] = React.useState(350);
   const [catFinish, setCatFinish] = React.useState('Silk Matte Coated');
-  const [catRate, setCatRate] = React.useState(3.20);
-  const [catRec, setCatRec] = React.useState('');
+  const [catRate, setCatRate] = React.useState(3.50);
   const [catStock, setCatStock] = React.useState(10000);
+
+  const getNextPaperCode = () => {
+    let maxNum = 0;
+    let foundPaper = false;
+
+    availableCatalogs.forEach(c => {
+      const match = (c.code || '').match(/Paper\s*#?\s*(\d+)/i);
+      if (match) {
+        foundPaper = true;
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+
+    if (foundPaper) {
+      return `Paper #${String(maxNum + 1).padStart(2, '0')}`;
+    }
+
+    return 'Paper #01';
+  };
 
   const handleOpenAddCatalog = () => {
     setEditingCatalog(null);
-    setCatCode(`Cat #${100 + availableCatalogs.length + 1} - `);
+    setCatCode(getNextPaperCode());
     setCatName('');
     setCatGsm(350);
     setCatFinish('Silk Matte Coated');
     setCatRate(3.50);
-    setCatRec('Hangtags & Luxury Cards');
     setCatStock(10000);
     setShowCatalogModal(true);
   };
@@ -234,7 +368,6 @@ function AdminPortal({
     setCatGsm(cat.gsm || 300);
     setCatFinish(cat.finish || '');
     setCatRate(cat.sheetRate || 3.00);
-    setCatRec(cat.recommendedFor || '');
     setCatStock(cat.stockSheets || 5000);
     setShowCatalogModal(true);
   };
@@ -255,11 +388,14 @@ function AdminPortal({
         gsm: Number(catGsm) || 300,
         finish: catFinish.trim(),
         sheetRate: Number(catRate) || 1.0,
-        recommendedFor: catRec.trim(),
         stockSheets: Number(catStock) || 0
       } : c);
     } else {
-      savedCatId = 'CAT-' + (catCode.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() || Date.now().toString().slice(-4));
+      const cleanCode = catCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || Date.now().toString().slice(-4);
+      savedCatId = 'CAT-' + cleanCode;
+      if (availableCatalogs.some(c => c.id === savedCatId)) {
+        savedCatId = `${savedCatId}-${Date.now().toString().slice(-4)}`;
+      }
       const newCat = {
         id: savedCatId,
         code: catCode.trim(),
@@ -267,7 +403,6 @@ function AdminPortal({
         gsm: Number(catGsm) || 300,
         finish: catFinish.trim(),
         sheetRate: Number(catRate) || 1.0,
-        recommendedFor: catRec.trim(),
         stockSheets: Number(catStock) || 0
       };
       updatedCatalogs = [...availableCatalogs, newCat];
@@ -321,39 +456,166 @@ function AdminPortal({
 
   // Move to Production (with Sheet Qty Allocation & Bulk Support)
   const [prodModalOrders, setProdModalOrders] = React.useState(null); // array of orders
-  const [prodSheetAllocations, setProdSheetAllocations] = React.useState({}); // key: `${orderId}_${itemIdx}_${cardIdx}` -> { ups, sheets, orderPieces }
+  const [prodSheetAllocations, setProdSheetAllocations] = React.useState({}); // key: `${orderId}_${itemIdx}_${cardIdx}` -> job card details
+  const [selectedProdCycleId, setSelectedProdCycleId] = React.useState('CYCLE-STD-5');
+
+  // Wastage Rule: 200 extra tags per 5000 tags (5000 -> 5200, 10000 -> 10400, and so on).
+  // Exact sheets are issued from this total tags without adding any extra sheets after that.
+  const getWastageTags = (qty) => {
+    const n = Number(qty) || 0;
+    if (n <= 0) return 0;
+    return Math.round((n / 5000) * 200);
+  };
+
+  // Compact Job Card Number Generator: JO_01_P1, JO_01_P2, etc.
+  const formatJobCardNumber = (jobOrOrd, itemIdx = 0, cardIdx = 0, totalCards = 1) => {
+    if (typeof jobOrOrd === 'string') {
+      if (/^JO_\d+_P\d+$/i.test(jobOrOrd)) return jobOrOrd;
+      if (/^JO_\d+$/i.test(jobOrOrd)) return `${jobOrOrd}_P${cardIdx + 1}`;
+    }
+    const existingNum = jobOrOrd?.jobNumber || jobOrOrd?.jobId;
+    if (existingNum && /^JO_\d+_P\d+$/i.test(existingNum)) return existingNum;
+    if (existingNum && /^JO_\d+$/i.test(existingNum)) {
+      const pIdx = (jobOrOrd?.cardIndex !== undefined) ? jobOrOrd.cardIndex : (cardIdx + 1);
+      return `${existingNum}_P${pIdx}`;
+    }
+
+    const custRef = jobOrOrd?.customerOrderId || (jobOrOrd?.orderNumber || jobOrOrd?.orderId || jobOrOrd?.id || '').split('-').pop() || '01';
+    const numMatch = custRef.match(/\d+/g);
+    const seqDigits = numMatch ? numMatch[numMatch.length - 1].padStart(2, '0') : String(itemIdx + 1).padStart(2, '0');
+    const partIdx = (jobOrOrd?.cardIndex !== undefined) ? jobOrOrd.cardIndex : (cardIdx + 1);
+    return `JO_${seqDigits}_P${partIdx}`;
+  };
+
+  // Crop & Artwork States for Production Job Cards
+  const [cropJobTarget, setCropJobTarget] = React.useState(null); // { jobId, imageSrc }
+
+  const handleUpdateJobImage = (jobId, croppedUrl) => {
+    const updated = production.map(j => j.jobId === jobId ? { ...j, image: croppedUrl } : j);
+    onUpdateProduction(updated);
+  };
+
+  const handleUploadJobArtwork = (jobId, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      handleUpdateJobImage(jobId, dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdateJobOperator = (jobId, stageKey, newOperator) => {
+    setSheetInput(jobId, `${stageKey}Operator`, newOperator);
+    const updated = production.map(j => j.jobId === jobId ? {
+      ...j,
+      [stageKey]: {
+        ...(j[stageKey] || {}),
+        operatorName: newOperator
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  // Dynamically populated operator lists with defaults
+  const cuttingOperators = React.useMemo(() => {
+    const teamOps = (users?.team || []).filter(u => u.role === 'cutting' || u.roleLabel?.toLowerCase().includes('cut')).map(u => u.name);
+    return Array.from(new Set([...teamOps, 'Ramesh', 'Dilip', 'Sunil', 'Kanu']));
+  }, [users]);
+
+  const printingOperators = React.useMemo(() => {
+    const teamOps = (users?.team || []).filter(u => u.role === 'printing' || u.roleLabel?.toLowerCase().includes('print')).map(u => u.name);
+    return Array.from(new Set([...teamOps, 'Kanu', 'Manoj Kumar', 'Prakash', 'Sunil']));
+  }, [users]);
+
+  const punchingOperators = React.useMemo(() => {
+    const teamOps = (users?.team || []).filter(u => u.role === 'punching' || u.roleLabel?.toLowerCase().includes('punch')).map(u => u.name);
+    return Array.from(new Set([...teamOps, 'Shivakant', 'Dilip Yadav', 'Mohan', 'Sanjay']));
+  }, [users]);
 
   const handleOpenMoveToProduction = (orderOrOrders) => {
     const list = Array.isArray(orderOrOrders) ? orderOrOrders : [orderOrOrders];
     if (list.length === 0) return alert('No orders selected for production.');
 
-    // Initialize allocations
+    // Initialize allocations with the 9 mandatory fields & sheet calculations
+    const todayStr = new Date().toISOString().split('T')[0];
     const initialAlloc = {};
     list.forEach(ord => {
       (ord.items || []).forEach((item, itemIdx) => {
         const pcs = Number(item.quantity) || 1000;
         const defaultUps = 10;
-        const defaultSheets = Math.ceil(pcs / defaultUps);
+        const wastage = getWastageTags(pcs); // e.g. 200 for 5000, 400 for 10000
+        const totalProdTags = pcs + wastage;  // e.g. 5200 for 5000, 10400 for 10000
+        const defaultSheets = Math.ceil(totalProdTags / defaultUps); // e.g. 520 sheets (no extra sheets added after)
+
+        const custOrdCode = ord.customerOrderId || (ord.id ? ord.id.split('-').pop() : '01');
 
         if (item.isMultiCard && item.cards && item.cards.length > 0) {
           item.cards.forEach((card, cardIdx) => {
             const key = `${ord.id}_${itemIdx}_${cardIdx}`;
+            let paper = card.catalogCode || card.material || item.material || 'Paper #01 (Art Card 350 GSM)';
+            const matchedCat = availableCatalogs.find(c => c.code === paper || c.name === paper || c.id === card.catalogId);
+            if (matchedCat) {
+              paper = `${matchedCat.code || ''} ${matchedCat.name || ''}`.trim();
+            }
+
+            const compactJob = formatJobCardNumber(ord, itemIdx, cardIdx, item.cards.length);
+            const cardImg = card.image || card.artwork || item.image || item.artwork || ord.artwork || null;
+
             initialAlloc[key] = {
+              date: todayStr,
+              jobNumber: compactJob,
+              orderNumber: ord.id,
+              customerOrderId: custOrdCode,
+              partyName: ord.customerCompany || ord.customerName || 'Standard Client',
+              paperName: paper,
+              orderQty: pcs,
+              wastageQty: wastage,
+              productionQty: totalProdTags,
+              numPrintingColors: 4,
+              namePrintingColors: 'CMYK (Full Color)',
+              priority: ord.priority || 'standard',
+              cycleId: selectedProdCycleId || 'CYCLE-STD-5',
               ups: defaultUps,
               sheets: defaultSheets,
               orderPieces: pcs,
               cardTitle: card.title || `Card #${cardIdx + 1}`,
-              catalogCode: card.catalogCode || item.material || 'Standard Catalog'
+              catalogCode: paper,
+              image: cardImg
             };
           });
         } else {
           const key = `${ord.id}_${itemIdx}_0`;
+          let paper = item.catalogCode || item.material || 'Paper #01 (Art Card 350 GSM)';
+          const matchedCat = availableCatalogs.find(c => c.code === paper || c.name === paper);
+          if (matchedCat) {
+            paper = `${matchedCat.code || ''} ${matchedCat.name || ''}`.trim();
+          }
+
+          const compactJob = formatJobCardNumber(ord, itemIdx, 0, 1);
+          const cardImg = item.image || item.artwork || ord.artwork || null;
+
           initialAlloc[key] = {
+            date: todayStr,
+            jobNumber: compactJob,
+            orderNumber: ord.id,
+            customerOrderId: custOrdCode,
+            partyName: ord.customerCompany || ord.customerName || 'Standard Client',
+            paperName: paper,
+            orderQty: pcs,
+            wastageQty: wastage,
+            productionQty: totalProdTags,
+            numPrintingColors: 4,
+            namePrintingColors: 'CMYK (Full Color)',
+            priority: ord.priority || 'standard',
+            cycleId: selectedProdCycleId || 'CYCLE-STD-5',
             ups: defaultUps,
             sheets: defaultSheets,
             orderPieces: pcs,
             cardTitle: item.name || item.itemCode || 'Single Card Tag',
-            catalogCode: item.catalogCode || item.material || 'Standard Catalog'
+            catalogCode: paper,
+            image: cardImg
           };
         }
       });
@@ -365,10 +627,13 @@ function AdminPortal({
 
   const handleUpdateSheetAlloc = (key, field, value) => {
     setProdSheetAllocations(prev => {
-      const current = prev[key] || { ups: 10, sheets: 100, orderPieces: 1000 };
+      const current = prev[key] || { ups: 10, sheets: 100, orderPieces: 1000, orderQty: 1000 };
       if (field === 'ups') {
         const newUps = Math.max(1, Number(value) || 1);
-        const newSheets = Math.ceil(current.orderPieces / newUps);
+        const ordQ = Number(current.orderQty || current.orderPieces || 1000);
+        const wasteQ = getWastageTags(ordQ);
+        const totQ = ordQ + wasteQ;
+        const newSheets = Math.ceil(totQ / newUps);
         return {
           ...prev,
           [key]: { ...current, ups: newUps, sheets: newSheets }
@@ -381,7 +646,27 @@ function AdminPortal({
           [key]: { ...current, sheets: newSheets }
         };
       }
-      return prev;
+      if (field === 'orderQty') {
+        const newQty = Math.max(1, Number(value) || 1);
+        const wasteQ = getWastageTags(newQty);
+        const totQ = newQty + wasteQ;
+        const newSheets = Math.ceil(totQ / (current.ups || 10));
+        return {
+          ...prev,
+          [key]: { 
+            ...current, 
+            orderQty: newQty, 
+            orderPieces: newQty, 
+            wastageQty: wasteQ,
+            productionQty: totQ,
+            sheets: newSheets 
+          }
+        };
+      }
+      return {
+        ...prev,
+        [key]: { ...current, [field]: value }
+      };
     });
   };
 
@@ -389,6 +674,10 @@ function AdminPortal({
     if (!prodModalOrders || prodModalOrders.length === 0) return;
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     let createdJobs = [];
+
+    const cycleObj = availableCycles.find(c => c.id === selectedProdCycleId) || availableCycles[0];
+    const cycleSteps = cycleObj?.steps || DEFAULT_CYCLES[0].steps;
+    const initialStage = cycleSteps[0]?.key || 'cutting';
 
     prodModalOrders.forEach(order => {
       // 1. Update Order Status to in_production
@@ -400,7 +689,7 @@ function AdminPortal({
           {
             stage: 'in_production',
             title: 'Production Job Form Created',
-            description: `Production job cards created by ${currentMember.name}. Scheduled for printing.`,
+            description: `Production job cards created by ${currentMember.name}. Assigned to ${cycleObj?.name || 'Production Cycle'}.`,
             timestamp: formattedDate,
             author: currentMember.name
           }
@@ -408,7 +697,7 @@ function AdminPortal({
       };
       onUpdateOrder(updatedOrder);
 
-      // 2. Generate Production Job Forms
+      // 2. Generate Production Job Forms - SEPARATE JOB CARD PER PAPER COMPONENT!
       (order.items || []).forEach((item, itemIdx) => {
         const pcs = Number(item.quantity) || 1000;
         const isMulti = !!item.isMultiCard;
@@ -416,79 +705,119 @@ function AdminPortal({
           {
             cardIndex: 1,
             title: item.name || item.itemCode || 'Single Card Tag',
-            catalogCode: item.catalogCode || item.material || 'Standard Catalog',
+            catalogCode: item.catalogCode || item.material || 'Paper #01 (Art Card 350 GSM)',
             gsm: 300,
             finish: 'Matte'
           }
         ];
 
-        // Overall sheet calculation
-        let mainSheets = 100;
-        const enrichedCards = cardsList.map((c, ci) => {
-          const alloc = prodSheetAllocations[`${order.id}_${itemIdx}_${ci}`] || { sheets: Math.ceil(pcs / 10), ups: 10 };
-          if (alloc.sheets > mainSheets) mainSheets = alloc.sheets;
-          return {
-            ...c,
-            ups: alloc.ups,
-            allocatedSheets: alloc.sheets
-          };
-        });
+        cardsList.forEach((card, cardIdx) => {
+          const key = `${order.id}_${itemIdx}_${cardIdx}`;
+          const alloc = prodSheetAllocations[key] || {};
+          const baseOrderQty = Number(alloc.orderQty) || pcs;
+          const wastageTags = alloc.wastageQty !== undefined ? Number(alloc.wastageQty) : getWastageTags(baseOrderQty);
+          const totalProdTags = alloc.productionQty || (baseOrderQty + wastageTags); // 5000 -> 5200, 10000 -> 10400
+          const ups = Number(alloc.ups) || 10;
+          const requiredSheets = Number(alloc.sheets) || Math.ceil(totalProdTags / ups); // 520 sheets (no extra sheets added after!)
+          const floor = Math.ceil(baseOrderQty / ups); // Minimum sheets to fulfill order
 
-        // The target sheets entered by user
-        const targetSheets = mainSheets;
-        const buffer = 40; // 20 sheets printing + 20 sheets punching
-        const issued = targetSheets + buffer;
-        const floor = Math.max(1, targetSheets - 40);
+          const defaultJobNum = formatJobCardNumber(order, itemIdx, cardIdx, cardsList.length);
+          const finalJobId = alloc.jobNumber || defaultJobNum;
+          const custOrdCode = order.customerOrderId || (order.id ? order.id.split('-').pop() : '01');
+          const finalDate = alloc.date || new Date().toISOString().split('T')[0];
+          const finalPartyName = alloc.partyName || order.customerCompany || order.customerName || 'Valued Client';
+          const finalPaperName = alloc.paperName || card.catalogCode || card.title || 'Paper #01 (Art Card 350 GSM)';
+          const finalNumColors = Number(alloc.numPrintingColors) || 4;
+          const finalNameColors = alloc.namePrintingColors || 'CMYK (Full Color)';
+          const finalPriority = alloc.priority || order.priority || 'standard';
+          const finalImage = alloc.image || card.image || card.artwork || item.image || item.artwork || order.artwork || null;
 
-        createdJobs.push({
-          jobId: `JOB-${Date.now().toString().slice(-4)}-${itemIdx + 1}`,
-          orderId: order.id,
-          customerName: order.customerName,
-          customerCompany: order.customerCompany || order.customerName,
-          itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
-          type: item.type || 'Tag',
-          isMultiCard: isMulti,
-          cards: enrichedCards,
-          targetQty: pcs, // Tag pieces ordered by customer
-          targetSheets: targetSheets, // Net required paper sheets
-          bufferSheets: buffer, // +40 sheets (+20 print, +20 punch)
-          issuedSheets: issued, // targetSheets + 40
-          minimumAllowedFloor: floor, // tolerance floor
-          currentStage: 'printing', // strictly first visible ONLY to printing team!
-          priority: order.priority || 'standard',
-          printing: {
-            status: 'pending',
-            operatorName: 'Kanu',
-            startTime: null,
-            completedTime: null,
-            goodSheetsPrinted: null,
-            wasteSheets: null
-          },
-          punching: {
-            status: 'locked',
-            operatorName: 'Shivakant',
-            startTime: null,
-            completedTime: null,
-            goodSheetsPunched: null,
-            wasteSheets: null
-          },
-          handwork: {
-            status: 'locked',
-            doriType: item.dori || 'Reg. Cotton Dori',
-            doriRate: item.doriRate || 0.20,
-            plasticType: item.plastic || 'Reg. Plastic Lock',
-            plasticRate: item.plasticRate || 0.10,
-            totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
-            assignedLabourerId: null,
-            assignedLabourerName: null,
-            startTime: null,
-            completedTime: null,
-            completedPieces: null,
-            earnedPayout: null
-          },
-          godown: {
-            status: 'pending'
-          }
+          createdJobs.push({
+            jobId: finalJobId,
+            jobNumber: finalJobId,
+            customerOrderId: custOrdCode,
+            image: finalImage,
+            date: finalDate,
+            orderId: order.id,
+            orderNumber: order.id,
+            partyName: finalPartyName,
+            customerCompany: finalPartyName,
+            customerName: order.customerName,
+            paperName: finalPaperName,
+            catalogCode: finalPaperName,
+            orderQty: baseOrderQty,
+            wastageQty: wastageTags,
+            productionQty: totalProdTags,
+            targetQty: totalProdTags,
+            numPrintingColors: finalNumColors,
+            namePrintingColors: finalNameColors,
+            priority: finalPriority,
+            cycleId: cycleObj.id,
+            cycleName: cycleObj.name,
+            cycleSteps: cycleSteps,
+            currentStage: initialStage,
+            itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
+            cardTitle: card.title || `Card #${cardIdx + 1}`,
+            cardIndex: cardIdx + 1,
+            totalCardsInSet: cardsList.length,
+            isMultiCardComponent: cardsList.length > 1,
+            type: item.type || 'Tag',
+            ups: ups,
+            targetSheets: requiredSheets,
+            bufferSheets: 0,
+            issuedSheets: requiredSheets,
+            minimumAllowedFloor: floor,
+            cutting: {
+              status: initialStage === 'cutting' ? 'pending' : 'locked',
+              operatorName: 'Ramesh',
+              startTime: null,
+              completedTime: null,
+              goodSheetsCut: null,
+              wasteSheets: null
+            },
+            printing: {
+              status: initialStage === 'printing' ? 'pending' : 'locked',
+              operatorName: 'Kanu',
+              startTime: null,
+              completedTime: null,
+              goodSheetsPrinted: null,
+              wasteSheets: null
+            },
+            punching: {
+              status: initialStage === 'punching' ? 'pending' : 'locked',
+              operatorName: 'Shivakant',
+              startTime: null,
+              completedTime: null,
+              goodSheetsPunched: null,
+              wasteSheets: null
+            },
+            handwork: {
+              status: initialStage === 'handwork' ? 'pending' : 'locked',
+              doriType: item.dori || 'Reg. Cotton Dori',
+              doriRate: item.doriRate || 0.20,
+              plasticType: item.plastic || 'Reg. Plastic Lock',
+              plasticRate: item.plasticRate || 0.10,
+              totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+              assignedLabourerId: null,
+              assignedLabourerName: null,
+              startTime: null,
+              completedTime: null,
+              completedPieces: null,
+              earnedPayout: null
+            },
+            dispatch: {
+              status: initialStage === 'dispatch' ? 'pending' : 'locked',
+              readyTime: null,
+              dispatchedTime: null,
+              verifiedPieces: null,
+              carrier: null,
+              trackingNumber: null
+            },
+            godown: {
+              status: 'pending',
+              location: 'Bay 01 - Finished Goods'
+            }
+          });
         });
       });
     });
@@ -1258,14 +1587,61 @@ function AdminPortal({
     }));
   };
 
-  // 1. Printing Handlers
+  // 1. Paper Cutting Handlers
+  const handleStartCutting = (job) => {
+    const operator = getSheetInput(job.jobId, 'cuttingOperator', job.cutting?.operatorName || 'Ramesh');
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      cutting: {
+        ...(j.cutting || {}),
+        status: 'in_progress',
+        operatorName: operator,
+        startTime: new Date().toISOString()
+      }
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  const handleCompleteCutting = (job) => {
+    const issued = Number(job.issuedSheets || job.targetSheets || 520);
+    const rawCut = getSheetInput(job.jobId, 'cutSheets');
+    const cutCount = (rawCut !== undefined && rawCut !== '') ? Number(rawCut) : issued;
+    // System automatically calculates cutting waste
+    const wasteCount = Math.max(0, issued - cutCount);
+    const operator = getSheetInput(job.jobId, 'cuttingOperator', job.cutting?.operatorName || 'Ramesh');
+
+    const nextStage = getNextCycleStep(job, 'cutting');
+
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      currentStage: nextStage,
+      cutting: {
+        ...(j.cutting || {}),
+        status: 'completed',
+        operatorName: operator,
+        completedTime: new Date().toISOString(),
+        goodSheetsCut: cutCount,
+        wasteSheets: wasteCount
+      },
+      ...(nextStage !== 'completed' && nextStage in j ? {
+        [nextStage]: {
+          ...(j[nextStage] || {}),
+          status: 'pending'
+        }
+      } : {})
+    } : j);
+    onUpdateProduction(updated);
+  };
+
+  // 2. Printing Handlers
   const handleStartPrinting = (job) => {
+    const operator = getSheetInput(job.jobId, 'printingOperator', job.printing?.operatorName || 'Kanu');
     const updated = production.map(j => j.jobId === job.jobId ? {
       ...j,
       printing: {
         ...(j.printing || {}),
         status: 'in_progress',
-        operatorName: currentMember.name,
+        operatorName: operator,
         startTime: new Date().toISOString()
       }
     } : j);
@@ -1279,11 +1655,13 @@ function AdminPortal({
       return alert('Mandatory: Please write down the exact number of sheets printed before proceeding.');
     }
 
-    const rawWaste = getSheetInput(job.jobId, 'waste');
-    const wasteCount = Number(rawWaste) || Math.max(0, (job.issuedSheets || 1040) - printedCount);
+    const inputSheets = Number(job.cutting?.goodSheetsCut || job.issuedSheets || job.targetSheets || 520);
+    // System automatically calculates printing waste
+    const wasteCount = Math.max(0, inputSheets - printedCount);
+    const operator = getSheetInput(job.jobId, 'printingOperator', job.printing?.operatorName || 'Kanu');
 
-    // Spoilage / Threshold Check (e.g. < 960 for 1000 order)
-    const floor = job.minimumAllowedFloor || 960;
+    // Spoilage / Threshold Check against customer net order sheets
+    const floor = job.minimumAllowedFloor || Math.ceil((job.orderQty || 1000) / (job.ups || 10));
     if (printedCount < floor) {
       setShortageAlertJob({
         job,
@@ -1293,26 +1671,31 @@ function AdminPortal({
       return;
     }
 
+    const nextStage = getNextCycleStep(job, 'printing');
+
     const updated = production.map(j => j.jobId === job.jobId ? {
       ...j,
-      currentStage: 'punching', // forwards form to Punching & Packing team!
+      currentStage: nextStage,
       printing: {
         ...(j.printing || {}),
         status: 'completed',
+        operatorName: operator,
         completedTime: new Date().toISOString(),
         goodSheetsPrinted: printedCount,
         wasteSheets: wasteCount
       },
-      punching: {
-        ...(j.punching || {}),
-        status: 'pending' // now visible & ready for punching team!
-      }
+      ...(nextStage !== 'completed' && nextStage in j ? {
+        [nextStage]: {
+          ...(j[nextStage] || {}),
+          status: 'pending'
+        }
+      } : {})
     } : j);
     onUpdateProduction(updated);
 
     // Auto-deplete paper sheets from inventory
     if (onUpdateInventory && inventory && inventory.length > 0) {
-      const sheetsToDeduct = (printedCount + wasteCount) || job.issuedSheets || 1040;
+      const sheetsToDeduct = (printedCount + wasteCount) || job.issuedSheets || job.targetSheets || 520;
       const targetCatId = job.catalogId || (job.subCards && job.subCards[0]?.catalogId);
       const updatedInv = inventory.map(item => {
         if (item.category === 'paper' && (item.catalogId === targetCatId || (targetCatId && item.id.includes(targetCatId)))) {
@@ -1333,9 +1716,10 @@ function AdminPortal({
     if (!shortageAlertJob) return;
     const { job, printedSheets, wasteSheets } = shortageAlertJob;
     if (decision === 'accept_short') {
+      const nextStage = getNextCycleStep(job, 'printing');
       const updated = production.map(j => j.jobId === job.jobId ? {
         ...j,
-        currentStage: 'punching',
+        currentStage: nextStage,
         printing: {
           ...(j.printing || {}),
           status: 'completed',
@@ -1344,16 +1728,18 @@ function AdminPortal({
           wasteSheets: wasteSheets,
           shortageApproved: true
         },
-        punching: {
-          ...(j.punching || {}),
-          status: 'pending'
-        }
+        ...(nextStage !== 'completed' && nextStage in j ? {
+          [nextStage]: {
+            ...(j[nextStage] || {}),
+            status: 'pending'
+          }
+        } : {})
       } : j);
       onUpdateProduction(updated);
 
       // Auto-deplete paper sheets from inventory
       if (onUpdateInventory && inventory && inventory.length > 0) {
-        const sheetsToDeduct = (printedSheets + wasteSheets) || job.issuedSheets || 1040;
+        const sheetsToDeduct = (printedSheets + wasteSheets) || job.issuedSheets || job.targetSheets || 520;
         const targetCatId = job.catalogId || (job.subCards && job.subCards[0]?.catalogId);
         const updatedInv = inventory.map(item => {
           if (item.category === 'paper' && (item.catalogId === targetCatId || (targetCatId && item.id.includes(targetCatId)))) {
@@ -1371,19 +1757,21 @@ function AdminPortal({
 
       setShortageAlertJob(null);
     } else {
-      alert(`Reprint ticket created for missing ${((job.minimumAllowedFloor || 960) - printedSheets)} sheets.`);
+      const floor = job.minimumAllowedFloor || Math.ceil((job.orderQty || 1000) / (job.ups || 10));
+      alert(`Reprint ticket created for missing ${(floor - printedSheets)} sheets.`);
       setShortageAlertJob(null);
     }
   };
 
-  // 2. Punching & Packing Handlers
+  // 3. Punching & Packing Handlers
   const handleStartPunching = (job) => {
+    const operator = getSheetInput(job.jobId, 'punchingOperator', job.punching?.operatorName || 'Shivakant');
     const updated = production.map(j => j.jobId === job.jobId ? {
       ...j,
       punching: {
         ...(j.punching || {}),
         status: 'in_progress',
-        operatorName: currentMember.name,
+        operatorName: operator,
         startTime: new Date().toISOString()
       }
     } : j);
@@ -1391,34 +1779,41 @@ function AdminPortal({
   };
 
   const handleCompletePunching = (job) => {
+    const inputSheets = Number(job.printing?.goodSheetsPrinted || job.cutting?.goodSheetsCut || job.issuedSheets || job.targetSheets || 520);
     const rawPunched = getSheetInput(job.jobId, 'punched');
     const punchedCount = Number(rawPunched);
     if (!rawPunched || isNaN(punchedCount) || punchedCount <= 0) {
       return alert('Mandatory: Please write down the number of sheets punched before proceeding.');
     }
 
-    const rawWaste = getSheetInput(job.jobId, 'punchWaste');
-    const wasteCount = Number(rawWaste) || 0;
+    // System automatically calculates punching waste
+    const wasteCount = Math.max(0, inputSheets - punchedCount);
+    const operator = getSheetInput(job.jobId, 'punchingOperator', job.punching?.operatorName || 'Shivakant');
+
+    const nextStage = getNextCycleStep(job, 'punching');
 
     const updated = production.map(j => j.jobId === job.jobId ? {
       ...j,
-      currentStage: 'handwork', // moves to Handwork process (dori & plastic)!
+      currentStage: nextStage,
       punching: {
         ...(j.punching || {}),
         status: 'completed',
+        operatorName: operator,
         completedTime: new Date().toISOString(),
         goodSheetsPunched: punchedCount,
         wasteSheets: wasteCount
       },
-      handwork: {
-        ...(j.handwork || {}),
-        status: 'pending'
-      }
+      ...(nextStage !== 'completed' && nextStage in j ? {
+        [nextStage]: {
+          ...(j[nextStage] || {}),
+          status: 'pending'
+        }
+      } : {})
     } : j);
     onUpdateProduction(updated);
   };
 
-  // 3. Handwork (Dori & Plastic) Handlers
+  // 4. Handwork (Dori & Plastic) Handlers
   const handleAssignHandwork = (job) => {
     const labourerId = getSheetInput(job.jobId, 'labourerId');
     const labourer = users.team.find(u => u.id === labourerId);
@@ -1455,28 +1850,49 @@ function AdminPortal({
   };
 
   const handleCompleteHandwork = (job) => {
-    const rawPieces = getSheetInput(job.jobId, 'handworkPieces', job.punching?.goodSheetsPunched || job.targetQty || 1000);
-    const pieces = Number(rawPieces) || 1000;
+    const ups = Number(job.ups || 10);
+    const receivedTags = Number((job.punching?.goodSheetsPunched || job.targetSheets || 520) * ups);
+    const rawPieces = getSheetInput(job.jobId, 'handworkPieces');
+    const pieces = Number(rawPieces);
+    if (!rawPieces || isNaN(pieces) || pieces <= 0) {
+      return alert('Mandatory: Please enter the final completed tags count (pcs) before proceeding.');
+    }
+    // System automatically calculates handwork tag wastage
+    const wasteTags = Math.max(0, receivedTags - pieces);
     const rate = Number(job.handwork?.totalRatePerTag) || 0.30;
     const earnedPayout = pieces * rate;
 
-    // 1. Update Job Stage to Godown
+    const nextStage = getNextCycleStep(job, 'handwork');
+
+    // 1. Update Job Stage
     const updatedProd = production.map(j => j.jobId === job.jobId ? {
       ...j,
-      currentStage: 'godown',
+      currentStage: nextStage,
       handwork: {
         ...(j.handwork || {}),
         status: 'completed',
         completedTime: new Date().toISOString(),
         completedPieces: pieces,
+        wastePieces: wasteTags,
         earnedPayout: earnedPayout
       },
-      godown: {
-        status: 'ready_dispatch',
-        receivedTime: new Date().toISOString(),
-        verifiedCount: pieces,
-        location: 'Bay 01 - Finished Goods'
-      }
+      ...(nextStage === 'dispatch' || nextStage === 'godown' ? {
+        dispatch: {
+          ...(j.dispatch || {}),
+          status: 'pending'
+        },
+        godown: {
+          status: 'ready_dispatch',
+          receivedTime: new Date().toISOString(),
+          verifiedCount: pieces,
+          location: 'Bay 01 - Finished Goods'
+        }
+      } : nextStage !== 'completed' && nextStage in j ? {
+        [nextStage]: {
+          ...(j[nextStage] || {}),
+          status: 'pending'
+        }
+      } : {})
     } : j);
     onUpdateProduction(updatedProd);
 
@@ -1492,7 +1908,7 @@ function AdminPortal({
           {
             stage: 'ready_dispatch',
             title: 'Dori & Plastic Handwork Completed',
-            description: `${pieces} tags completed by ${job.handwork?.assignedLabourerName || 'Artisan'}. Moved to godown ready for dispatch.`,
+            description: `${pieces} tags completed by ${job.handwork?.assignedLabourerName || 'Artisan'}. Moved to godown / dispatch stage.`,
             timestamp: formattedDate,
             author: job.handwork?.assignedLabourerName || currentMember.name
           }
@@ -1575,7 +1991,60 @@ function AdminPortal({
     }
   };
 
-  // 4. Godown Dispatch Handler
+  // 5. Shop-Floor Production Dispatch Completion
+  const handleCompleteDispatch = (job) => {
+    const rawCarrier = getSheetInput(job.jobId, 'dispatchCarrier', 'BlueDart Express');
+    const rawTrk = getSheetInput(job.jobId, 'dispatchTracking', 'TRK-' + Math.floor(100000 + Math.random() * 900000));
+    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+    const updated = production.map(j => j.jobId === job.jobId ? {
+      ...j,
+      currentStage: 'completed',
+      dispatch: {
+        ...(j.dispatch || {}),
+        status: 'completed',
+        dispatchedTime: new Date().toISOString(),
+        carrier: rawCarrier,
+        trackingNumber: rawTrk,
+        verifiedPieces: j.handwork?.completedPieces || j.targetQty || 1000
+      },
+      godown: {
+        ...(j.godown || {}),
+        status: 'shipped'
+      }
+    } : j);
+    onUpdateProduction(updated);
+
+    const otherJobsOfOrder = updated.filter(j => j.orderId === job.orderId && j.jobId !== job.jobId);
+    const allDone = otherJobsOfOrder.every(j => j.currentStage === 'completed');
+    if (allDone) {
+      const parentOrder = orders.find(o => o.id === job.orderId);
+      if (parentOrder) {
+        onUpdateOrder({
+          ...parentOrder,
+          status: 'shipped',
+          tracking: {
+            carrier: rawCarrier,
+            trackingNumber: rawTrk,
+            status: 'Dispatched from Factory',
+            lastUpdate: formattedDate
+          },
+          timeline: [
+            ...(parentOrder.timeline || []),
+            {
+              stage: 'shipped',
+              title: 'All Production Jobs Completed & Dispatched',
+              description: `Job ${job.jobId} completed dispatch via ${rawCarrier} (${rawTrk}).`,
+              timestamp: formattedDate,
+              author: currentMember.name
+            }
+          ]
+        });
+      }
+    }
+  };
+
+  // 6. Godown Dispatch Modal Handler
   const handleDispatchOrderSubmit = (e) => {
     e.preventDefault();
     if (!dispatchModalOrder) return;
@@ -1635,6 +2104,11 @@ function AdminPortal({
 
   const createProductionJobsForOrder = (order) => {
     let createdJobs = [];
+    const defaultCycle = availableCycles[0] || DEFAULT_CYCLES[0];
+    const cycleSteps = defaultCycle.steps;
+    const initialStage = cycleSteps[0]?.key || 'cutting';
+    const todayStr = new Date().toISOString().split('T')[0];
+
     (order.items || []).forEach((item, itemIdx) => {
       const pcs = Number(item.quantity) || 1000;
       const isMulti = !!item.isMultiCard;
@@ -1642,73 +2116,115 @@ function AdminPortal({
         {
           cardIndex: 1,
           title: item.name || item.itemCode || 'Single Card Tag',
-          catalogCode: item.catalogCode || item.material || 'Standard Catalog',
+          catalogCode: item.catalogCode || item.material || 'Paper #01 (Art Card 350 GSM)',
           gsm: 300,
           finish: 'Matte'
         }
       ];
 
-      let mainSheets = Math.max(100, Math.ceil(pcs / 10));
-      const enrichedCards = cardsList.map((c) => ({
-        ...c,
-        ups: 10,
-        allocatedSheets: Math.max(100, Math.ceil(pcs / 10))
-      }));
-
-      const targetSheets = mainSheets;
-      const buffer = 40; // 20 sheets printing + 20 sheets punching
-      const issued = targetSheets + buffer;
-      const floor = Math.max(1, targetSheets - 40);
-
-      createdJobs.push({
-        jobId: `JOB-${Date.now().toString().slice(-4)}-${itemIdx + 1}-${Math.floor(Math.random() * 900 + 100)}`,
-        orderId: order.id,
-        customerName: order.customerName,
-        customerCompany: order.customerCompany || order.customerName,
-        itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
-        type: item.type || 'Tag',
-        isMultiCard: isMulti,
-        cards: enrichedCards,
-        targetQty: pcs,
-        targetSheets: targetSheets,
-        bufferSheets: buffer,
-        issuedSheets: issued,
-        minimumAllowedFloor: floor,
-        currentStage: 'printing',
-        priority: order.priority || 'standard',
-        printing: {
-          status: 'pending',
-          operatorName: 'Kanu',
-          startTime: null,
-          completedTime: null,
-          goodSheetsPrinted: null,
-          wasteSheets: null
-        },
-        punching: {
-          status: 'locked',
-          operatorName: 'Shivakant',
-          startTime: null,
-          completedTime: null,
-          goodSheetsPunched: null,
-          wasteSheets: null
-        },
-        handwork: {
-          status: 'locked',
-          doriType: item.dori || 'Reg. Cotton Dori',
-          doriRate: item.doriRate || 0.20,
-          plasticType: item.plastic || 'Reg. Plastic Lock',
-          plasticRate: item.plasticRate || 0.10,
-          totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
-          assignedLabourerId: null,
-          assignedLabourerName: null,
-          startTime: null,
-          completedTime: null,
-          completedPieces: null,
-          earnedPayout: null
-        },
-        godown: {
-          status: 'pending'
+      cardsList.forEach((card, cardIdx) => {
+        let paper = card.catalogCode || card.material || item.material || 'Paper #01 (Art Card 350 GSM)';
+        const matchedCat = availableCatalogs.find(c => c.code === paper || c.name === paper || c.id === card.catalogId);
+        if (matchedCat) {
+          paper = `${matchedCat.code || ''} ${matchedCat.name || ''}`.trim();
         }
+
+        const wastage = getWastageTags(pcs);
+        const totalProdTags = pcs + wastage;
+        const ups = 10;
+        const totalSheets = Math.ceil(totalProdTags / ups);
+        const floor = Math.ceil(pcs / ups);
+        const jobNum = formatJobCardNumber(order, itemIdx, cardIdx, cardsList.length);
+        const custOrdCode = order.customerOrderId || (order.id ? order.id.split('-').pop() : '01');
+        const cardImg = card.image || card.artwork || item.image || item.artwork || order.artwork || null;
+        const party = order.customerCompany || order.customerName || 'Standard Client';
+
+        createdJobs.push({
+          jobId: jobNum,
+          jobNumber: jobNum,
+          customerOrderId: custOrdCode,
+          image: cardImg,
+          date: todayStr,
+          orderId: order.id,
+          orderNumber: order.id,
+          partyName: party,
+          customerCompany: party,
+          customerName: order.customerName,
+          paperName: paper,
+          catalogCode: paper,
+          orderQty: pcs,
+          wastageQty: wastage,
+          productionQty: totalProdTags,
+          targetQty: totalProdTags,
+          numPrintingColors: 4,
+          namePrintingColors: 'CMYK (Full Color)',
+          priority: order.priority || 'standard',
+          cycleId: defaultCycle.id,
+          cycleName: defaultCycle.name,
+          cycleSteps: cycleSteps,
+          currentStage: initialStage,
+          itemName: item.name || item.itemCode || `Item #${itemIdx + 1}`,
+          cardTitle: card.title || `Card #${cardIdx + 1}`,
+          cardIndex: cardIdx + 1,
+          totalCardsInSet: cardsList.length,
+          isMultiCardComponent: cardsList.length > 1,
+          type: item.type || 'Tag',
+          ups: ups,
+          targetSheets: totalSheets,
+          bufferSheets: 0,
+          issuedSheets: totalSheets,
+          minimumAllowedFloor: floor,
+          cutting: {
+            status: initialStage === 'cutting' ? 'pending' : 'locked',
+            operatorName: 'Ramesh',
+            startTime: null,
+            completedTime: null,
+            goodSheetsCut: null,
+            wasteSheets: null
+          },
+          printing: {
+            status: initialStage === 'printing' ? 'pending' : 'locked',
+            operatorName: 'Kanu',
+            startTime: null,
+            completedTime: null,
+            goodSheetsPrinted: null,
+            wasteSheets: null
+          },
+          punching: {
+            status: initialStage === 'punching' ? 'pending' : 'locked',
+            operatorName: 'Shivakant',
+            startTime: null,
+            completedTime: null,
+            goodSheetsPunched: null,
+            wasteSheets: null
+          },
+          handwork: {
+            status: initialStage === 'handwork' ? 'pending' : 'locked',
+            doriType: item.dori || 'Reg. Cotton Dori',
+            doriRate: item.doriRate || 0.20,
+            plasticType: item.plastic || 'Reg. Plastic Lock',
+            plasticRate: item.plasticRate || 0.10,
+            totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+            assignedLabourerId: null,
+            assignedLabourerName: null,
+            startTime: null,
+            completedTime: null,
+            completedPieces: null,
+            earnedPayout: null
+          },
+          dispatch: {
+            status: initialStage === 'dispatch' ? 'pending' : 'locked',
+            readyTime: null,
+            dispatchedTime: null,
+            verifiedPieces: null,
+            carrier: null,
+            trackingNumber: null
+          },
+          godown: {
+            status: 'pending',
+            location: 'Bay 01 - Finished Goods'
+          }
+        });
       });
     });
     return createdJobs;
@@ -3111,10 +3627,10 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setCatalogSubTab('catalogs')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs ${
                   catalogSubTab === 'catalogs'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 Paper Catalogs Master ({availableCatalogs.length})
@@ -3122,10 +3638,10 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={() => setCatalogSubTab('types')}
-                className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs ${
                   catalogSubTab === 'types'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200'
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 Product Types &amp; Materials ({availableTypes.length})
@@ -3136,7 +3652,7 @@ function AdminPortal({
               <button
                 type="button"
                 onClick={handleOpenAddCatalog}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-3.5 rounded-xl shadow-xs flex items-center space-x-1.5 transition-all self-start sm:self-auto"
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm py-2.5 px-4 rounded-xl shadow-xs flex items-center space-x-1.5 transition-all self-start sm:self-auto"
               >
                 <span>+ Add New Paper Catalog</span>
               </button>
@@ -3147,72 +3663,66 @@ function AdminPortal({
           {catalogSubTab === 'catalogs' && (
             <div className="space-y-4">
               <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-                <div className="pb-3 border-b border-slate-100 mb-4 flex items-center justify-between">
+                <div className="pb-4 border-b border-slate-100 mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base">
+                    <h3 className="font-bold text-slate-900 text-lg md:text-xl">
                       Paper Catalogs &amp; Swatches Master
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-sm text-slate-600 mt-1">
                       Physical paper swatch books provided to customers for hangtag selection. Sheet rates and opening stocks automatically feed into the production order forms and inventory.
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-slate-700 font-semibold bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                  <span className="text-sm font-mono text-slate-800 font-bold bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl shrink-0 self-start sm:self-auto shadow-2xs">
                     {availableCatalogs.length} Active Swatches
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {availableCatalogs.map(cat => (
                     <div 
                       key={cat.id} 
-                      className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-400 transition-all group"
+                      className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-slate-400 hover:shadow-xs transition-all group"
                     >
                       <div>
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
-                            <span className="font-mono text-xs font-bold text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-md inline-block">
+                            <span className="font-mono text-sm font-bold text-slate-900 bg-white border border-slate-200/90 px-3 py-1 rounded-lg inline-block shadow-2xs">
                               {cat.code}
                             </span>
-                            <h4 className="font-bold text-slate-900 text-sm mt-1.5">{cat.name}</h4>
+                            <h4 className="font-bold text-slate-900 text-base md:text-lg mt-2 leading-snug">{cat.name}</h4>
                           </div>
-                          <span className="px-2 py-0.5 rounded-md bg-white text-slate-900 font-mono font-bold text-xs border border-slate-200 shrink-0">
-                            ₹{Number(cat.sheetRate || 0).toFixed(2)} / sheet
+                          <span className="px-3 py-1 rounded-lg bg-white text-slate-900 font-mono font-bold text-sm md:text-base border border-slate-200/90 shadow-2xs shrink-0 whitespace-nowrap">
+                            ₹{Number(cat.sheetRate || 0).toFixed(2)} <span className="text-xs font-normal text-slate-500 font-sans">/ sheet</span>
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 mt-2.5">
-                          <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-mono">
+                        <div className="flex flex-wrap gap-2 mt-3.5">
+                          <span className="bg-white text-slate-800 border border-slate-200 px-3 py-1 rounded-lg text-xs md:text-sm font-bold font-mono shadow-2xs">
                             {cat.gsm} GSM
                           </span>
-                          <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px]">
+                          <span className="bg-white text-slate-800 border border-slate-200 px-3 py-1 rounded-lg text-xs md:text-sm font-medium shadow-2xs">
                             {cat.finish}
                           </span>
                           {cat.stockSheets !== undefined && (
-                            <span className="bg-white text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md text-[10px] font-mono">
+                            <span className="bg-white text-slate-800 border border-slate-200 px-3 py-1 rounded-lg text-xs md:text-sm font-semibold font-mono shadow-2xs">
                               Stock: {Number(cat.stockSheets).toLocaleString()} shts
                             </span>
                           )}
                         </div>
-
-                        {cat.recommendedFor && (
-                          <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 italic">
-                            &ldquo;{cat.recommendedFor}&rdquo;
-                          </p>
-                        )}
                       </div>
 
-                      <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-200">
+                      <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200/90">
                         <button
                           type="button"
                           onClick={() => handleOpenEditCatalog(cat)}
-                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium transition-all"
+                          className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 hover:text-slate-900 border border-slate-200 text-xs md:text-sm font-semibold shadow-2xs transition-all"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteCatalog(cat.id)}
-                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 text-[11px] font-medium transition-all"
+                          className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-slate-200 hover:border-rose-300 text-xs md:text-sm font-semibold shadow-2xs transition-all"
                         >
                           Delete
                         </button>
@@ -3402,7 +3912,7 @@ function AdminPortal({
                   }}
                   className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
                 >
-                  <span>Bulk Move to Production</span>
+                  <span>Bulk Start Production</span>
                 </button>
 
                 <button
@@ -3473,7 +3983,7 @@ function AdminPortal({
                 </div>
 
                 {/* Clear Filters Button */}
-                {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchAmount) && (
+                {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchQty || adminSearchRateTotal) && (
                   <button
                     onClick={() => {
                       setAdminOrderStatusFilter('all');
@@ -3481,7 +3991,8 @@ function AdminPortal({
                       setAdminSearchCustomer('');
                       setAdminSearchBrandSpecs('');
                       setAdminSearchDoriPlastic('');
-                      setAdminSearchAmount('');
+                      setAdminSearchQty('');
+                      setAdminSearchRateTotal('');
                     }}
                     className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors font-medium flex items-center space-x-1"
                     title="Reset all search and status filters"
@@ -3514,10 +4025,21 @@ function AdminPortal({
 
             {viewMode === 'table' ? (
               <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-left text-xs text-slate-700">
+                <table className="w-full table-fixed min-w-[1240px] text-left text-xs text-slate-700">
+                  <colgroup>
+                    <col style={{ width: '44px' }} />
+                    <col style={{ width: '130px' }} />
+                    <col style={{ width: '84px' }} />
+                    <col style={{ width: '150px' }} />
+                    <col style={{ width: 'auto' }} />
+                    <col style={{ width: '150px' }} />
+                    <col style={{ width: '95px' }} />
+                    <col style={{ width: '135px' }} />
+                    <col style={{ width: '230px' }} />
+                  </colgroup>
                   <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                     <tr>
-                      <th className="py-3 px-3 text-center w-10">
+                      <th style={{ width: '44px' }} className="py-3 px-3 text-center">
                         <input
                           type="checkbox"
                           checked={filteredAdminOrders.length > 0 && selectedOrderIds.length === filteredAdminOrders.length}
@@ -3526,31 +4048,32 @@ function AdminPortal({
                           title="Select / Deselect All Orders"
                         />
                       </th>
-                      <th className="py-3 px-4">Order ID</th>
-                      <th className="py-3 px-4">Artwork</th>
-                      <th className="py-3 px-4">Customer Name</th>
-                      <th className="py-3 px-4">Brand &amp; Item Specs</th>
-                      <th className="py-3 px-4">Dori &amp; Plastic</th>
-                      <th className="py-3 px-4 text-right">Total Amt</th>
-                      <th className="py-3 px-4 text-center">Status</th>
+                      <th style={{ width: '130px' }} className="py-3 px-3 font-semibold">Order ID</th>
+                      <th style={{ width: '84px' }} className="py-3 px-3 text-center font-semibold">Artwork</th>
+                      <th style={{ width: '150px' }} className="py-3 px-3 font-semibold">Customer Name</th>
+                      <th className="py-3 px-4 font-semibold">Brand &amp; Item Specs</th>
+                      <th style={{ width: '150px' }} className="py-3 px-3 font-semibold">Dori &amp; Plastic</th>
+                      <th style={{ width: '95px' }} className="py-3 px-3 text-right font-semibold">Qty</th>
+                      <th style={{ width: '135px' }} className="py-3 px-3 text-right font-semibold">Rate &amp; Total</th>
+                      <th style={{ width: '230px' }} className="py-3 px-4 text-center font-semibold">Status</th>
                     </tr>
                     {/* Individual search bar below columns matching Customer Side Order Register */}
                     <tr className="bg-slate-50/70 border-b border-slate-200">
                       <th className="py-2.5 px-3 text-center font-normal"></th>
-                      {/* Search: Order ID */}
-                      <th className="py-2.5 px-4 font-normal">
+                      {/* Search: Order ID (Compact) */}
+                      <th className="py-2.5 px-3 font-normal">
                         <div className="relative">
                           <input
                             type="text"
                             value={adminSearchOrderId}
                             onChange={(e) => setAdminSearchOrderId(e.target.value)}
-                            placeholder="Search order ID..."
-                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                            placeholder="Search ID..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal font-mono"
                           />
                           {adminSearchOrderId && (
                             <button
                               onClick={() => setAdminSearchOrderId('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                               title="Clear"
                             >
                               &times;
@@ -3559,21 +4082,21 @@ function AdminPortal({
                         </div>
                       </th>
                       {/* Artwork column spacer */}
-                      <th className="py-2.5 px-4 font-normal"></th>
+                      <th className="py-2.5 px-3 font-normal"></th>
                       {/* Search: Customer Name */}
-                      <th className="py-2.5 px-4 font-normal">
+                      <th className="py-2.5 px-3 font-normal">
                         <div className="relative">
                           <input
                             type="text"
                             value={adminSearchCustomer}
                             onChange={(e) => setAdminSearchCustomer(e.target.value)}
                             placeholder="Search customer..."
-                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                           />
                           {adminSearchCustomer && (
                             <button
                               onClick={() => setAdminSearchCustomer('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                               title="Clear"
                             >
                               &times;
@@ -3603,19 +4126,19 @@ function AdminPortal({
                         </div>
                       </th>
                       {/* Search: Dori & Plastic */}
-                      <th className="py-2.5 px-4 font-normal">
+                      <th className="py-2.5 px-3 font-normal">
                         <div className="relative">
                           <input
                             type="text"
                             value={adminSearchDoriPlastic}
                             onChange={(e) => setAdminSearchDoriPlastic(e.target.value)}
                             placeholder="Search dori / plastic..."
-                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
                           />
                           {adminSearchDoriPlastic && (
                             <button
                               onClick={() => setAdminSearchDoriPlastic('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                               title="Clear"
                             >
                               &times;
@@ -3623,20 +4146,41 @@ function AdminPortal({
                           )}
                         </div>
                       </th>
-                      {/* Search: Amount / Qty / Rate */}
-                      <th className="py-2.5 px-4 font-normal">
+                      {/* Search: Qty */}
+                      <th className="py-2.5 px-3 font-normal">
                         <div className="relative">
                           <input
                             type="text"
-                            value={adminSearchAmount}
-                            onChange={(e) => setAdminSearchAmount(e.target.value)}
-                            placeholder="Filter amt / qty..."
-                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal"
+                            value={adminSearchQty}
+                            onChange={(e) => setAdminSearchQty(e.target.value)}
+                            placeholder="Filter qty..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal text-right font-mono"
                           />
-                          {adminSearchAmount && (
+                          {adminSearchQty && (
                             <button
-                              onClick={() => setAdminSearchAmount('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              onClick={() => setAdminSearchQty('')}
+                              className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                              title="Clear"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                      {/* Search: Rate & Total Amount */}
+                      <th className="py-2.5 px-3 font-normal">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={adminSearchRateTotal}
+                            onChange={(e) => setAdminSearchRateTotal(e.target.value)}
+                            placeholder="Filter rate..."
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none transition-colors normal-case font-normal text-right font-mono"
+                          />
+                          {adminSearchRateTotal && (
+                            <button
+                              onClick={() => setAdminSearchRateTotal('')}
+                              className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
                               title="Clear"
                             >
                               &times;
@@ -3646,7 +4190,7 @@ function AdminPortal({
                       </th>
                       {/* Clear Button */}
                       <th className="py-2.5 px-4 text-center font-normal">
-                        {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchAmount) && (
+                        {(adminOrderStatusFilter !== 'all' || adminSearchOrderId || adminSearchCustomer || adminSearchBrandSpecs || adminSearchDoriPlastic || adminSearchQty || adminSearchRateTotal) && (
                           <button
                             onClick={() => {
                               setAdminOrderStatusFilter('all');
@@ -3654,7 +4198,8 @@ function AdminPortal({
                               setAdminSearchCustomer('');
                               setAdminSearchBrandSpecs('');
                               setAdminSearchDoriPlastic('');
-                              setAdminSearchAmount('');
+                              setAdminSearchQty('');
+                              setAdminSearchRateTotal('');
                             }}
                             className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold underline"
                             title="Reset search fields"
@@ -3668,7 +4213,7 @@ function AdminPortal({
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {filteredAdminOrders.length === 0 && (
                       <tr>
-                        <td colSpan="8" className="py-12 text-center text-slate-400 text-xs">
+                        <td colSpan="9" className="py-12 text-center text-slate-400 text-xs">
                           No orders match the current search filters.
                         </td>
                       </tr>
@@ -3694,14 +4239,23 @@ function AdminPortal({
                             />
                           </td>
 
-                          {/* 1. ORDER ID */}
-                          <td className="py-4 px-4">
-                            <div className="font-mono font-bold text-slate-900 text-sm">{o.id}</div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(o.createdAt)}</div>
+                          {/* 1. ORDER ID (COMPACT) */}
+                          <td className="py-4 px-3 w-32 align-top">
+                            <div className="font-mono font-bold text-slate-900 text-xs leading-tight tracking-tight break-all" title={o.id}>
+                              {o.id}
+                            </div>
+                            {o.customerOrderId && (
+                              <div className="font-mono font-bold text-[10px] text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded inline-block mt-1">
+                                {o.customerOrderId}
+                              </div>
+                            )}
+                            <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
+                              {formatDate(o.createdAt)}
+                            </div>
                           </td>
 
-                          {/* 2. ARTWORK (LARGER SIZE WITH CLICK TO ENLARGE LIGHTBOX) */}
-                          <td className="py-4 px-4">
+                          {/* 2. ARTWORK (CLICK TO ENLARGE LIGHTBOX) */}
+                          <td className="py-4 px-3 w-20 align-top text-center">
                             {firstItem.image ? (
                               <div 
                                 onClick={() => setPreviewArtworkUrl(firstItem.image)}
@@ -3711,26 +4265,26 @@ function AdminPortal({
                                 <img 
                                   src={firstItem.image} 
                                   alt="Artwork" 
-                                  className="w-20 h-20 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs group-hover:border-slate-400 group-hover:scale-105 transition-all" 
+                                  className="w-16 h-16 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs group-hover:border-slate-400 group-hover:scale-105 transition-all" 
                                 />
                                 <div className="absolute inset-0 bg-black/30 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition-opacity">
                                   Zoom
                                 </div>
                               </div>
                             ) : (
-                              <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                              <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-400 mx-auto">
                                 ART
                               </div>
                             )}
                           </td>
 
                           {/* 3. CUSTOMER NAME */}
-                          <td className="py-4 px-4">
-                            <div className="font-bold text-slate-900 text-sm">{o.customerCompany}</div>
+                          <td className="py-4 px-3 w-36 align-top">
+                            <div className="font-bold text-slate-900 text-sm leading-snug">{o.customerCompany}</div>
                           </td>
 
-                          {/* 4. BRAND AND ITEM SPECS */}
-                          <td className="py-4 px-4">
+                          {/* 4. BRAND AND ITEM SPECS (CLEANED - NO REDUNDANT QTY/RATE) */}
+                          <td className="py-4 px-4 align-top">
                             <div className="flex items-center space-x-2">
                               <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200">
                                 {firstItem.itemCode || firstItem.name || 'ITEM'}
@@ -3747,9 +4301,6 @@ function AdminPortal({
                                 {firstItem.material || 'Standard'}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 mt-1 font-mono">
-                              Qty: <strong className="text-slate-900">{Number(firstItem.quantity || 0).toLocaleString()} pcs</strong> &bull; Rate: <strong className="text-slate-700">{formatCurrency(firstItem.unitPrice || 0)}</strong>
-                            </div>
                             {o.items.length > 1 && (
                               <span className="inline-block mt-1 text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200 font-medium">
                                 + {o.items.length - 1} more item(s)
@@ -3758,7 +4309,7 @@ function AdminPortal({
                           </td>
 
                           {/* 5. DORI AND PLASTIC */}
-                          <td className="py-4 px-4 text-xs space-y-1">
+                          <td className="py-4 px-3 w-36 align-top text-xs space-y-1">
                             <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
                               Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
                             </div>
@@ -3767,9 +4318,27 @@ function AdminPortal({
                             </div>
                           </td>
 
-                          {/* 6. TOTAL AMT */}
-                          <td className="py-4 px-4 text-right font-bold text-slate-900 font-mono text-sm whitespace-nowrap">
-                            {formatCurrency(o.total)}
+                          {/* 6. QTY (SEPARATE COLUMN) */}
+                          <td className="py-4 px-3 w-24 align-top text-right">
+                            <div className="font-mono font-bold text-slate-900 text-sm whitespace-nowrap">
+                              {Number(firstItem.quantity || 0).toLocaleString()}
+                            </div>
+                            <span className="text-[11px] text-slate-400">pcs</span>
+                            {o.items.length > 1 && (
+                              <div className="text-[10px] text-slate-500 font-mono mt-0.5" title="Total pieces across all items">
+                                ({o.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0).toLocaleString()} tot)
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 7. RATE & TOTAL AMOUNT (MERGED COLUMN) */}
+                          <td className="py-4 px-3 w-32 align-top text-right">
+                            <div className="font-mono font-semibold text-slate-700 text-xs whitespace-nowrap">
+                              {formatCurrency(firstItem.unitPrice || 0)} <span className="text-[10px] text-slate-400 font-normal">/pc</span>
+                            </div>
+                            <div className="font-mono font-bold text-slate-900 text-sm mt-1 whitespace-nowrap">
+                              {formatCurrency(o.total)}
+                            </div>
                           </td>
 
                           {/* 7. STATUS & ACTIONS (LAST COLUMN) */}
@@ -3800,32 +4369,79 @@ function AdminPortal({
                                 </span>
                               </div>
 
-                              {/* Unapproved / Pending Orders: Show Approve & Reject buttons */}
+                              {/* Unapproved / Pending Orders: Show Start Production, Approve & Reject buttons */}
                               {(!o.status || o.status === 'pending' || o.status === 'placed') ? (
-                                <div className="flex items-center justify-center gap-2 pt-0.5">
+                                <div className="flex flex-col items-center justify-center gap-1.5 w-full max-w-[160px]">
                                   <button
                                     type="button"
-                                    onClick={() => handleApproveOrder(o)}
-                                    className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs hover:shadow transition-all flex items-center space-x-1.5 cursor-pointer"
-                                    title="Approve order & auto-move to production"
+                                    onClick={() => handleOpenMoveToProduction(o)}
+                                    className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs hover:shadow transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                                    title="Create Job Card & Start Production directly"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>Approve</span>
+                                    <span>Start Production</span>
                                   </button>
-
+                                  <div className="flex items-center justify-center gap-1.5 w-full">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveOrder(o)}
+                                      className="flex-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                                      title="Approve order & auto-move to production"
+                                    >
+                                      <span>Approve</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenRejectModal(o)}
+                                      className="flex-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                                      title="Reject this order with structured reason"
+                                    >
+                                      <span>Reject</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : o.status === 'approved' ? (
+                                <div className="flex flex-col items-center gap-1.5 w-full max-w-[150px]">
                                   <button
                                     type="button"
-                                    onClick={() => handleOpenRejectModal(o)}
-                                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 hover:border-rose-300 shadow-2xs transition-all flex items-center space-x-1.5 cursor-pointer"
-                                    title="Reject this order with structured reason"
+                                    onClick={() => handleOpenMoveToProduction(o)}
+                                    className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs hover:shadow transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                                    title="Create job card & start production"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>Reject</span>
+                                    <span>Start Production</span>
                                   </button>
+                                  <select
+                                    value={o.status}
+                                    onChange={(e) => {
+                                      const newStg = e.target.value;
+                                      const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+                                      const updated = { 
+                                        ...o, 
+                                        status: newStg,
+                                        timeline: [
+                                          ...(o.timeline || []),
+                                          {
+                                            stage: newStg,
+                                            title: `Status Changed to ${newStg.replace(/_/g, ' ')}`,
+                                            description: `Updated by ${currentMember.name}.`,
+                                            timestamp: formattedDate,
+                                            author: currentMember.name
+                                          }
+                                        ]
+                                      };
+                                      onUpdateOrder(updated);
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-[11px] text-slate-800 focus:outline-none focus:border-slate-500 w-full"
+                                  >
+                                    {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                                  </select>
                                 </div>
                               ) : o.status === 'in_production' ? (
                                 <div className="flex flex-col items-center gap-1.5 w-full max-w-[150px]">
@@ -3997,13 +4613,23 @@ function AdminPortal({
                                   type="button" 
                                   onClick={() => handleOpenMoveToProduction(o)} 
                                   className="text-[10px] bg-slate-900 hover:bg-slate-800 text-white px-2 py-0.5 rounded font-medium shadow-xs"
-                                  title="Allocate sheets &amp; send to production"
+                                  title="Create Job Card &amp; Start Production"
                                 >
-                                  Produce
+                                  Start Production
                                 </button>
                               )}
                               {o.status !== 'approved' && o.status !== 'in_production' && (
-                                <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-slate-900 text-white px-2 py-0.5 rounded font-medium">Approve</button>
+                                <>
+                                  <button 
+                                    type="button"
+                                    onClick={() => handleOpenMoveToProduction(o)} 
+                                    className="text-[10px] bg-slate-900 hover:bg-slate-800 text-white px-2 py-0.5 rounded font-medium shadow-xs"
+                                    title="Start Production directly"
+                                  >
+                                    Start Production
+                                  </button>
+                                  <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded font-medium">Approve</button>
+                                </>
                               )}
                               {o.status !== 'rejected' && o.status !== 'in_production' && (
                                 <button onClick={() => handleOpenRejectModal(o)} className="text-[10px] bg-white text-rose-700 border border-slate-200 px-2 py-0.5 rounded font-medium">Reject</button>
@@ -4350,24 +4976,37 @@ function AdminPortal({
               <div>
                 <div className="flex items-center space-x-2">
                   <h3 className="font-bold text-slate-900 text-base">Shop-Floor Production Flow Manager</h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
                     Live Pipeline
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Sequential flow: <strong>1. Printing Press</strong> &rarr; <strong>2. Punching &amp; Packing</strong> &rarr; <strong>3. Handwork (Dori &amp; Plastic)</strong> &rarr; <strong>4. Godown Dispatch</strong>.
+                  Sequential 5-Step Flow: <strong>1. Paper Cutting</strong> &rarr; <strong>2. Printing</strong> &rarr; <strong>3. Punching &amp; Packing</strong> &rarr; <strong>4. Handwork Process</strong> &rarr; <strong>5. Dispatch</strong>.
                 </p>
               </div>
 
-              {/* Persona / Role Badge */}
-              <div className="flex items-center space-x-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-                <span className="text-xs text-slate-500">Current Operator:</span>
-                <span className="font-semibold text-xs text-slate-900">
-                  {currentMember.name}
-                </span>
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
-                  {currentMember.role}
-                </span>
+              {/* Action Buttons & Persona Badge */}
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCycleManagerModal(true)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 shadow-2xs hover:shadow transition-all flex items-center space-x-1.5 cursor-pointer"
+                  title="Configure & create production cycles"
+                >
+                  <svg className="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>Production Cycles ({availableCycles.length})</span>
+                </button>
+
+                <div className="flex items-center space-x-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
+                  <span className="text-xs text-slate-500">Operator:</span>
+                  <span className="font-semibold text-xs text-slate-900">{currentMember.name}</span>
+                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
+                    {currentMember.role}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -4390,6 +5029,21 @@ function AdminPortal({
 
               <button
                 type="button"
+                onClick={() => setProductionFilterStage('cutting')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                  productionFilterStage === 'cutting' 
+                    ? 'bg-slate-900 text-white' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <span>1. Paper Cutting</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
+                  {production.filter(j => (j.currentStage || 'cutting') === 'cutting').length}
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setProductionFilterStage('printing')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
                   productionFilterStage === 'printing' 
@@ -4397,9 +5051,9 @@ function AdminPortal({
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>1. Printing Unit</span>
+                <span>2. Printing Press</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
-                  {production.filter(j => (j.currentStage || 'printing') === 'printing').length}
+                  {production.filter(j => j.currentStage === 'printing').length}
                 </span>
               </button>
 
@@ -4412,7 +5066,7 @@ function AdminPortal({
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>2. Punching &amp; Packing</span>
+                <span>3. Punching &amp; Packing</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => j.currentStage === 'punching').length}
                 </span>
@@ -4427,7 +5081,7 @@ function AdminPortal({
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>3. Handwork (Dori &amp; Plastic)</span>
+                <span>4. Handwork Process</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
                   {production.filter(j => j.currentStage === 'handwork').length}
                 </span>
@@ -4435,16 +5089,16 @@ function AdminPortal({
 
               <button
                 type="button"
-                onClick={() => setProductionFilterStage('godown')}
+                onClick={() => setProductionFilterStage('dispatch')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-1.5 ${
-                  productionFilterStage === 'godown' 
+                  productionFilterStage === 'dispatch' || productionFilterStage === 'godown'
                     ? 'bg-slate-900 text-white' 
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
-                <span>4. Godown / Ready for Dispatch</span>
+                <span>5. Dispatch / Ready</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[10px] font-mono">
-                  {production.filter(j => j.currentStage === 'godown' || j.stage === 'packaged').length}
+                  {production.filter(j => j.currentStage === 'dispatch' || j.currentStage === 'godown' || j.stage === 'packaged').length}
                 </span>
               </button>
             </div>
@@ -4454,122 +5108,258 @@ function AdminPortal({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {production
               .filter(job => {
-                const stage = job.currentStage || (job.stage === 'packaged' ? 'godown' : job.stage === 'quality_checked' ? 'handwork' : 'printing');
+                const stage = job.currentStage || (job.stage === 'packaged' ? 'dispatch' : job.stage === 'quality_checked' ? 'handwork' : 'cutting');
+                if (currentMember.role === 'cutting') return stage === 'cutting';
                 if (currentMember.role === 'printing') return stage === 'printing';
                 if (currentMember.role === 'punching') return stage === 'punching';
                 if (currentMember.role === 'labourer') {
                   return stage === 'handwork' && (!job.handwork?.assignedLabourerId || job.handwork?.assignedLabourerId === currentMember.id);
                 }
-                if (productionFilterStage !== 'all') return stage === productionFilterStage;
+                if (productionFilterStage !== 'all') {
+                  if (productionFilterStage === 'dispatch') return stage === 'dispatch' || stage === 'godown' || job.stage === 'packaged';
+                  return stage === productionFilterStage;
+                }
                 return true;
               })
               .map(job => {
-                const stage = job.currentStage || (job.stage === 'packaged' ? 'godown' : job.stage === 'quality_checked' ? 'handwork' : 'printing');
+                const stage = job.currentStage || (job.stage === 'packaged' ? 'dispatch' : job.stage === 'quality_checked' ? 'handwork' : 'cutting');
+                const isCutting = stage === 'cutting';
                 const isPrinting = stage === 'printing';
                 const isPunching = stage === 'punching';
                 const isHandwork = stage === 'handwork';
-                const isGodown = stage === 'godown' || job.stage === 'packaged';
+                const isDispatch = stage === 'dispatch' || stage === 'godown' || job.stage === 'packaged';
+
+                // Stepper definition based on assigned cycle
+                const jobCycle = availableCycles.find(c => c.id === job.cycleId) || DEFAULT_CYCLES[0];
+                const cycleSteps = job.cycleSteps || jobCycle.steps;
+
+                // Mandatory 9 Fields Resolution
+                const displayDate = job.date || (job.createdAt ? formatDate(job.createdAt) : new Date().toISOString().split('T')[0]);
+                const displayJobNumber = formatJobCardNumber(job);
+                const displayCustomerOrderId = job.customerOrderId || orders.find(o => o.id === (job.orderId || job.orderNumber))?.customerOrderId || (job.orderNumber || job.orderId || '').split('-').pop() || 'MGC01';
+                const displayOrderNumber = job.orderNumber || job.orderId;
+                const displayPartyName = job.partyName || job.customerCompany || job.customerName || 'Valued Client';
+                const displayPaperName = job.paperName || job.catalogCode || (job.cards && job.cards[0]?.catalogCode) || 'Paper #01 (Art Card 350 GSM)';
+                const displayOrderQty = Number(job.orderQty || job.targetQty || 1000);
+                const displayWastageQty = job.wastageQty !== undefined ? Number(job.wastageQty) : getWastageTags(displayOrderQty);
+                const displayProdQty = Number(job.productionQty || (displayOrderQty + displayWastageQty));
+                const displayUps = Number(job.ups || 10);
+                const displayIssuedSheets = Number(job.issuedSheets || job.targetSheets || Math.ceil(displayProdQty / displayUps));
+                const displayMinFloor = Number(job.minimumAllowedFloor || Math.ceil(displayOrderQty / displayUps));
+                const displayNumColors = job.numPrintingColors || 4;
+                const displayNameColors = job.namePrintingColors || 'CMYK (Full Color)';
+                const displayPriority = job.priority || 'standard';
+
+                // Artwork image resolution
+                const parentOrder = orders.find(o => o.id === (job.orderId || job.orderNumber));
+                const parentItem = parentOrder?.items?.find(it => it.id === job.itemId || it.name === job.itemName) || parentOrder?.items?.[0];
+                const displayImage = job.image || (job.subCards && job.subCards[0]?.image) || parentItem?.cards?.[job.cardIndex ? job.cardIndex - 1 : 0]?.image || parentItem?.image || parentItem?.artwork || parentOrder?.artwork || null;
 
                 return (
                   <div 
                     key={job.jobId} 
                     className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all text-slate-800"
                   >
-                    {/* Card Header: Job ID, Priority, Client & Item */}
                     <div>
-                      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono font-semibold text-xs text-slate-800 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
-                              {job.jobId}
-                            </span>
-                            <span className="text-[11px] text-slate-500 font-mono">
-                              Ref: {job.orderId}
-                            </span>
+                      {/* Card Top Banner: Artwork Thumbnail Preview, Date, Compact Job ID, Order ID & Priority */}
+                      <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                        <div className="flex items-start gap-3 min-w-0">
+                          {/* Artwork Thumbnail Preview with Hover Crop Action */}
+                          <div className="relative group w-16 h-16 sm:w-20 sm:h-20 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 shrink-0 shadow-2xs">
+                            {displayImage ? (
+                              <>
+                                <img 
+                                  src={displayImage} 
+                                  alt="Tag Artwork" 
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 cursor-pointer"
+                                  onClick={() => setCropJobTarget({ jobId: job.jobId, imageSrc: displayImage })}
+                                  title="Click to Crop / Adjust Artwork"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setCropJobTarget({ jobId: job.jobId, imageSrc: displayImage })}
+                                  className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-medium"
+                                >
+                                  <span>✂️ Crop</span>
+                                  <span className="text-[8px] text-slate-300">Adjust</span>
+                                </button>
+                              </>
+                            ) : (
+                              <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors p-1 text-center">
+                                <span className="text-base leading-none">🖼️</span>
+                                <span className="text-[9px] font-semibold mt-1">+ Artwork</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleUploadJobArtwork(job.jobId, e)}
+                                />
+                              </label>
+                            )}
                           </div>
-                          <h4 className="font-bold text-slate-900 text-base mt-1">
-                            {job.itemName}
-                          </h4>
-                          <div className="text-xs text-slate-600 mt-0.5 flex items-center space-x-1.5">
-                            <span className="text-slate-500">Client:</span>
-                            <span className="font-semibold text-slate-900">{job.customerCompany || job.customerName}</span>
-                          </div>
-                        </div>
 
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider ${
-                          job.priority === 'urgent' 
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200' 
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}>
-                          {job.priority || 'standard'}
-                        </span>
-                      </div>
-
-                      {/* Multi-Card Details & Sheet Metrics */}
-                      <div className="mt-3.5 space-y-2">
-                        {/* Multi-Card or Single-Card breakdown */}
-                        {job.isMultiCard && job.cards && job.cards.length > 0 ? (
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                            <span className="text-[10px] uppercase font-semibold text-slate-700 block mb-1">
-                              Multi-Card Components ({job.cards.length} Cards in set)
-                            </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                              {job.cards.map((c, ci) => (
-                                <div key={ci} className="bg-white p-2 rounded-lg border border-slate-200">
-                                  <span className="font-semibold text-slate-900 block">{c.title}</span>
-                                  <span className="text-slate-500 text-[11px]">{c.catalogCode || c.name}</span>
-                                </div>
-                              ))}
+                          {/* Job Card Title & Compact Number */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-col items-start gap-0.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-lg">
+                                  {displayJobNumber}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  Date: {displayDate}
+                                </span>
+                              </div>
+                              
+                              {/* Customer Order Number directly below Job Card Number */}
+                              <div className="text-[11px] font-mono text-slate-600 font-semibold mt-0.5">
+                                Order: <span className="text-slate-900 font-bold bg-slate-50 border border-slate-200 px-1.5 py-0.2 rounded">{displayCustomerOrderId}</span>
+                              </div>
+                            </div>
+                            
+                            <h4 className="font-bold text-slate-900 text-sm sm:text-base mt-1 truncate" title={job.itemName}>
+                              {job.itemName}
+                            </h4>
+                            
+                            <div className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-1.5">
+                              <span className="text-slate-500">Party:</span>
+                              <span className="font-bold text-slate-900">{displayPartyName}</span>
+                              {job.isMultiCardComponent && (
+                                <span className="text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">
+                                  Component: {job.cardTitle || `Card #${job.cardIndex || 1}`} ({job.cardIndex || 1} of {job.totalCardsInSet || 2})
+                                </span>
+                              )}
                             </div>
                           </div>
-                        ) : (
-                          <div className="bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-                            <span className="text-slate-500">Paper Catalog:</span>
-                            <span className="font-medium text-slate-900">{job.cards?.[0]?.catalogCode || job.material || 'Standard Catalog'}</span>
-                          </div>
-                        )}
+                        </div>
 
-                        {/* Sheet Buffer Metrics Grid */}
-                        <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-center font-mono text-xs">
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            displayPriority === 'urgent' 
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                              : displayPriority === 'high'
+                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}>
+                            {displayPriority}
+                          </span>
+                          <span className="text-[9px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                            {job.cycleName || jobCycle.name}
+                          </span>
+                          {displayImage && (
+                            <label className="text-[9px] text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium underline">
+                              Change Image
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleUploadJobArtwork(job.jobId, e)}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* MANDATORY 9 JOB CARD FIELDS STRUCTURED SPECIFICATION BOX */}
+                      <div className="mt-3.5 bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-slate-200/70 pb-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Job Card Specification Record
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-600">
+                            {displayDate}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
                           <div>
-                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Target</span>
-                            <span className="font-bold text-slate-900 text-sm">{(job.targetQty || 1000).toLocaleString()}</span>
-                            <span className="text-[10px] text-slate-500 block font-sans">pcs</span>
+                            <span className="text-[10px] text-slate-400 block font-medium">Party Name</span>
+                            <span className="font-semibold text-slate-900 truncate block" title={displayPartyName}>
+                              {displayPartyName}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block font-medium">Paper Name</span>
+                            <span className="font-bold text-slate-900 truncate block text-indigo-950" title={displayPaperName}>
+                              {displayPaperName}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block font-medium">Order Quantity</span>
+                            <span className="font-mono font-bold text-slate-900">
+                              {displayOrderQty.toLocaleString()} <span className="text-[10px] font-normal text-slate-500">pcs</span>
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block font-medium">Printing Colors</span>
+                            <span className="font-semibold text-slate-900 font-mono">
+                              {displayNumColors} {displayNumColors === 1 ? 'Color' : 'Colors'}
+                            </span>
+                          </div>
+
+                          <div className="col-span-2">
+                            <span className="text-[10px] text-slate-400 block font-medium">Name of Printing Colors</span>
+                            <span className="font-medium text-slate-900 truncate block" title={displayNameColors}>
+                              {displayNameColors}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Sheet Wastage & Issuance Metrics Grid */}
+                        <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-200 text-center font-mono text-xs">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Net Order</span>
+                            <span className="font-bold text-slate-900">{displayOrderQty.toLocaleString()}</span>
+                            <span className="text-[9px] text-slate-400 block font-sans">tags ordered</span>
                           </div>
                           <div className="border-x border-slate-200">
-                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Issued (+40 buf)</span>
-                            <span className="font-bold text-slate-900 text-sm">{job.issuedSheets || (job.targetQty + 40)}</span>
-                            <span className="text-[10px] text-slate-500 block font-sans">sheets</span>
+                            <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Total Tags (+Waste)</span>
+                            <span className="font-bold text-slate-900">{displayProdQty.toLocaleString()}</span>
+                            <span className="text-[9px] text-emerald-600 font-semibold block font-sans">+{displayWastageQty.toLocaleString()} tags waste</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-500 uppercase block font-sans font-semibold">Allowed Floor</span>
-                            <span className="font-bold text-slate-900 text-sm">{job.minimumAllowedFloor || 960}</span>
-                            <span className="text-[10px] text-slate-500 block font-sans">min sheets</span>
+                            <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Issued Sheets</span>
+                            <span className="font-bold text-slate-900">{displayIssuedSheets.toLocaleString()}</span>
+                            <span className="text-[9px] text-slate-400 block font-sans">@{displayUps} ups (exact)</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Visual 4-Step Pipeline Bar */}
+                      {/* DYNAMIC CYCLE STEPPER BAR */}
                       <div className="mt-4 pt-3 border-t border-slate-100">
-                        <div className="flex items-center justify-between text-[10px] uppercase font-semibold text-slate-500 mb-1.5">
-                          <span className={isPrinting ? 'text-slate-900 font-bold' : job.printing?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
-                            {job.printing?.status === 'completed' ? '✓ ' : ''}1. Print
-                          </span>
-                          <span className={isPunching ? 'text-slate-900 font-bold' : job.punching?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
-                            {job.punching?.status === 'completed' ? '✓ ' : ''}2. Punch
-                          </span>
-                          <span className={isHandwork ? 'text-slate-900 font-bold' : job.handwork?.status === 'completed' ? 'text-emerald-700 font-bold' : ''}>
-                            {job.handwork?.status === 'completed' ? '✓ ' : ''}3. Handwork
-                          </span>
-                          <span className={isGodown ? 'text-emerald-700 font-bold' : ''}>
-                            {isGodown ? '✓ ' : ''}4. Godown
-                          </span>
+                        <div className="flex items-center justify-between text-[10px] uppercase font-semibold text-slate-500 mb-1.5 overflow-x-auto gap-2">
+                          {cycleSteps.map((step, sIdx) => {
+                            const isDone = job[step.key]?.status === 'completed';
+                            const isCurrent = stage === step.key;
+                            return (
+                              <span 
+                                key={step.key} 
+                                className={`whitespace-nowrap ${
+                                  isDone 
+                                    ? 'text-emerald-700 font-bold' 
+                                    : isCurrent 
+                                    ? 'text-slate-900 font-bold' 
+                                    : 'text-slate-400'
+                                }`}
+                              >
+                                {isDone ? '✓ ' : `${sIdx + 1}. `}{step.name.split(' ')[0]}
+                              </span>
+                            );
+                          })}
                         </div>
-                        <div className="grid grid-cols-4 gap-1 h-1.5 rounded-full overflow-hidden bg-slate-100">
-                          <div className={`h-full ${job.printing?.status === 'completed' ? 'bg-emerald-600' : isPrinting ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
-                          <div className={`h-full ${job.punching?.status === 'completed' ? 'bg-emerald-600' : isPunching ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
-                          <div className={`h-full ${job.handwork?.status === 'completed' ? 'bg-emerald-600' : isHandwork ? 'bg-slate-900' : 'bg-slate-200'}`}></div>
-                          <div className={`h-full ${isGodown ? 'bg-emerald-600' : 'bg-slate-200'}`}></div>
+                        <div className="grid gap-1 h-1.5 rounded-full overflow-hidden bg-slate-100" style={{ gridTemplateColumns: `repeat(${cycleSteps.length}, minmax(0, 1fr))` }}>
+                          {cycleSteps.map(step => {
+                            const isDone = job[step.key]?.status === 'completed';
+                            const isCurrent = stage === step.key;
+                            return (
+                              <div 
+                                key={step.key} 
+                                className={`h-full ${isDone ? 'bg-emerald-600' : isCurrent ? 'bg-slate-900' : 'bg-slate-200'}`}
+                              ></div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -4577,21 +5367,122 @@ function AdminPortal({
                     {/* Stage Specific Interactive Action Panel */}
                     <div className="mt-2 bg-slate-50 border border-slate-200/90 rounded-xl p-4">
                       
-                      {/* STAGE 1: PRINTING PROCESS */}
+                      {/* STAGE 1: PAPER CUTTING PROCESS */}
+                      {isCutting && (
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-800">
+                                Paper Cutting Station:
+                              </span>
+                              <select
+                                value={getSheetInput(job.jobId, 'cuttingOperator', job.cutting?.operatorName || 'Ramesh')}
+                                onChange={(e) => handleUpdateJobOperator(job.jobId, 'cutting', e.target.value)}
+                                className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                              >
+                                {cuttingOperators.map(op => <option key={op} value={op}>{op}</option>)}
+                              </select>
+                            </div>
+                            <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+                              Step 1 &bull; Guillotine Sizing
+                            </span>
+                          </div>
+
+                          <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs flex items-center justify-between font-mono">
+                            <span className="text-slate-500">Allocated Paper:</span>
+                            <span className="font-bold text-slate-900">{displayPaperName}</span>
+                          </div>
+
+                          {job.cutting?.status !== 'in_progress' ? (
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-xs text-slate-500">Master sheets ready for cutting &amp; sizing.</span>
+                              <button
+                                type="button"
+                                onClick={() => handleStartCutting(job)}
+                                className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs px-4 py-2 rounded-xl transition-colors"
+                              >
+                                Start Paper Cutting
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pt-1">
+                              <div>
+                                <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                  Good Sized Sheets Cut <span className="text-rose-600">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder={`e.g. ${displayIssuedSheets}`}
+                                  value={getSheetInput(job.jobId, 'cutSheets', displayIssuedSheets)}
+                                  onChange={(e) => setSheetInput(job.jobId, 'cutSheets', e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                />
+                                <span className="text-[10px] text-slate-500 mt-1 block">
+                                  Enter good cut sheets produced. System automatically computes waste.
+                                </span>
+                              </div>
+
+                              {/* Live 3-Box Automatic Waste Calculation */}
+                              {(() => {
+                                const currentCut = Number(getSheetInput(job.jobId, 'cutSheets', displayIssuedSheets));
+                                const liveCutWaste = Math.max(0, displayIssuedSheets - currentCut);
+                                return (
+                                  <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xs">
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Issued Sheets</span>
+                                      <span className="font-bold text-slate-900">{displayIssuedSheets}</span>
+                                    </div>
+                                    <div className="border-x border-slate-200">
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Good Cut Sheets</span>
+                                      <span className="font-bold text-slate-900">{currentCut}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">System Calc Waste</span>
+                                      <span className={`font-bold ${liveCutWaste > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        {liveCutWaste} {liveCutWaste === 1 ? 'sheet' : 'sheets'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              <button
+                                type="button"
+                                onClick={() => handleCompleteCutting(job)}
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
+                              >
+                                <span>Complete Cutting &amp; Forward to Next Process</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STAGE 2: PRINTING PROCESS */}
                       {isPrinting && (
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-800">
-                              Printing Press Station ({job.printing?.operatorName || 'Kanu'})
-                            </span>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-800">
+                                Printing Press Station:
+                              </span>
+                              <select
+                                value={getSheetInput(job.jobId, 'printingOperator', job.printing?.operatorName || 'Kanu')}
+                                onChange={(e) => handleUpdateJobOperator(job.jobId, 'printing', e.target.value)}
+                                className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                              >
+                                {printingOperators.map(op => <option key={op} value={op}>{op}</option>)}
+                              </select>
+                            </div>
                             <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                              Stage 1 of 4
+                              Step 2 &bull; {displayNumColors} Colors
                             </span>
                           </div>
 
                           {job.printing?.status !== 'in_progress' ? (
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-xs text-slate-500">Job queued for offset/screen press.</span>
+                              <span className="text-xs text-slate-500">Job queued for offset/digital press.</span>
                               <button
                                 type="button"
                                 onClick={() => handleStartPrinting(job)}
@@ -4603,67 +5494,88 @@ function AdminPortal({
                           ) : (
                             <div className="space-y-3 pt-1">
                               <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2 rounded-xl">
-                                <strong>Rule:</strong> Record the exact number of sheets printed. It must be &ge; 960 sheets to proceed.
+                                <strong>Rule:</strong> Record final good sheets printed. Minimum to fulfill order: &ge; {displayMinFloor} sheets.
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
-                                    Good Sheets Printed <span className="text-rose-600">*</span>
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="e.g. 1010"
-                                    value={getSheetInput(job.jobId, 'printed')}
-                                    onChange={(e) => setSheetInput(job.jobId, 'printed', e.target.value)}
-                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
-                                    Waste / Spoilage Sheets
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="e.g. 30"
-                                    value={getSheetInput(job.jobId, 'waste')}
-                                    onChange={(e) => setSheetInput(job.jobId, 'waste', e.target.value)}
-                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                                  />
-                                </div>
+                              <div>
+                                <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                  Good Sheets Printed <span className="text-rose-600">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder={`e.g. ${job.cutting?.goodSheetsCut || displayIssuedSheets}`}
+                                  value={getSheetInput(job.jobId, 'printed', job.cutting?.goodSheetsCut || displayIssuedSheets)}
+                                  onChange={(e) => setSheetInput(job.jobId, 'printed', e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                />
+                                <span className="text-[10px] text-slate-500 mt-1 block">
+                                  Operator enters final printed sheets. Spoilage/wastage is calculated automatically.
+                                </span>
                               </div>
+
+                              {/* Live 3-Box Automatic Waste Calculation */}
+                              {(() => {
+                                const cutInputSheets = Number(job.cutting?.goodSheetsCut || displayIssuedSheets);
+                                const currentPrinted = Number(getSheetInput(job.jobId, 'printed', cutInputSheets));
+                                const livePrintWaste = Math.max(0, cutInputSheets - currentPrinted);
+                                return (
+                                  <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xs">
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Cut Sheets In</span>
+                                      <span className="font-bold text-slate-900">{cutInputSheets}</span>
+                                    </div>
+                                    <div className="border-x border-slate-200">
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Good Printed</span>
+                                      <span className="font-bold text-slate-900">{currentPrinted}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">System Calc Waste</span>
+                                      <span className={`font-bold ${livePrintWaste > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        {livePrintWaste} {livePrintWaste === 1 ? 'sheet' : 'sheets'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                               <button
                                 type="button"
                                 onClick={() => handleCompletePrinting(job)}
                                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
                               >
-                                <span>Complete Printing &amp; Forward to Punching</span>
+                                <span>Complete Printing &amp; Forward to Next Process</span>
                               </button>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* STAGE 2: PUNCHING & PACKING PROCESS */}
+                      {/* STAGE 3: PUNCHING & PACKING PROCESS */}
                       {isPunching && (
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-800">
-                              Punching &amp; Die Press ({job.punching?.operatorName || 'Shivakant'})
-                            </span>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-800">
+                                Punching &amp; Die Press:
+                              </span>
+                              <select
+                                value={getSheetInput(job.jobId, 'punchingOperator', job.punching?.operatorName || 'Shivakant')}
+                                onChange={(e) => handleUpdateJobOperator(job.jobId, 'punching', e.target.value)}
+                                className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                              >
+                                {punchingOperators.map(op => <option key={op} value={op}>{op}</option>)}
+                              </select>
+                            </div>
                             <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                              Stage 2 of 4
+                              Step 3 &bull; Die-Cut &amp; Crease
                             </span>
                           </div>
 
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-xs flex items-center justify-between font-mono">
                             <span className="text-slate-500">Printed Input Received:</span>
                             <span className="font-bold text-slate-900">
-                              {job.printing?.goodSheetsPrinted || 1010} sheets
+                              {job.printing?.goodSheetsPrinted || job.targetSheets || 520} sheets
                             </span>
                           </div>
 
@@ -4680,49 +5592,61 @@ function AdminPortal({
                             </div>
                           ) : (
                             <div className="space-y-3 pt-1">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
-                                    Good Punched Sheets <span className="text-rose-600">*</span>
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="e.g. 995"
-                                    value={getSheetInput(job.jobId, 'punched')}
-                                    onChange={(e) => setSheetInput(job.jobId, 'punched', e.target.value)}
-                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-[11px] font-medium text-slate-700 block mb-1">
-                                    Die Wastage
-                                  </label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="e.g. 15"
-                                    value={getSheetInput(job.jobId, 'punchWaste')}
-                                    onChange={(e) => setSheetInput(job.jobId, 'punchWaste', e.target.value)}
-                                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                                  />
-                                </div>
+                              <div>
+                                <label className="text-[11px] font-medium text-slate-700 block mb-1">
+                                  Good Punched Sheets <span className="text-rose-600">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder={`e.g. ${job.printing?.goodSheetsPrinted || job.targetSheets || 520}`}
+                                  value={getSheetInput(job.jobId, 'punched', job.printing?.goodSheetsPrinted || job.targetSheets || 520)}
+                                  onChange={(e) => setSheetInput(job.jobId, 'punched', e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                />
+                                <span className="text-[10px] text-slate-500 mt-1 block">
+                                  Operator enters good punched sheets. Die waste is calculated automatically.
+                                </span>
                               </div>
+
+                              {/* Live 3-Box Automatic Waste Calculation */}
+                              {(() => {
+                                const printInputSheets = Number(job.printing?.goodSheetsPrinted || job.cutting?.goodSheetsCut || displayIssuedSheets);
+                                const currentPunched = Number(getSheetInput(job.jobId, 'punched', printInputSheets));
+                                const livePunchWaste = Math.max(0, printInputSheets - currentPunched);
+                                return (
+                                  <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xs">
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Printed Sheets In</span>
+                                      <span className="font-bold text-slate-900">{printInputSheets}</span>
+                                    </div>
+                                    <div className="border-x border-slate-200">
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Good Punched</span>
+                                      <span className="font-bold text-slate-900">{currentPunched}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">System Calc Waste</span>
+                                      <span className={`font-bold ${livePunchWaste > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        {livePunchWaste} {livePunchWaste === 1 ? 'sheet' : 'sheets'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
 
                               <button
                                 type="button"
                                 onClick={() => handleCompletePunching(job)}
                                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors flex items-center justify-center space-x-1.5"
                               >
-                                <span>Complete Punching &amp; Move to Handwork</span>
+                                <span>Complete Punching &amp; Forward to Next Process</span>
                               </button>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* STAGE 3: HANDWORK PROCESS (DORI & PLASTIC) */}
+                      {/* STAGE 4: HANDWORK PROCESS (DORI & PLASTIC) */}
                       {isHandwork && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
@@ -4730,7 +5654,7 @@ function AdminPortal({
                               Handwork Assembly (Dori &amp; Plastic)
                             </span>
                             <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
-                              Stage 3 of 4
+                              Step 4 &bull; String &amp; Seal Lock
                             </span>
                           </div>
 
@@ -4810,27 +5734,57 @@ function AdminPortal({
                                   Start Handwork Assembly
                                 </button>
                               ) : (
-                                <div className="space-y-2 pt-1">
+                                <div className="space-y-3 pt-1">
                                   <div>
                                     <label className="text-[11px] font-medium text-slate-700 block mb-1">
-                                      Finished Tags Completed (Pcs) <span className="text-rose-600">*</span>
+                                      Final Completed Tags Produced (Pcs / Tags) <span className="text-rose-600">*</span>
                                     </label>
                                     <input
                                       type="number"
                                       min="1"
-                                      placeholder="e.g. 990"
-                                      value={getSheetInput(job.jobId, 'handworkPieces', job.punching?.goodSheetsPunched || job.targetQty || 1000)}
+                                      placeholder={`e.g. ${Number((job.punching?.goodSheetsPunched || job.targetSheets || 520) * (job.ups || 10))}`}
+                                      value={getSheetInput(job.jobId, 'handworkPieces', Number((job.punching?.goodSheetsPunched || job.targetSheets || 520) * (job.ups || 10)))}
                                       onChange={(e) => setSheetInput(job.jobId, 'handworkPieces', e.target.value)}
                                       className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                     />
+                                    <span className="text-[10px] text-slate-500 mt-1 block">
+                                      Enter actual tags produced in pieces (NOT sheets). System calculates wastage automatically.
+                                    </span>
                                   </div>
+
+                                  {/* Live 3-Box Automatic Waste Calculation for Tags */}
+                                  {(() => {
+                                    const ups = Number(job.ups || 10);
+                                    const punchedSheets = Number(job.punching?.goodSheetsPunched || job.targetSheets || 520);
+                                    const receivedTags = punchedSheets * ups;
+                                    const currentFinalTags = Number(getSheetInput(job.jobId, 'handworkPieces', receivedTags));
+                                    const liveHandworkWasteTags = Math.max(0, receivedTags - currentFinalTags);
+                                    return (
+                                      <div className="grid grid-cols-3 gap-2 bg-white p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xs">
+                                        <div>
+                                          <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Punched Tags In</span>
+                                          <span className="font-bold text-slate-900">{receivedTags.toLocaleString()} pcs</span>
+                                        </div>
+                                        <div className="border-x border-slate-200">
+                                          <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Good Tags Made</span>
+                                          <span className="font-bold text-slate-900">{currentFinalTags.toLocaleString()} pcs</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">System Calc Waste</span>
+                                          <span className={`font-bold ${liveHandworkWasteTags > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                            {liveHandworkWasteTags.toLocaleString()} pcs
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
 
                                   <button
                                     type="button"
                                     onClick={() => handleCompleteHandwork(job)}
                                     className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-xl transition-colors"
                                   >
-                                    Mark Complete &amp; Move to Godown
+                                    Mark Complete &amp; Move to Dispatch
                                   </button>
                                 </div>
                               )}
@@ -4839,34 +5793,58 @@ function AdminPortal({
                         </div>
                       )}
 
-                      {/* STAGE 4: GODOWN (READY FOR DISPATCH) */}
-                      {isGodown && (
+                      {/* STAGE 5: DISPATCH PROCESS */}
+                      {isDispatch && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-semibold text-slate-800">
-                              Godown / Finished Goods Storage
+                              Dispatch &amp; Finished Goods
                             </span>
                             <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-medium">
-                              Ready for Dispatch ✓
+                              Step 5 &bull; Quality Checked ✓
                             </span>
                           </div>
 
                           <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-slate-500">Warehouse Location:</span>
-                              <span className="font-mono font-semibold text-slate-900">{job.godown?.location || 'Rack Bay A-01'}</span>
+                              <span className="font-mono font-semibold text-slate-900">{job.godown?.location || 'Bay 01 - Finished Goods'}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-slate-500">Verified Quantity:</span>
                               <span className="font-mono font-bold text-emerald-700">
-                                {job.handwork?.completedPieces || job.targetQty || 1000} pcs ready
+                                {job.handwork?.completedPieces || job.targetQty || 1000} pcs ready for dispatch
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-slate-500">Handwork Artisan Payout:</span>
+                              <span className="text-slate-500">Handwork Artisan:</span>
                               <span className="font-mono text-slate-700">
                                 {job.handwork?.assignedLabourerName || 'Artisan'} &bull; {formatCurrency(job.handwork?.earnedPayout || 300)}
                               </span>
+                            </div>
+                          </div>
+
+                          <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                            <span className="text-[11px] font-semibold text-slate-700 block">Dispatch Courier &amp; Tracking Details</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] text-slate-500 block mb-0.5">Carrier</label>
+                                <input
+                                  type="text"
+                                  value={getSheetInput(job.jobId, 'dispatchCarrier', 'BlueDart Express')}
+                                  onChange={(e) => setSheetInput(job.jobId, 'dispatchCarrier', e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-slate-500 block mb-0.5">Tracking Number</label>
+                                <input
+                                  type="text"
+                                  value={getSheetInput(job.jobId, 'dispatchTracking', `TRK-${job.jobId.replace(/[^0-9]/g, '').slice(-6) || '849201'}`)}
+                                  onChange={(e) => setSheetInput(job.jobId, 'dispatchTracking', e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono"
+                                />
+                              </div>
                             </div>
                           </div>
 
@@ -4884,13 +5862,10 @@ function AdminPortal({
 
                             <button
                               type="button"
-                              onClick={() => {
-                                const parent = orders.find(o => o.id === job.orderId);
-                                if (parent) setDispatchModalOrder(parent);
-                              }}
-                              className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-4 rounded-xl transition-colors"
+                              onClick={() => handleCompleteDispatch(job)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs py-2 px-4 rounded-xl transition-colors shadow-xs"
                             >
-                              Dispatch Order
+                              Complete Dispatch
                             </button>
                           </div>
                         </div>
@@ -4904,7 +5879,7 @@ function AdminPortal({
             {production.length === 0 && (
               <div className="col-span-2 text-center py-16 bg-white border border-slate-200/90 rounded-2xl text-slate-500 shadow-xs">
                 <p className="text-sm font-semibold text-slate-800">No active production jobs yet.</p>
-                <p className="text-xs text-slate-500 mt-1">Approve an order in &quot;View All Orders&quot; and click &quot;Send to Production&quot; to generate job forms.</p>
+                <p className="text-xs text-slate-500 mt-1">Go to &quot;View All Orders&quot; and click &quot;Start Production&quot; on any order to create its job card(s).</p>
               </div>
             )}
           </div>
@@ -5568,49 +6543,49 @@ function AdminPortal({
           <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">
+                <h3 className="font-bold text-slate-900 text-lg">
                   {editingCatalog ? `Edit Paper Catalog: ${editingCatalog.code}` : 'Add New Paper Catalog Swatch'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCatalogModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                className="text-slate-400 hover:text-slate-600 text-xl font-bold"
               >
                 &times;
               </button>
             </div>
 
-            <form onSubmit={handleSaveCatalogSubmit} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleSaveCatalogSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Catalog Swatch Code *</label>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">Catalog Swatch Code *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Cat #107 - Royal Velvet 320"
+                    placeholder="e.g. Paper #01"
                     value={catCode}
                     onChange={(e) => setCatCode(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Paper / Board Name *</label>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">Paper / Board Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Royal Velvet Board 320 GSM"
                     value={catName}
                     onChange={(e) => setCatName(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">GSM (Weight) *</label>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">GSM (Weight) *</label>
                   <input
                     type="number"
                     required
@@ -5619,24 +6594,24 @@ function AdminPortal({
                     placeholder="e.g. 350"
                     value={catGsm}
                     onChange={(e) => setCatGsm(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Surface Finish *</label>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">Surface Finish *</label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Silk Matte"
+                    placeholder="e.g. Silk Matte Coated"
                     value={catFinish}
                     onChange={(e) => setCatFinish(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Sheet Rate (₹) *</label>
+                  <label className="text-sm font-medium text-slate-700 block mb-1.5">Sheet Rate (₹) *</label>
                   <input
                     type="number"
                     step="0.10"
@@ -5645,47 +6620,34 @@ function AdminPortal({
                     placeholder="e.g. 3.50"
                     value={catRate}
                     onChange={(e) => setCatRate(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Recommended Application</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Luxury Clothing Hangtags"
-                    value={catRec}
-                    onChange={(e) => setCatRec(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-700 block mb-1">Opening Stock (Sheets)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 5000"
-                    value={catStock}
-                    onChange={(e) => setCatStock(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono"
-                  />
-                </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-1.5">Opening Stock (Sheets)</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 10000"
+                  value={catStock}
+                  onChange={(e) => setCatStock(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 font-mono"
+                />
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end space-x-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowCatalogModal(false)}
-                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold shadow-xs transition-all"
                 >
                   {editingCatalog ? 'Save Changes' : 'Create Paper Catalog'}
                 </button>
@@ -5695,17 +6657,22 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MOVE TO PRODUCTION SHEET ALLOCATION MODAL (INDIVIDUAL & BULK) */}
+      {/* START PRODUCTION & JOB CARD CREATION MODAL */}
       {prodModalOrders && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col p-6 shadow-xl">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col p-6 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">
-                  Send to Production &bull; Sheet Allocation ({prodModalOrders.length} Order{prodModalOrders.length > 1 ? 's' : ''})
-                </h3>
+                <div className="flex items-center space-x-2">
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Start Production &bull; Job Card Creation
+                  </h3>
+                  <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200 font-mono">
+                    {prodModalOrders.length} Order{prodModalOrders.length > 1 ? 's' : ''}
+                  </span>
+                </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Order quantities are booked in <strong>pieces (pcs)</strong>. Printing is run in <strong>sheets</strong>. Enter sheet quantity below before dispatching to printing press.
+                  Configure Job Card specifications (Date, Job #, Party, Paper, Qty, Colors, Priority) and select the Production Cycle.
                 </p>
               </div>
               <button
@@ -5717,14 +6684,55 @@ function AdminPortal({
               </button>
             </div>
 
-            <div className="overflow-y-auto py-4 space-y-4 flex-1 pr-1">
+            {/* PRODUCTION CYCLE SELECTOR */}
+            <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3.5 my-3 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex-1">
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Select Production Cycle:
+                  </label>
+                  <select
+                    value={selectedProdCycleId}
+                    onChange={(e) => setSelectedProdCycleId(e.target.value)}
+                    className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  >
+                    {availableCycles.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.steps.map(s => s.name).join(' → ')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCycleManagerModal(true)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs transition-all whitespace-nowrap self-end sm:self-auto"
+                >
+                  + Manage Cycles
+                </button>
+              </div>
+
+              {/* Cycle Steps Preview */}
+              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto text-[10px] text-slate-600 font-medium">
+                <span className="text-slate-400 uppercase text-[9px]">Cycle Pipeline:</span>
+                {(availableCycles.find(c => c.id === selectedProdCycleId) || availableCycles[0])?.steps.map((s, idx, arr) => (
+                  <span key={s.key} className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-indigo-100">
+                    <span className="font-bold text-indigo-950">{idx + 1}.</span> {s.name}
+                    {idx < arr.length - 1 && <span className="text-slate-300">→</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* ORDERS & MULTI-CARD BREAKDOWN */}
+            <div className="overflow-y-auto py-2 space-y-4 flex-1 pr-1">
               {prodModalOrders.map(ord => (
                 <div key={ord.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center space-x-2">
-                      <span className="font-bold text-xs text-slate-900">{ord.id}</span>
+                      <span className="font-bold text-xs text-slate-900 font-mono">{ord.id}</span>
                       <span className="text-slate-400 text-xs">&bull;</span>
-                      <span className="text-xs text-slate-700 font-medium">{ord.customerCompany || ord.customerName}</span>
+                      <span className="text-xs text-slate-800 font-semibold">{ord.customerCompany || ord.customerName}</span>
                     </div>
                     <span className="text-[10px] uppercase font-mono font-medium px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700">
                       Approved Order
@@ -5737,84 +6745,250 @@ function AdminPortal({
                       {
                         cardIndex: 1,
                         title: item.name || item.itemCode || 'Single Card Tag',
-                        catalogCode: item.catalogCode || item.material || 'Standard Catalog'
+                        catalogCode: item.catalogCode || item.material || 'Paper #01 (Art Card 350 GSM)'
                       }
                     ];
 
                     return (
                       <div key={itemIdx} className="space-y-3">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-slate-900">{item.name || item.itemCode}</span>
+                        <div className="flex items-center justify-between text-xs bg-slate-100/70 p-2 rounded-lg">
+                          <span className="font-bold text-slate-900">
+                            {item.name || item.itemCode}
+                            {cardsList.length > 1 && (
+                              <span className="ml-2 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                                Multi-Paper Tag ({cardsList.length} Job Cards will be generated)
+                              </span>
+                            )}
+                          </span>
                           <span className="font-mono text-slate-700 font-medium">
-                            Order Qty: {Number(item.quantity || 1000).toLocaleString()} pcs
+                            Order Quantity: {Number(item.quantity || 1000).toLocaleString()} pcs
                           </span>
                         </div>
 
                         {cardsList.map((card, cardIdx) => {
                           const key = `${ord.id}_${itemIdx}_${cardIdx}`;
-                          const alloc = prodSheetAllocations[key] || { ups: 10, sheets: Math.ceil(Number(item.quantity || 1000) / 10), orderPieces: Number(item.quantity || 1000) };
-                          const targetSheets = alloc.sheets || 100;
-                          const bufferSheets = 40; // 20 print + 20 punch
-                          const issuedSheets = targetSheets + bufferSheets;
-                          const minFloor = Math.max(1, targetSheets - 40);
+                          const alloc = prodSheetAllocations[key] || {};
+                          const baseQty = Number(alloc.orderQty) || Number(item.quantity) || 1000;
+                          const wasteQty = alloc.wastageQty !== undefined ? Number(alloc.wastageQty) : getWastageTags(baseQty);
+                          const totalProductionTags = alloc.productionQty || (baseQty + wasteQty);
+                          const ups = Number(alloc.ups) || 10;
+                          const totalRequiredSheets = Number(alloc.sheets) || Math.ceil(totalProductionTags / ups);
+                          const minFloor = Math.ceil(baseQty / ups);
 
                           return (
-                            <div key={cardIdx} className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span className="font-semibold text-slate-900">
-                                  {card.title || `Card #${cardIdx + 1}`} ({card.catalogCode || item.material || 'Catalog Paper'})
-                                </span>
-                                <span className="text-slate-500">
-                                  Target: {alloc.orderPieces.toLocaleString()} tags
+                            <div key={cardIdx} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-2xs">
+                              {/* Job Card Header */}
+                              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <div className="flex items-center space-x-2.5">
+                                  {alloc.image && (
+                                    <img 
+                                      src={alloc.image} 
+                                      alt="Artwork" 
+                                      className="w-9 h-9 object-cover rounded-lg border border-slate-200 shadow-2xs shrink-0" 
+                                    />
+                                  )}
+                                  <div>
+                                    <div className="flex items-center space-x-1.5">
+                                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-slate-900 text-white font-mono">
+                                        {alloc.jobNumber || formatJobCardNumber(ord, itemIdx, cardIdx, cardsList.length)}
+                                      </span>
+                                      <span className="text-[10px] font-mono text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded font-semibold">
+                                        Order: {alloc.customerOrderId || ord.customerOrderId || ord.id.split('-').pop()}
+                                      </span>
+                                    </div>
+                                    <span className="font-semibold text-xs text-slate-900 block mt-0.5">
+                                      {card.title || `Paper Component #${cardIdx + 1}`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[11px] font-mono text-slate-500">
+                                  Order: {baseQty.toLocaleString()} pcs &rarr; Target: {totalProductionTags.toLocaleString()} tags
                                 </span>
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                              {/* MANDATORY 9 FIELDS FORM GRID */}
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                                 <div>
                                   <label className="text-[10px] text-slate-500 block font-medium mb-1">
-                                    Ups / Tags Per Sheet (helper)
+                                    1. Date
                                   </label>
                                   <input
-                                    type="number"
-                                    min="1"
-                                    max="200"
-                                    value={alloc.ups || 10}
-                                    onChange={(e) => handleUpdateSheetAlloc(key, 'ups', e.target.value)}
+                                    type="date"
+                                    value={alloc.date || new Date().toISOString().split('T')[0]}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'date', e.target.value)}
                                     className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
 
                                 <div>
-                                  <label className="text-[10px] text-slate-700 block font-medium mb-1">
-                                    Required Net Sheets * (Press Target)
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    2. Job Number (Compact)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={alloc.jobNumber || formatJobCardNumber(ord, itemIdx, cardIdx, cardsList.length)}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'jobNumber', e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    3. Order Ref / Customer Order
+                                  </label>
+                                  <input
+                                    type="text"
+                                    readOnly
+                                    value={`${ord.id} (${alloc.customerOrderId || ord.customerOrderId || ord.id.split('-').pop()})`}
+                                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 font-mono font-medium cursor-not-allowed"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    4. Party Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={alloc.partyName || ord.customerCompany || ord.customerName || ''}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'partyName', e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    5. Paper Name
+                                  </label>
+                                  <select
+                                    value={alloc.paperName || card.catalogCode || 'Paper #01 (Art Card 350 GSM)'}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'paperName', e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  >
+                                    {availableCatalogs.map(c => (
+                                      <option key={c.id} value={`${c.code} ${c.name}`.trim()}>
+                                        {c.code} &bull; {c.name} ({c.gsm} GSM - {c.finish})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    6. Order Quantity (pcs)
                                   </label>
                                   <input
                                     type="number"
                                     min="1"
-                                    required
-                                    value={alloc.sheets || ''}
-                                    onChange={(e) => handleUpdateSheetAlloc(key, 'sheets', e.target.value)}
+                                    value={baseQty}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'orderQty', e.target.value)}
                                     className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  />
+                                  <span className="text-[10px] text-emerald-700 font-medium mt-0.5 block">
+                                    +{wasteQty.toLocaleString()} tags wastage &rarr; {totalProductionTags.toLocaleString()} tags
+                                  </span>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    7. Number of Colors
+                                  </label>
+                                  <select
+                                    value={alloc.numPrintingColors || 4}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'numPrintingColors', Number(e.target.value))}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  >
+                                    <option value="1">1 Color (Single Ink)</option>
+                                    <option value="2">2 Colors (Two-tone)</option>
+                                    <option value="4">4 Colors (CMYK Full Color)</option>
+                                    <option value="5">5 Colors (CMYK + 1 Pantone)</option>
+                                    <option value="6">6 Colors (CMYK + 2 Pantones)</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    9. Priority
+                                  </label>
+                                  <select
+                                    value={alloc.priority || ord.priority || 'standard'}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'priority', e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                  >
+                                    <option value="standard">Standard Priority</option>
+                                    <option value="high">High Priority</option>
+                                    <option value="urgent">Urgent Priority</option>
+                                  </select>
+                                </div>
+
+                                <div className="sm:col-span-3">
+                                  <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                    8. Name of Printing Colors
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="e.g. CMYK (Cyan, Magenta, Yellow, Black) or Front: CMYK, Back: Black"
+                                    value={alloc.namePrintingColors || 'CMYK (Full Color)'}
+                                    onChange={(e) => handleUpdateSheetAlloc(key, 'namePrintingColors', e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                                   />
                                 </div>
                               </div>
 
-                              {/* Sheet Calculation Live Summary */}
-                              <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-center font-mono text-xs text-slate-800">
-                                <div>
-                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Net Target</span>
-                                  <span className="font-bold text-slate-900">{targetSheets}</span>
-                                  <span className="text-[9px] text-slate-500 block font-sans">sheets</span>
+                              {/* Sheet Calculation & Helpers */}
+                              <div className="pt-2 border-t border-slate-100">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                                  <div>
+                                    <label className="text-[10px] text-slate-500 block font-medium mb-1">
+                                      Ups / Tags Per Sheet (helper)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="200"
+                                      value={alloc.ups || 10}
+                                      onChange={(e) => handleUpdateSheetAlloc(key, 'ups', e.target.value)}
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="text-[10px] text-slate-700 block font-medium mb-1">
+                                      Issued Sheets * (Press &amp; Cutting Target)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      required
+                                      value={alloc.sheets || totalRequiredSheets}
+                                      onChange={(e) => handleUpdateSheetAlloc(key, 'sheets', e.target.value)}
+                                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-400"
+                                    />
+                                  </div>
                                 </div>
-                                <div className="border-x border-slate-200">
-                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Issued (+40 buf)</span>
-                                  <span className="font-bold text-slate-900">{issuedSheets}</span>
-                                  <span className="text-[9px] text-slate-500 block font-sans">+20 prn, +20 pnc</span>
-                                </div>
-                                <div>
-                                  <span className="text-[9px] text-slate-500 uppercase block font-sans">Floor (min)</span>
-                                  <span className="font-bold text-slate-900">{minFloor}</span>
-                                  <span className="text-[9px] text-slate-500 block font-sans">alert threshold</span>
+
+                                {/* Sheet Calculation Live Summary */}
+                                <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-center font-mono text-xs text-slate-800">
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Net Order</span>
+                                    <span className="font-bold text-slate-900">{baseQty.toLocaleString()}</span>
+                                    <span className="text-[9px] text-slate-400 block font-sans">tags</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-emerald-600 uppercase block font-sans font-semibold">Wastage (200/5k)</span>
+                                    <span className="font-bold text-emerald-700">+{wasteQty.toLocaleString()}</span>
+                                    <span className="text-[9px] text-emerald-600 block font-sans">extra tags</span>
+                                  </div>
+                                  <div className="border-x border-slate-200">
+                                    <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Total Tags</span>
+                                    <span className="font-bold text-slate-900">{totalProductionTags.toLocaleString()}</span>
+                                    <span className="text-[9px] text-slate-400 block font-sans">to produce</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Issued Sheets</span>
+                                    <span className="font-bold text-slate-900">{totalRequiredSheets.toLocaleString()}</span>
+                                    <span className="text-[9px] text-slate-400 block font-sans">@{ups} ups (exact)</span>
+                                  </div>
                                 </div>
                               </div>
 
@@ -5831,7 +7005,7 @@ function AdminPortal({
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
               <div className="text-xs text-slate-500">
-                <span>Buffer Rule:</span> <span className="text-slate-800 font-semibold">+20 sheets Printing + 20 sheets Punching</span>
+                <span className="font-semibold text-slate-700">Wastage Rule:</span> <span className="text-slate-800 font-medium">200 extra tags per 5,000 tags for wastage (5,000 &rarr; 5,200 tags, 10,000 &rarr; 10,400 tags). Exact sheets issued from total tags without adding extra sheets after.</span>
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -5844,13 +7018,130 @@ function AdminPortal({
                 <button
                   type="button"
                   onClick={handleConfirmMoveToProduction}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 px-5 rounded-xl transition-colors shadow-xs flex items-center space-x-1.5"
                 >
-                  Confirm &amp; Move to Printing Floor
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Start Production &bull; Create Job Cards</span>
                 </button>
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* PRODUCTION CYCLE MANAGER MODAL */}
+      {showCycleManagerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Production Cycle Manager</h3>
+                <p className="text-xs text-slate-500">Configure or create new sequential process cycles for production.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCycleManagerModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Existing Cycles List */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-700 block">Existing Cycles:</span>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {availableCycles.map(c => (
+                  <div key={c.id} className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900">{c.name}</span>
+                      {c.isDefault && (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.2 rounded-full font-medium">
+                          Default
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      {c.steps.map(s => s.name).join(' → ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Create New Cycle Form */}
+            <form onSubmit={handleSaveNewCycle} className="pt-3 border-t border-slate-100 space-y-3">
+              <span className="text-xs font-bold text-slate-900 block">Create New Production Cycle:</span>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Cycle Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Express 3-Step Direct Cycle"
+                  value={newCycleName}
+                  onChange={(e) => setNewCycleName(e.target.value)}
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                  Select Steps in Sequence:
+                </label>
+                <div className="space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                  {[
+                    { key: 'cutting', name: '1. Paper Cutting', desc: 'Guillotine sheet cutting & sizing' },
+                    { key: 'printing', name: '2. Printing', desc: 'Offset / digital ink application' },
+                    { key: 'punching', name: '3. Punching & Packing', desc: 'Die-cutting, creasing & stripping' },
+                    { key: 'handwork', name: '4. Handwork Process', desc: 'Dori attachment & plastic seal lock' },
+                    { key: 'dispatch', name: '5. Dispatch', desc: 'Quality inspection & dispatch packaging' }
+                  ].map(s => {
+                    const isChecked = selectedCycleSteps.includes(s.key);
+                    return (
+                      <label key={s.key} className="flex items-center space-x-2.5 p-1.5 rounded-lg hover:bg-white cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCycleSteps(prev => [...prev, s.key]);
+                            } else {
+                              setSelectedCycleSteps(prev => prev.filter(k => k !== s.key));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400 cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <span className="font-semibold text-slate-900 block">{s.name}</span>
+                          <span className="text-[10px] text-slate-500 block">{s.desc}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCycleManagerModal(false)}
+                  className="bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs py-2 px-4 rounded-xl border border-slate-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2 px-5 rounded-xl transition-colors"
+                >
+                  Save New Cycle
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -5864,6 +7155,18 @@ function AdminPortal({
             setAdminShowCropModal(false);
           }}
           onClose={() => setAdminShowCropModal(false)}
+        />
+      )}
+
+      {/* CROP MODAL FOR PRODUCTION JOB CARDS */}
+      {cropJobTarget && (
+        <window.uBMS.ImageCropModal
+          imageSrc={cropJobTarget.imageSrc}
+          onSave={(croppedUrl) => {
+            handleUpdateJobImage(cropJobTarget.jobId, croppedUrl);
+            setCropJobTarget(null);
+          }}
+          onClose={() => setCropJobTarget(null)}
         />
       )}
     </div>

@@ -4,6 +4,109 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-28] — Version 3.0
+
+### 🖼️ Production Job Card Artwork Preview, Compact Identifiers & Automated Wastage Flow
+- **Artwork Preview Thumbnail with Integrated Cropper**:
+  - Embedded high-fidelity visual artwork thumbnail preview on every job card in the Production Flow pipeline.
+  - Interactive hover/click "✂️ Crop" action opening `window.uBMS.ImageCropModal` with aspect ratio framing, zoom, pan, and rotation directly for job cards.
+  - Upload fallback (`+ Artwork`) allowing instant image selection and update if no artwork was previously attached.
+  - Component artwork preview also rendered in the "Start Production & Job Card Creation" modal next to each paper component.
+- **Compact Job Card Number & Prominent Customer Order ID**:
+  - Re-formatted job card numbers to the compact standard: `JO_01_P1`, `JO_01_P2`, `JO_02_P1`, etc. (representing sequence and part component for multi-card sets).
+  - Prominently positioned the Customer Order Number directly below the Job Card Number (e.g., `Order: MGC01`).
+- **Dynamic Operator Assignment in Cutting, Printing & Punching**:
+  - Added dedicated operator assignment selectors in **Paper Cutting** (`Ramesh`, `Dilip`, etc.), **Printing Press** (`Kanu`, `Manoj Kumar`, etc.), and **Punching & Die Press** (`Shivakant`, `Dilip Yadav`, etc.).
+  - Operators can be assigned or adjusted dynamically, persisting immediately to state and server records.
+- **Handwork Process: Finished Tag Quantity Input (Tags/Pcs, Not Sheets)**:
+  - Updated the Handwork Assembly stage to record output directly in **Final Completed Tags Produced (Pcs / Tags)** rather than sheets.
+  - Converted punching sheet input to tags received using `punchedSheets * ups`.
+- **System-Automated Wastage Calculation**:
+  - Operators now only enter the good quantity produced at each station:
+    - Cutting: `Good Sized Sheets Cut`
+    - Printing: `Good Sheets Printed`
+    - Punching: `Good Punched Sheets`
+    - Handwork: `Final Completed Tags Produced (Pcs)`
+  - Replaced manual wastage typing fields with a real-time 3-box summary (`Input Received`, `Good Quantity`, `System Calc Waste`) across all 4 production stations, dynamically calculating scrap and yield on the fly.
+- **Data Synchronization & Cache Busting**:
+  - Updated all 9 sample jobs in `data/production.json` with the new compact `JO_{seq}_P{part}` identifiers, populated `customerOrderId`, and base64 artwork images.
+  - Bumped `AdminPortal.js?v=3.8` in `index.html`.
+
+---
+
+## [2026-10-28] — Version 2.9
+
+### 🏭 Production Flow Pipeline & Dynamic Manufacturing Cycles
+- **Order Arrival in Production Flow**:
+  - Implemented automatic job card generation upon clicking "Start Production" for orders.
+  - Multi-card support: Tags containing multiple paper components (e.g. 2-piece or 3-piece tag sets) automatically generate separate job cards for each individual paper component.
+  - Standard 5-Step Production Cycle implemented with step progression:
+    1. **Paper Cutting**: Guillotine sizing & trim recording.
+    2. **Printing**: Offset/digital press ink application with operator tracking.
+    3. **Punching & Packing**: Die-cutting, creasing & stripping.
+    4. **Handwork Process**: Piece-rate Dori attachment & plastic seal lock.
+    5. **Dispatch**: Final verification & shipping godown packing.
+  - Extensible cycle manager backed by `data/production_cycles.json` and `/api/production_cycles`, giving Admins the ability to create and select alternative production cycles.
+- **Mandatory 9 Job Card Fields**:
+  - Standardized all job cards in the Production Flow and Job Card Creation modal to display and edit the 9 required fields:
+    1. Date
+    2. Job Number
+    3. Order Number
+    4. Party Name
+    5. Paper Name
+    6. Order Quantity
+    7. Number of Printing Colors
+    8. Name of Printing Colors
+    9. Priority
+- **Wastage Rule & Exact Sheet Issuance (Zero Post-Sheet Buffers)**:
+  - Formulated tag-level wastage rule: **200 extra tags per 5,000 tags** (`Math.round((orderQty / 5000) * 200)`):
+    - `5,000 tags` &rarr; `5,200 tags to produce` &rarr; `520 sheets issued (@ 10 ups)`
+    - `10,000 tags` &rarr; `10,400 tags to produce` &rarr; `1,040 sheets issued (@ 10 ups)`
+    - `15,000 tags` &rarr; `15,600 tags to produce` &rarr; `1,560 sheets issued (@ 10 ups)`
+  - Completely eliminated arbitrary post-sheet buffers (`+40 sheets` buffer rule removed, `bufferSheets = 0; issuedSheets = targetSheets`).
+  - Added live 4-column summary metric boxes (`Net Order`, `Wastage (200/5k)`, `Total Tags`, `Issued Sheets`) in both the Job Card Creation modal and active Production Flow view.
+  - Set minimum allowed floor threshold to `Math.ceil(orderQty / ups)` to guarantee order fulfillment before proceeding.
+- **Paper Catalog Refinements & 30 Real Papers Preserved**:
+  - Increased typography size and readability in the Catalog Grid.
+  - Standardized paper naming convention to `Paper #01`, `Paper #02`, etc., replacing `Cat#103`.
+  - Removed redundant `Recommended Application` field from paper forms and cards.
+  - Preserved all 30 actual papers in catalog.
+
+---
+
+## [2026-10-28] — Version 2.8
+
+### 🔒 Locked Table Column Layout (Frozen Width Invariance on Search & Filter)
+- **Root Cause Resolution**:
+  - Identified that standard HTML tables default to `table-layout: auto`, which dynamically recalculates all column widths based on the visible cell contents of the currently filtered rows. When filtering down to orders with shorter status badges, the browser collapsed the Status column from ~222px to 145px and dumped 77px of excess width into the `Brand & Item Specs` column.
+- **Fixed Table Layout & Colgroup Implementation**:
+  - Implemented `table-fixed` (`table-layout: fixed`) and explicit `<colgroup>` definitions on both Admin Portal and Customer Portal order registers.
+  - Frozen widths: Checkbox (`44px`), Order ID (`130px`), Artwork (`84px`), Customer Name (`150px`), Dori & Plastic (`150px`), Qty (`95px`), Rate & Total (`135px`), Status (`230px`), and `Brand & Item Specs` (`auto`).
+  - Guaranteed by CSS specification that `table-layout: fixed` determines column geometry exclusively from the first row / colgroup and never alters column widths when row counts or cell contents change during search and filtering.
+- **Automated Verification**:
+  - Verified across multiple live scenarios (all 24 orders, 1 order filtered by rate, filtered by brand specs, 0 matching orders) via headless browser automation, confirming exact pixel-for-pixel invariant column widths.
+
+### 📊 Admin Order Register Layout Optimization (Separate Qty, Rate & Merged Total)
+- **Dedicated Quantity Column (`QTY`)**:
+  - Extracted order item quantities from the congested "Brand & Item Specs" column into a dedicated right-aligned table column.
+  - Displays primary item piece count in bold monospace typography (`10,000 pcs`) along with batch aggregate totals for multi-item orders.
+  - Added dedicated individual column search input (`Filter qty...`) with real-time numeric and string matching.
+- **Merged Rate & Total Column (`RATE & TOTAL`)**:
+  - Merged unit price and grand total into a unified right-aligned column:
+    - Primary line: Formatted unit price (`₹1.45 /pc`).
+    - Secondary line: Formatted order total (`₹17,110.00`) in bold monospace.
+  - Eliminated the standalone "TOTAL AMT" column, streamlining horizontal table footprint from clutter.
+  - Added dedicated individual column search input (`Filter rate...`) supporting both unit price and grand total querying.
+- **Compacted Order ID Column (`ORDER ID`)**:
+  - Compacted column width (`w-32`) with tight monospace styling and word break wrapping.
+  - Prominently showcases the customer reference badge (`MGC01`) alongside full tracking ID (`TGRS01-ORD-2026-MGC01`) and formatted creation date.
+- **Cleaned Brand & Item Specs Column**:
+  - Removed redundant `Qty: ... pcs • Rate: ...` text, allowing item codes, brand badges, product types, and material boards to breathe cleanly without vertical stacking conflicts.
+- **Server Socket Resilience (`server.ps1`)**:
+  - Configured socket `ReceiveTimeout` and `SendTimeout` (4000ms) on `HandleClient` in `server.ps1` to prevent TCP stalls from idle speculative browser connections.
+
+---
+
 ## [2026-10-26] — Version 2.7
 
 ### 🧭 Two-Tier Navigation Architecture (Groups on Left, Sub-Tabs on Top)

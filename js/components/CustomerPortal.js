@@ -167,12 +167,36 @@ function CustomerPortal({
     { id: 'TYPE-TAGKIT', name: 'Tag Kit', materials: ['100 GSM', '200 GSM', '300 GSM'], defaultRate: 5.00 }
   ];
   const availableCatalogs = catalogs.length > 0 ? catalogs : [
-    { id: 'CAT-IV350', code: 'Cat #101 - Art Ivory 350', name: 'Art & Ivory Board 350 GSM', gsm: 350, finish: 'Silk Matte Coated', sheetRate: 3.20 },
-    { id: 'CAT-KF280', code: 'Cat #102 - Natural Kraft 280', name: 'Virgin Eco Kraft Paper 280 GSM', gsm: 280, finish: 'Raw Fibrous Texture', sheetRate: 2.40 },
-    { id: 'CAT-SP300', code: 'Cat #103 - Sappi Black 300', name: 'Sappi Velvet Jet Black 300 GSM', gsm: 300, finish: 'Solid Deep Black Matte', sheetRate: 4.50 },
-    { id: 'CAT-TR115', code: 'Cat #104 - Tracing Butter 115', name: 'Translucent Butter Paper 115 GSM', gsm: 115, finish: 'Semi-Transparent Frosted', sheetRate: 1.90 },
-    { id: 'CAT-MT400', code: 'Cat #105 - Metallic Pearl 400', name: 'Champagne Shimmer Board 400 GSM', gsm: 400, finish: 'Subtle Pearl Luster', sheetRate: 5.80 },
-    { id: 'CAT-DUP250', code: 'Cat #106 - Sturdy Duplex 250', name: 'Greyback Duplex Board 250 GSM', gsm: 250, finish: 'Semi-Gloss Single Sided', sheetRate: 1.60 }
+    { id: 'CAT-PAPER0', code: 'Paper #01', name: 'Plastic', gsm: 250, finish: 'Gloss', sheetRate: 29.5, stockSheets: 350 },
+    { id: 'CAT-PAPER02', code: 'Paper #02', name: 'Grey Velvet', gsm: 120, finish: 'Velvet', sheetRate: 59, stockSheets: 50 },
+    { id: 'CAT-PAPER03', code: 'Paper #03', name: 'Al Grey Handmade', gsm: 250, finish: 'Matt', sheetRate: 29.5, stockSheets: 180 },
+    { id: 'CAT-PAPER04', code: 'Paper #04', name: 'Sky Blue', gsm: 320, finish: 'Textured Chex', sheetRate: 30.7, stockSheets: 1050 },
+    { id: 'CAT-PAPER05', code: 'Paper #05', name: 'Red Velvet', gsm: 280, finish: 'Velvet', sheetRate: 26, stockSheets: 2125 },
+    { id: 'CAT-PAPER06', code: 'Paper #06', name: 'Al Greyish Green', gsm: 380, finish: 'Matt', sheetRate: 44, stockSheets: 2000 },
+    { id: 'CAT-PAPER07', code: 'Paper #07', name: 'White Cloudy', gsm: 290, finish: 'Printed Matt', sheetRate: 26, stockSheets: 450 },
+    { id: 'CAT-PAPER08', code: 'Paper #08', name: 'Al Light Green', gsm: 320, finish: 'Matt', sheetRate: 28.5, stockSheets: 2000 },
+    { id: 'CAT-PAPER09', code: 'Paper #09', name: 'P Cream', gsm: 360, finish: 'Matt', sheetRate: 35.4, stockSheets: 30 },
+    { id: 'CAT-PAPER10', code: 'Paper #10', name: 'Linning Cream', gsm: 220, finish: 'Linning', sheetRate: 26, stockSheets: 1000 },
+    { id: 'CAT-PAPER11', code: 'Paper #11', name: 'Khakhi', gsm: 350, finish: 'Matt', sheetRate: 23.6, stockSheets: 700 },
+    { id: 'CAT-PAPER12', code: 'Paper #12', name: 'Dark Blue (M.2094)', gsm: 350, finish: 'Matt', sheetRate: 33.1, stockSheets: 150 },
+    { id: 'CAT-PAPER13', code: 'Paper #13', name: 'Al Brown', gsm: 290, finish: 'Matt', sheetRate: 24.8, stockSheets: 2400 },
+    { id: 'CAT-PAPER14', code: 'Paper #14', name: 'BJ Green', gsm: 280, finish: 'Matt', sheetRate: 33.1, stockSheets: 0 },
+    { id: 'CAT-PAPER15', code: 'Paper #15', name: 'Navy Blue', gsm: 300, finish: 'Matt', sheetRate: 25, stockSheets: 0 },
+    { id: 'CAT-PAPER16', code: 'Paper #16', name: 'Burgandy', gsm: 290, finish: 'Matt', sheetRate: 29.5, stockSheets: 200 },
+    { id: 'CAT-PAPER17', code: 'Paper #17', name: 'Grey Linning', gsm: 300, finish: 'Linnig', sheetRate: 35.4, stockSheets: 0 },
+    { id: 'CAT-PAPER18', code: 'Paper #18', name: 'Light Grey', gsm: 320, finish: 'Matt', sheetRate: 37.8, stockSheets: 200 },
+    { id: 'CAT-PAPER19', code: 'Paper #19', name: 'Dark Grey', gsm: 250, finish: 'Matt', sheetRate: 29.5, stockSheets: 130 },
+    { id: 'CAT-PAPER20', code: 'Paper #20', name: 'SCM White Chex', gsm: 190, finish: 'Chex', sheetRate: 59, stockSheets: 100 },
+    { id: 'CAT-PAPER21', code: 'Paper #21', name: 'Al White Chex', gsm: 230, finish: 'Self Chex', sheetRate: 13, stockSheets: 280 },
+    { id: 'CAT-PAPER22', code: 'Paper #22', name: 'Al White Gloss', gsm: 220, finish: 'Gloss', sheetRate: 29.5, stockSheets: 450 },
+    { id: 'CAT-PAPER23', code: 'Paper #23', name: 'SCM Black', gsm: 400, finish: 'Matt', sheetRate: 36, stockSheets: 0 },
+    { id: 'CAT-PAPER24', code: 'Paper #24', name: 'Black Linning', gsm: 350, finish: 'Linning', sheetRate: 41.3, stockSheets: 100 },
+    { id: 'CAT-PAPER25', code: 'Paper #25', name: 'SCM Black', gsm: 250, finish: 'Matt', sheetRate: 23.6, stockSheets: 0 },
+    { id: 'CAT-PAPER26', code: 'Paper #26', name: 'Black Chex', gsm: 350, finish: 'Chex', sheetRate: 41.3, stockSheets: 900 },
+    { id: 'CAT-PAPER27', code: 'Paper #27', name: 'Black Velvet', gsm: 220, finish: 'Velvet', sheetRate: 33.1, stockSheets: 0 },
+    { id: 'CAT-PAPER28', code: 'Paper #28', name: 'Al Cream Handmade', gsm: 250, finish: 'Matt', sheetRate: 30.7, stockSheets: 700 },
+    { id: 'CAT-PAPER29', code: 'Paper #29', name: 'Black Velvet', gsm: 540, finish: 'Velvet', sheetRate: 22, stockSheets: 3000 },
+    { id: 'CAT-PAPER30', code: 'Paper #30', name: 'Fbb', gsm: 250, finish: 'Matt', sheetRate: 18.6, stockSheets: 3800 }
   ];
   // ---------------------------------------------------------------------------
   // Tags & Labels Order Creation State
@@ -2212,18 +2236,28 @@ function CustomerPortal({
                 </span>
               </div>
             </div>
-            <div className="overflow-x-auto mt-4">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-y border-slate-200 rounded-xl">
+            <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200 bg-white">
+              <table className="w-full table-fixed min-w-[1100px] text-left text-xs text-slate-700">
+                <colgroup>
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '84px' }} />
+                  <col style={{ width: 'auto' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '95px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '160px' }} />
+                </colgroup>
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-y border-slate-200 rounded-xl font-bold">
                   <tr>
-                    <th className="py-3 px-4 font-semibold">Order ID</th>
-                    <th className="py-3 px-4 font-semibold">Artwork</th>
+                    <th style={{ width: '130px' }} className="py-3 px-4 font-semibold">Order ID</th>
+                    <th style={{ width: '84px' }} className="py-3 px-4 text-center font-semibold">Artwork</th>
                     <th className="py-3 px-4 font-semibold">Brand &amp; Item Specs</th>
-                    <th className="py-3 px-4 font-semibold">Dori &amp; Plastic</th>
-                    <th className="py-3 px-4 font-semibold">Qty</th>
-                    <th className="py-3 px-4 font-semibold">Rate</th>
-                    <th className="py-3 px-4 text-right font-semibold">Amt</th>
-                    <th className="py-3 px-4 text-center font-semibold">Status</th>
+                    <th style={{ width: '150px' }} className="py-3 px-4 font-semibold">Dori &amp; Plastic</th>
+                    <th style={{ width: '95px' }} className="py-3 px-4 text-right font-semibold">Qty</th>
+                    <th style={{ width: '100px' }} className="py-3 px-4 text-right font-semibold">Rate</th>
+                    <th style={{ width: '110px' }} className="py-3 px-4 text-right font-semibold">Amt</th>
+                    <th style={{ width: '160px' }} className="py-3 px-4 text-center font-semibold">Status</th>
                   </tr>
                   {/* Individual search bar below brand and item spec | dori plastic | qty | rate */}
                   <tr className="bg-slate-50/70 border-b border-slate-200">

@@ -1,0 +1,25 @@
+[
+  {
+    "id": "CYCLE-STD-5",
+    "name": "Standard 5-Step Tag Cycle",
+    "isDefault": true,
+    "steps": [
+      { "key": "cutting", "name": "Paper Cutting", "stepNumber": 1, "description": "Guillotine sheet cutting & sizing" },
+      { "key": "printing", "name": "Printing", "stepNumber": 2, "description": "Offset / digital press ink application" },
+      { "key": "punching", "name": "Punching & Packing", "stepNumber": 3, "description": "Die-cutting, creasing & stripping" },
+      { "key": "handwork", "name": "Handwork Process", "stepNumber": 4, "description": "Dori attachment & plastic seal lock" },
+      { "key": "dispatch", "name": "Dispatch", "stepNumber": 5, "description": "Quality check & dispatch packing" }
+    ]
+  },
+  {
+    "id": "CYCLE-DIRECT-4",
+    "name": "Direct Tag Cycle (No Handwork)",
+    "isDefault": false,
+    "steps": [
+      { "key": "cutting", "name": "Paper Cutting", "stepNumber": 1, "description": "Guillotine sheet cutting & sizing" },
+      { "key": "printing", "name": "Printing", "stepNumber": 2, "description": "Offset / digital press ink application" },
+      { "key": "punching", "name": "Punching & Packing", "stepNumber": 3, "description": "Die-cutting, creasing & stripping" },
+      { "key": "dispatch", "name": "Dispatch", "stepNumber": 4, "description": "Quality check & dispatch packing" }
+    ]
+  }
+]
