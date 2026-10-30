@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.0  
-**Last Updated**: October 28, 2026  
+**Version**: 3.1  
+**Last Updated**: October 30, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -59,6 +59,20 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.1 — October 30, 2026
+- **System-Wide Reset of Transactional Data (Orders, Job Orders, Bills & Ledgers)**:
+  - Created safety backup in `data_backup_before_reset/`.
+  - Emptied all customer and admin orders from `data/orders.json` (`[]`).
+  - Emptied all shop-floor job orders / job cards from `data/production.json` (`[]`).
+  - Emptied all commercial invoices and bills from `data/invoices.json` (`[]`).
+  - Emptied all payment receipts and settlement transactions from `data/payments.json` (`[]`).
+  - Emptied old order quotations from `data/estimates.json` (`[]`) and inquiry logs from `data/messages.json` (`[]`).
+  - Reset piece-rate job entries in `data/payroll.json` and reset laborer piece-rate bonuses to 0.
+  - Reset client metrics (`totalOrders: 0`, `spentTotal: 0`) in `data/users.json` while maintaining client profiles and saved brand names.
+  - Cleaned job deduction references (`lastDeductedJob`, `lastDeductedDate`) in `data/inventory.json`.
+  - **Preserved Sheet Catalog**: Retained all 30 sheet catalog swatches, GSMs, finishes, and sheet rates in `data/catalogs.json` completely untouched.
+  - Verified clean, error-free empty states across both Customer and Admin portals.
 
 ### Version 3.0 — October 28, 2026
 - **Artwork Preview & In-Card Cropping**:

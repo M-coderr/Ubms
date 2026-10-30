@@ -1,4 +1,4 @@
-// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
+﻿// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
 window.uBMS = window.uBMS || {};
 
 function AdminPortal({ 
@@ -4734,6 +4734,13 @@ function AdminPortal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
+                  {invoices.length === 0 && (
+                    <tr>
+                      <td colSpan="9" className="py-12 text-center text-slate-400 text-xs">
+                        No billing invoices issued yet.
+                      </td>
+                    </tr>
+                  )}
                   {invoices.map(inv => (
                     <tr key={inv.id} className="hover:bg-slate-50/70">
                       <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{inv.id}</td>
@@ -4950,6 +4957,13 @@ function AdminPortal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {payments.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="py-12 text-center text-slate-400 text-xs">
+                      No payment receipts posted yet.
+                    </td>
+                  </tr>
+                )}
                 {payments.map(p => (
                   <tr key={p.id} className="hover:bg-slate-50/70">
                     <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{p.id}</td>

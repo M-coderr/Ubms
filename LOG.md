@@ -4,6 +4,33 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-10-30] — Version 3.1
+
+### 🧹 System-Wide Reset of Transactional Data (Orders, Job Orders, Bills & Ledgers)
+- **Safety Backup Created**:
+  - Full archive of pre-reset dataset preserved in `data_backup_before_reset/`.
+- **Emptied Orders & Quotations**:
+  - `data/orders.json`: Reset to `[]` (0 orders).
+  - `data/estimates.json`: Reset to `[]` (0 quotation drafts).
+  - `data/messages.json`: Reset to `[]` (0 chat inquiries).
+- **Emptied Shop-Floor Job Orders & Pipeline**:
+  - `data/production.json`: Reset to `[]` (0 job cards).
+  - Production Flow pipeline displays clean empty state: *"No active production jobs yet."*
+- **Emptied Billing, Invoices & Payments**:
+  - `data/invoices.json`: Reset to `[]` (0 bills/invoices).
+  - `data/payments.json`: Reset to `[]` (0 payment receipts).
+  - Customer Outstanding Ledgers and General Ledgers reset to ₹0 balance.
+- **Reset Payroll & Handwork Piece-Rate Entries**:
+  - `data/payroll.json`: Reset `pieceRateLedger` to `[]`. Sumit (artisan) piece-rate bonus reset to 0. Staff directory and attendance roster preserved.
+- **Reset Customer Account Metrics**:
+  - `data/users.json`: Reset `totalOrders: 0` and `spentTotal: 0` for all customer accounts (MG Creation, Aariya Creation, TagX, D Tag). Profiles and saved brands preserved.
+- **Cleaned Inventory Records**:
+  - `data/inventory.json`: Cleaned stale job deduction references (`lastDeductedJob`, `lastDeductedDate`). Raw materials stock catalog preserved.
+- **Preserved Sheet Catalog**:
+  - `data/catalogs.json`: Retained all 30 sheet catalog records with codes (`Paper #01` to `Paper #30`), GSMs, finishes, and sheet rates 100% untouched.
+
+---
+
 ## [2026-10-28] — Version 3.0
 
 ### 🖼️ Production Job Card Artwork Preview, Compact Identifiers & Automated Wastage Flow

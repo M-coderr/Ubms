@@ -1,4 +1,4 @@
-// Customer Portal: Tags & Labels Manufacturing Order System
+﻿// Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
 function CustomerPortal({ 
   customer, 
@@ -2570,6 +2570,13 @@ function CustomerPortal({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
+                  {customerInvoices.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="py-12 text-center text-slate-400 text-xs">
+                        No billing invoices issued yet.
+                      </td>
+                    </tr>
+                  )}
                   {customerInvoices.map(inv => (
                     <tr key={inv.id} className="hover:bg-slate-50/70">
                       <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{inv.id}</td>
