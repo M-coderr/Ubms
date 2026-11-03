@@ -55,9 +55,9 @@ function InvoiceModal({ order, onClose }) {
 
             <div className="sm:text-right">
               <h2 className="text-2xl font-black uppercase text-slate-900">INVOICE</h2>
-              <div className="text-sm font-bold text-slate-900 font-mono mt-1">INV-{order.id}</div>
-              <div className="text-xs text-slate-500 mt-1">Date: {formatDate(order.createdAt)}</div>
-              <div className="text-xs text-slate-500">Delivery: {formatDate(order.expectedDelivery)}</div>
+              <div className="text-sm font-bold text-slate-900 font-mono mt-1">{order.id && order.id.startsWith('INV-') ? order.id : `INV-${order.id}`}</div>
+              <div className="text-xs text-slate-500 mt-1">Date: {formatDate(order.issueDate || order.createdAt)}</div>
+              <div className="text-xs text-slate-500">Due: {formatDate(order.dueDate || order.expectedDelivery)}</div>
             </div>
           </div>
 
@@ -163,6 +163,20 @@ function InvoiceModal({ order, onClose }) {
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal</span>
                 <span className="font-mono">{formatCurrency(order.subtotal || order.total)}</span>
+              </div>
+              {order.tax > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>GST / Tax</span>
+                  <span className="font-mono">{formatCurrency(order.tax)}</span>
+                </div>
+              )}
+              {order.shipping > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Shipping Charges</span>
+                  <span className="font-mono">{formatCurrency(order.shipping)}</span>
+                </div>
+              )}
+              <div style={{ display: 'none' }}>
               </div>
               <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t-2 border-slate-900">
                 <span>Total Amount</span>

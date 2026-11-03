@@ -1,5 +1,136 @@
-﻿// Customer Portal: Tags & Labels Manufacturing Order System
+// Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
+// uBMS Piece Selection Naming Helper
+window.uBMS = window.uBMS || {};
+window.uBMS.getTagPieceTitle = function(index, total) {
+  if (total <= 1) return 'Single Tag';
+  if (total === 2) {
+    return index === 0 ? '1st Pc (Base Pc)' : '2nd Pc (Upper Pc)';
+  }
+  if (total === 3) {
+    if (index === 0) return '1st Pc (Base Pc)';
+    if (index === 1) return '2nd Pc (Middle Pc)';
+    return '3rd Pc (Upper Pc)';
+  }
+  if (index === 0) return '1st Pc (Base Pc)';
+  if (index === total - 1) return `${index + 1}th Pc (Upper Pc)`;
+  return `${index + 1}th Pc (Middle Pc ${index})`;
+};
+
+// uBMS Searchable Paper Catalog Combobox
+function PaperCatalogCombobox({ 
+  selectedCatalogId, 
+  onSelectCatalog, 
+  availableCatalogs = [], 
+  error, 
+  placeholder = "Type paper catalog (e.g. Paper #01, Gloss, 250 GSM)..." 
+}) {
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const currentCat = availableCatalogs.find(c => c.id === selectedCatalogId) || availableCatalogs[0];
+  const currentLabel = currentCat 
+    ? `${currentCat.code} - ${currentCat.name || ''} (${currentCat.gsm} GSM, ${currentCat.finish})`
+    : '';
+
+  const filteredCatalogs = React.useMemo(() => {
+    if (!searchQuery.trim()) return availableCatalogs;
+    const q = searchQuery.toLowerCase().trim();
+    return availableCatalogs.filter(c => 
+      (c.code || '').toLowerCase().includes(q) ||
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.finish || '').toLowerCase().includes(q) ||
+      String(c.gsm || '').includes(q)
+    );
+  }, [availableCatalogs, searchQuery]);
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={isFocused ? searchQuery : currentLabel}
+          onFocus={() => {
+            setIsFocused(true);
+            setSearchQuery('');
+          }}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              setIsFocused(false);
+              setSearchQuery('');
+            }, 250);
+          }}
+          className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${
+            error ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'
+          } rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+          autoComplete="off"
+        />
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+          &#9662;
+        </div>
+      </div>
+
+      {isFocused && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 max-h-56 overflow-y-auto">
+          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+            <span>Paper Board Catalogs ({filteredCatalogs.length})</span>
+            <span className="text-[9px] text-slate-400 font-normal">Select or type to filter</span>
+          </div>
+          {filteredCatalogs.length > 0 ? (
+            filteredCatalogs.map(cat => {
+              const isSelected = cat.id === selectedCatalogId;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelectCatalog(cat.id);
+                    setIsFocused(false);
+                    setSearchQuery('');
+                  }}
+                  className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                    isSelected ? 'bg-indigo-50/80 font-bold' : ''
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 truncate mr-2">
+                    <span className="font-mono font-bold text-xs text-slate-900">{cat.code}</span>
+                    <span className="text-slate-700 text-xs truncate">{cat.name}</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
+                      {cat.gsm} GSM
+                    </span>
+                    <span className="text-[10px] text-slate-500 shrink-0 font-medium">
+                      ({cat.finish})
+                    </span>
+                  </div>
+                  <div className="text-right shrink-0 flex items-center space-x-2">
+                    <span className="text-[10px] font-mono font-semibold text-slate-600">
+                      &#8377;{cat.sheetRate || cat.ratePerSheet || 0}/sht
+                    </span>
+                    {isSelected && (
+                      <span className="text-[10px] text-brand-600 font-bold">&#10003;</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          ) : (
+            <div className="p-3 text-center text-xs text-slate-500">
+              No paper catalogs matching "{searchQuery}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+window.uBMS.PaperCatalogCombobox = PaperCatalogCombobox;
+
 function CustomerPortal({ 
   customer, 
   orders, 
@@ -115,6 +246,95 @@ function CustomerPortal({
   const customerInvoices = React.useMemo(() => {
     return invoices.filter(i => i.customerId === customer.id);
   }, [invoices, customer]);
+
+  // Invoice List Search & Filter
+  const [custInvListSearch, setCustInvListSearch] = React.useState('');
+  const [custInvListStatusFilter, setCustInvListStatusFilter] = React.useState('all');
+
+  const filteredCustomerInvoiceList = React.useMemo(() => {
+    return customerInvoices.filter(inv => {
+      if (custInvListStatusFilter === 'paid' && inv.status !== 'paid') return false;
+      if (custInvListStatusFilter === 'unpaid' && (inv.status === 'paid' || (inv.paidAmount > 0 && inv.balanceDue > 0))) return false;
+      if (custInvListStatusFilter === 'partial' && (inv.paidAmount <= 0 || inv.balanceDue <= 0)) return false;
+      if (custInvListStatusFilter === 'overdue') {
+        const isPastDue = inv.dueDate && new Date(inv.dueDate) < new Date();
+        if (!isPastDue || inv.status === 'paid' || inv.balanceDue <= 0) return false;
+      }
+      if (custInvListSearch.trim()) {
+        const q = custInvListSearch.toLowerCase().trim();
+        const matchId = (inv.id || '').toLowerCase().includes(q);
+        const matchOrd = (inv.orderId || '').toLowerCase().includes(q);
+        if (!matchId && !matchOrd) return false;
+      }
+      return true;
+    });
+  }, [customerInvoices, custInvListStatusFilter, custInvListSearch]);
+
+  // Invoice Register Per-Column Search
+  const [custInvRegSearchId, setCustInvRegSearchId] = React.useState('');
+  const [custInvRegSearchSpecs, setCustInvRegSearchSpecs] = React.useState('');
+  const [custInvRegSearchDoriPlastic, setCustInvRegSearchDoriPlastic] = React.useState('');
+  const [custInvRegSearchQty, setCustInvRegSearchQty] = React.useState('');
+  const [custInvRegSearchRate, setCustInvRegSearchRate] = React.useState('');
+  const [custInvRegStatusFilter, setCustInvRegStatusFilter] = React.useState('all');
+
+  const flattenedCustInvoiceItems = React.useMemo(() => {
+    const list = [];
+    customerInvoices.forEach(inv => {
+      const linkedOrder = orders.find(o => o.id === inv.orderId);
+      const items = (inv.items && inv.items.length > 0) ? inv.items : (linkedOrder?.items || [{ name: 'Commercial Goods', quantity: 1, unitPrice: inv.total, total: inv.total }]);
+      items.forEach((item, idx) => {
+        list.push({
+          rowKey: `${inv.id}_item_${idx}`,
+          invoice: inv,
+          item: item,
+          itemIndex: idx,
+          linkedOrder: linkedOrder
+        });
+      });
+    });
+    return list;
+  }, [customerInvoices, orders]);
+
+  const filteredCustInvoiceRegister = React.useMemo(() => {
+    return flattenedCustInvoiceItems.filter(({ invoice: inv, item, linkedOrder }) => {
+      if (custInvRegStatusFilter === 'paid' && inv.status !== 'paid') return false;
+      if (custInvRegStatusFilter === 'unpaid' && (inv.status === 'paid' || (inv.paidAmount > 0 && inv.balanceDue > 0))) return false;
+      if (custInvRegStatusFilter === 'partial' && (inv.paidAmount <= 0 || inv.balanceDue <= 0)) return false;
+      if (custInvRegStatusFilter === 'overdue') {
+        const isPastDue = inv.dueDate && new Date(inv.dueDate) < new Date();
+        if (!isPastDue || inv.status === 'paid' || inv.balanceDue <= 0) return false;
+      }
+      if (custInvRegSearchId.trim()) {
+        const q = custInvRegSearchId.toLowerCase().trim();
+        const matchInvId = (inv.id || '').toLowerCase().includes(q);
+        const matchOrdId = (inv.orderId || '').toLowerCase().includes(q);
+        const matchCustOrdId = (linkedOrder?.customerOrderId || '').toLowerCase().includes(q);
+        if (!matchInvId && !matchOrdId && !matchCustOrdId) return false;
+      }
+      if (custInvRegSearchSpecs.trim()) {
+        const q = custInvRegSearchSpecs.toLowerCase().trim();
+        const specsStr = `${item.name || ''}`.toLowerCase();
+        if (!specsStr.includes(q)) return false;
+      }
+      if (custInvRegSearchDoriPlastic.trim()) {
+        const q = custInvRegSearchDoriPlastic.toLowerCase().trim();
+        const trimStr = `${item.dori || ''} ${item.plastic || ''}`.toLowerCase();
+        if (!trimStr.includes(q)) return false;
+      }
+      if (custInvRegSearchQty.trim()) {
+        const q = custInvRegSearchQty.trim();
+        if (!String(item.quantity || '').includes(q)) return false;
+      }
+      if (custInvRegSearchRate.trim()) {
+        const q = custInvRegSearchRate.trim();
+        const matchRate = String(item.unitPrice || '').includes(q);
+        const matchTotal = String(item.total || inv.total || '').includes(q);
+        if (!matchRate && !matchTotal) return false;
+      }
+      return true;
+    });
+  }, [flattenedCustInvoiceItems, custInvRegStatusFilter, custInvRegSearchId, custInvRegSearchSpecs, custInvRegSearchDoriPlastic, custInvRegSearchQty, custInvRegSearchRate]);
   // Financial Ledgers
   const generalLedger = React.useMemo(() => {
     return window.uBMS.computeCustomerGeneralLedger(customer.id, customerInvoices, payments);
@@ -214,8 +434,8 @@ function CustomerPortal({
   const [isMultiCard, setIsMultiCard] = React.useState(false);
   const [singleCardDimension, setSingleCardDimension] = React.useState('');
   const [tagCards, setTagCards] = React.useState([
-    { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
-    { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
+    { id: 1, title: '1st Pc (Base Pc)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+    { id: 2, title: '2nd Pc (Upper Pc)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
   ]);
   const [qty, setQty] = React.useState(0);
   const [rate, setRate] = React.useState(0);
@@ -439,12 +659,16 @@ function CustomerPortal({
   const handleAddThirdCard = () => {
     if (tagCards.length >= 3) return;
     setTagCards(prev => [
-      ...prev,
-      { id: 3, title: 'Tag 3 (Overlay Tag)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115', dimension: '' }
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+      { id: 3, title: '3rd Pc (Upper Pc)', catalogId: availableCatalogs[2]?.id || availableCatalogs[0]?.id, dimension: '' }
     ]);
   };
   const handleRemoveThirdCard = () => {
-    setTagCards(prev => prev.slice(0, 2));
+    setTagCards(prev => [
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+    ]);
   };
   // Image upload & cropping
   const [showCropModal, setShowCropModal] = React.useState(false);
@@ -1150,15 +1374,12 @@ function CustomerPortal({
             <div>
               <div className="flex items-center space-x-2.5">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Production Order Studio
+                  Place Order
                 </h1>
                 <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Your sequential Order ID">
                   {currentCustomerOrderId}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Configure garment tag specifications, inspect artwork proof, and book manufacturing orders.
-              </p>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -1192,9 +1413,6 @@ function CustomerPortal({
                     <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                       Production Run Type
                     </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Choose whether you are booking a new design run or repeating a past manufactured order.
-                    </p>
                   </div>
                 </div>
                 {/* Elegant Segmented Switcher */}
@@ -1385,30 +1603,10 @@ function CustomerPortal({
                 {orderType === 'New Order' && (
                   <div className="pt-2 border-t border-slate-100 space-y-3">
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="mb-1.5">
                         <label className="text-[11px] font-semibold text-slate-700">
                           Brand / Client Label <span className="text-rose-500">*</span>
                         </label>
-                        {customerSavedBrands.length > 0 && (
-                          <div className="flex items-center space-x-1 text-[10px] text-slate-400">
-                            <span>Saved:</span>
-                            {customerSavedBrands.slice(0, 3).map((sb, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => {
-                                  setBrandName(sb);
-                                  if (stepValidationErrors.brandName) {
-                                    setStepValidationErrors(prev => ({ ...prev, brandName: null }));
-                                  }
-                                }}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
-                              >
-                                {sb}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <div className="relative">
                         <input
@@ -1487,9 +1685,6 @@ function CustomerPortal({
                   <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                     Product Architecture &amp; Specifications
                   </label>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Select the garment accessory category and configure physical dimensions and paper board qualities.
-                  </p>
                 </div>
                 {/* Category & Piece Format Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1522,17 +1717,32 @@ function CustomerPortal({
                             setIsMultiCard(false);
                           } else if (val === '2 PC') {
                             setIsMultiCard(true);
-                            if (tagCards.length > 2) handleRemoveThirdCard();
+                            if (tagCards.length > 2) {
+                              handleRemoveThirdCard();
+                            } else {
+                              setTagCards(prev => [
+                                { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+                                { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+                              ]);
+                            }
                           } else if (val === '3 PC') {
                             setIsMultiCard(true);
-                            if (tagCards.length < 3) handleAddThirdCard();
+                            if (tagCards.length < 3) {
+                              handleAddThirdCard();
+                            } else {
+                              setTagCards(prev => [
+                                { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+                                { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+                                { id: 3, title: '3rd Pc (Upper Pc)', catalogId: prev[2]?.catalogId || availableCatalogs[2]?.id, dimension: prev[2]?.dimension || '' }
+                              ]);
+                            }
                           }
                         }}
                         className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                       >
-                        <option value="1 PC">1 PC (Single Tag)</option>
-                        <option value="2 PC">2 PC (2-Piece Tag Set)</option>
-                        <option value="3 PC">3 PC (3-Piece Tag Kit)</option>
+                        <option value="1 PC">Single Tag (1 Pc)</option>
+                        <option value="2 PC">2-Piece Tag (Base + Upper)</option>
+                        <option value="3 PC">3-Piece Tag (Base + Middle + Upper)</option>
                       </select>
                     </div>
                   ) : (
@@ -1561,33 +1771,28 @@ function CustomerPortal({
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
                               Paper Catalog Board <span className="text-rose-500">*</span>
                             </label>
-                            <select
-                              value={selectedCatalogId}
-                              onChange={(e) => {
-                                setSelectedCatalogId(e.target.value);
+                            <PaperCatalogCombobox
+                              selectedCatalogId={selectedCatalogId}
+                              onSelectCatalog={(catId) => {
+                                setSelectedCatalogId(catId);
                                 if (stepValidationErrors.selectedCatalogId) {
                                   setStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
                                 }
                               }}
-                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
-                            >
-                              {availableCatalogs.map(cat => (
-                                <option key={cat.id} value={cat.id}>
-                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
-                                </option>
-                              ))}
-                            </select>
+                              availableCatalogs={availableCatalogs}
+                              error={stepValidationErrors.selectedCatalogId}
+                            />
                           </div>
                           <div>
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                              Die-Cut Dimensions (Size L x Size B)
+                              Product Size
                             </label>
                             <input
                               type="text"
                               placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
                               value={singleCardDimension}
                               onChange={(e) => setSingleCardDimension(e.target.value)}
-                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                             />
                           </div>
                         </div>
@@ -1613,7 +1818,7 @@ function CustomerPortal({
                               <div key={card.id} className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-bold text-slate-800">
-                                    {card.title}
+                                    {window.uBMS.getTagPieceTitle(idx, tagCards.length)}
                                   </span>
                                   {idx === 2 && (
                                     <button
@@ -1630,28 +1835,23 @@ function CustomerPortal({
                                     <label className="text-[10px] font-semibold text-slate-500 block mb-1">
                                       Paper Board Quality
                                     </label>
-                                    <select
-                                      value={card.catalogId}
-                                      onChange={(e) => handleUpdateCardCatalog(idx, e.target.value)}
-                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
-                                    >
-                                      {availableCatalogs.map(cat => (
-                                        <option key={cat.id} value={cat.id}>
-                                          {cat.code} - {cat.gsm} GSM
-                                        </option>
-                                      ))}
-                                    </select>
+                                    <PaperCatalogCombobox
+                                      selectedCatalogId={card.catalogId}
+                                      onSelectCatalog={(newCatId) => handleUpdateCardCatalog(idx, newCatId)}
+                                      availableCatalogs={availableCatalogs}
+                                      placeholder="Select paper board..."
+                                    />
                                   </div>
                                   <div>
                                     <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                                      Finished Dimensions
+                                      Product Size
                                     </label>
                                     <input
                                       type="text"
                                       placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
                                       value={card.dimension}
                                       onChange={(e) => handleUpdateCardDimension(idx, e.target.value)}
-                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium shadow-2xs"
                                     />
                                   </div>
                                 </div>
@@ -1746,159 +1946,152 @@ function CustomerPortal({
                     <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                       Handwork Fasteners &amp; Attachments
                     </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Configure tag hanging cords (Dori) and molded barcode seal locks.
-                    </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Dori (Cord/String) */}
-                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
-                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDoriOption('none');
-                              setDoriCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              doriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            None
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDoriOption('reg');
-                              setDoriCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              doriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Reg. (&#8377;0.20)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDoriOption('custom')}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              doriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Custom
-                          </button>
-                        </div>
+                        <span className="text-xs font-bold text-slate-800">Dori (String)</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {doriOption === 'none' ? 'None' : doriOption === 'reg' ? 'Regular (+\u20B90.20)' : 'Custom'}
+                        </span>
                       </div>
-                      {doriOption === 'custom' ? (
+                      <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDoriOption('none');
+                            setDoriCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            doriOption === 'none'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDoriOption('reg');
+                            setDoriCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                            doriOption === 'reg'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          <span>Reg.</span>
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            doriOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            &#8377;0.20
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDoriOption('custom')}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            doriOption === 'custom'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {doriOption === 'custom' && (
                         <input
                           type="text"
                           placeholder="Specify custom dori (e.g. Waxed Cotton / Satin cord)"
                           value={doriCustom}
                           onChange={(e) => setDoriCustom(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
                         />
-                      ) : (
-                        <div className="text-[11px] text-slate-500">
-                          {doriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (\u20B90.20/pc)'}
-                        </div>
                       )}
                     </div>
-                    {/* Barcode Plastic Seal */}
-                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                    {/* Barcode Plastic */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-800">Barcode Plastic Seal</span>
-                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPlasticOption('none');
-                              setPlasticCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              plasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            None
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPlasticOption('reg');
-                              setPlasticCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              plasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Reg. (&#8377;0.10)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPlasticOption('custom')}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              plasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Custom
-                          </button>
-                        </div>
+                        <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {plasticOption === 'none' ? 'None' : plasticOption === 'reg' ? 'Regular (+\u20B90.10)' : 'Custom'}
+                        </span>
                       </div>
-                      {plasticOption === 'custom' ? (
+                      <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlasticOption('none');
+                            setPlasticCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            plasticOption === 'none'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPlasticOption('reg');
+                            setPlasticCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                            plasticOption === 'reg'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          <span>Reg.</span>
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            plasticOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            &#8377;0.10
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPlasticOption('custom')}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            plasticOption === 'custom'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {plasticOption === 'custom' && (
                         <input
                           type="text"
-                          placeholder="Specify custom seal (e.g. Embossed Square Seal)"
+                          placeholder="Specify custom barcode plastic (e.g. Embossed Square Seal)"
                           value={plasticCustom}
                           onChange={(e) => setPlasticCustom(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
                         />
-                      ) : (
-                        <div className="text-[11px] text-slate-500">
-                          {plasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (\u20B90.10/pc)'}
-                        </div>
                       )}
                     </div>
                   </div>
                 </div>
               )}
-              {/* SECTION 4: Production Volume & Commercial Rates */}
+              {/* SECTION 4: Commercials */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
                 <div>
                   <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-                    Production Volume &amp; Commercials
+                    Commercials
                   </label>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Specify required pieces and agreed unit manufacturing pricing.
-                  </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                  {/* Quantity Input with Presets */}
+                  {/* Quantity Input */}
                   <div className="sm:col-span-6 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-semibold text-slate-700">
-                        Order Quantity (Pcs) <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex items-center space-x-1">
-                        {[1000, 2500, 5000, 10000].map(val => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => {
-                              setQty(val);
-                              if (stepValidationErrors.qty) setStepValidationErrors(prev => ({ ...prev, qty: null }));
-                            }}
-                            className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                              Number(qty) === val
-                                ? 'bg-slate-900 text-white border-slate-900 font-bold'
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {val >= 1000 ? `${val / 1000}k` : val}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <label className="text-[11px] font-semibold text-slate-700 block">
+                      Order Quantity (Pcs) <span className="text-rose-500">*</span>
+                    </label>
                     <input type="number"
                       name="ubms_order_qty_input"
                       placeholder="e.g. 5000"
@@ -1984,9 +2177,7 @@ function CustomerPortal({
                   >
                     <span>+ Add Another Article to this Order Batch</span>
                   </button>
-                  <span className="text-[11px] text-slate-400">
-                    Combine multiple tag references into one job card
-                  </span>
+
                 </div>
               </div>
             </div>
@@ -1998,9 +2189,6 @@ function CustomerPortal({
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">Artwork &amp; Prepress Proof</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Visual framing and prepress alignment for offset printing.
-                    </p>
                   </div>
                   {orderImage && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
@@ -2032,9 +2220,7 @@ function CustomerPortal({
                     <p className="text-[11px] text-slate-500 max-w-xs mt-1 leading-relaxed">
                       Drag &amp; drop your logo or tag artwork file (JPG, PNG, WEBP up to 25MB).
                     </p>
-                    <span className="text-[10px] text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
-                      Optional: Our design studio prepares prepress proofs if blank
-                    </span>
+
                   </div>
                 ) : (
                   /* Visual Tag Mockup Proof Preview */
@@ -2129,17 +2315,10 @@ function CustomerPortal({
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Composition:</span>
                     <span className="font-semibold text-slate-900 text-right">
-                      {selectedType === 'Tag' || selectedType === 'Tag Kit' ? (isMultiCard ? `${tagCards.length}-Piece Set` : 'Single Card Tag') : 'Standard Unit'}
+                      {selectedType === 'Tag' || selectedType === 'Tag Kit' ? (isMultiCard ? (tagCards.length === 2 ? '2-Piece Tag (Base + Upper)' : tagCards.length === 3 ? '3-Piece Tag (Base + Middle + Upper)' : `${tagCards.length}-Piece Set`) : 'Single Tag (1 Pc)') : 'Standard Unit'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Material Board:</span>
-                    <span className="font-semibold text-slate-900 text-right text-[11px] max-w-[160px] truncate">
-                      {selectedType === 'Tag' || selectedType === 'Tag Kit'
-                        ? (availableCatalogs.find(c => c.id === selectedCatalogId)?.code || 'Stock Board')
-                        : `${puOrigin} PU (${puThickness}mm)`}
-                    </span>
-                  </div>
+
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Volume:</span>
                     <span className="font-semibold font-mono text-slate-900 text-right">{Number(qty || 0).toLocaleString()} pcs</span>
@@ -2153,7 +2332,7 @@ function CustomerPortal({
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
                       <span className="text-[11px] text-slate-600 text-right">
-                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : '\u20B90.20'}) | Seal ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : '\u20B90.10'})
+                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : '\u20B90.20'}) | Plastic ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : '\u20B90.10'})
                       </span>
                     </div>
                   )}
@@ -2180,9 +2359,7 @@ function CustomerPortal({
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-                  Orders are scheduled directly to the offset press queue upon confirmation.
-                </p>
+
               </div>
             </div>
           </div>
@@ -2549,74 +2726,454 @@ function CustomerPortal({
           </div>
         </div>
       )}
-      {/* MODULE 3: INVOICE REGISTER */}
-      {activeTab === 'invoice_register' && (
-        <div className="space-y-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-extrabold text-slate-900 text-base mb-1">Customer Invoice Register</h3>
-            <p className="text-xs text-slate-500 mb-4">Invoices issued against completed orders.</p>
+      {/* MODULE 3A: CUSTOMER INVOICE LIST */}
+      {activeTab === 'invoice_list' && (
+        <div className="space-y-5 animate-fade-in pb-12">
+          {/* Header */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-extrabold text-slate-900 text-base">Commercial Invoice List</h3>
+                <span className="text-xs bg-slate-100 text-slate-800 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                  {customerInvoices.length} Invoices
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Summary of all commercial bills issued for manufactured orders.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl">
+                Billed To: {customer.company}
+              </span>
+            </div>
+          </div>
+
+          {/* KPI Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Total Billed</span>
+              <span className="text-lg font-black text-slate-900 font-mono mt-0.5 block">
+                {formatCurrency(customerInvoices.reduce((acc, i) => acc + (Number(i.total) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Total Paid</span>
+              <span className="text-lg font-black text-emerald-600 font-mono mt-0.5 block">
+                {formatCurrency(customerInvoices.reduce((acc, i) => acc + (Number(i.paidAmount) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Balance Outstanding</span>
+              <span className="text-lg font-black text-amber-700 font-mono mt-0.5 block">
+                {formatCurrency(customerInvoices.reduce((acc, i) => acc + (Number(i.balanceDue) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Unsettled Bills</span>
+              <span className="text-lg font-black text-rose-600 font-mono mt-0.5 block">
+                {customerInvoices.filter(i => i.status !== 'paid' && Number(i.balanceDue) > 0).length}
+              </span>
+            </div>
+          </div>
+
+          {/* Search & Status Filters */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[240px]">
+                <input
+                  type="text"
+                  value={custInvListSearch}
+                  onChange={(e) => setCustInvListSearch(e.target.value)}
+                  placeholder="Search Invoice # or Order Ref..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none"
+                />
+                {custInvListSearch && (
+                  <button
+                    onClick={() => setCustInvListSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {[
+                  { key: 'all', label: `All (${customerInvoices.length})` },
+                  { key: 'paid', label: `Paid (${customerInvoices.filter(i => i.status === 'paid').length})` },
+                  { key: 'unpaid', label: `Unpaid (${customerInvoices.filter(i => i.status === 'unpaid').length})` },
+                  { key: 'partial', label: `Partial (${customerInvoices.filter(i => i.paidAmount > 0 && i.balanceDue > 0).length})` }
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setCustInvListStatusFilter(tab.key)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      custInvListStatusFilter === tab.key
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {(custInvListSearch || custInvListStatusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustInvListSearch('');
+                    setCustInvListStatusFilter('all');
+                  }}
+                  className="text-xs text-slate-600 hover:text-slate-900 underline font-semibold px-2 py-1 cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+
+            <span className="text-xs font-mono font-medium text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
+              Showing {filteredCustomerInvoiceList.length} of {customerInvoices.length} Invoice(s)
+            </span>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 font-bold">
                   <tr>
                     <th className="py-3 px-4 font-bold">Invoice No</th>
                     <th className="py-3 px-4 font-bold">Order Ref</th>
                     <th className="py-3 px-4 font-bold">Issue Date</th>
-                    <th className="py-3 px-4 font-bold">Invoice Total</th>
+                    <th className="py-3 px-4 font-bold">Due Date</th>
+                    <th className="py-3 px-4 font-bold">Total Amount</th>
                     <th className="py-3 px-4 font-bold">Paid</th>
                     <th className="py-3 px-4 font-bold">Balance Due</th>
-                    <th className="py-3 px-4 font-bold">Status</th>
+                    <th className="py-3 px-4 font-bold text-center">Status</th>
                     <th className="py-3 px-4 text-right font-bold">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {customerInvoices.length === 0 && (
+                  {filteredCustomerInvoiceList.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="py-12 text-center text-slate-400 text-xs">
-                        No billing invoices issued yet.
+                      <td colSpan="9" className="py-12 text-center text-slate-400 text-xs">
+                        {customerInvoices.length === 0 ? 'No billing invoices issued yet.' : 'No invoices match your filter criteria.'}
                       </td>
                     </tr>
+                  ) : (
+                    filteredCustomerInvoiceList.map(inv => {
+                      const linked = orders.find(o => o.id === inv.orderId);
+                      const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'paid' && inv.balanceDue > 0;
+
+                      return (
+                        <tr key={inv.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{inv.id}</td>
+                          <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
+                            <div>{linked?.customerOrderId || (inv.orderId && inv.orderId.includes('-') ? inv.orderId.split('-').pop() : inv.orderId)}</div>
+                            <span className="text-[10px] text-slate-400">{inv.orderId}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600">{formatDate(inv.issueDate)}</td>
+                          <td className="py-3.5 px-4 text-slate-600">
+                            <div>{formatDate(inv.dueDate)}</div>
+                            {isOverdue && (
+                              <span className="text-[9px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded-full inline-block mt-0.5">
+                                Overdue
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">{formatCurrency(inv.total)}</td>
+                          <td className="py-3.5 px-4 text-emerald-600 font-bold font-mono">{formatCurrency(inv.paidAmount || 0)}</td>
+                          <td className="py-3.5 px-4 font-extrabold font-mono">
+                            <span className={inv.balanceDue > 0 ? 'text-amber-700' : 'text-slate-400'}>
+                              {formatCurrency(inv.balanceDue || 0)}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-block ${
+                              inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              (inv.paidAmount > 0 && inv.balanceDue > 0) ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                              'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}>
+                              {inv.status === 'paid' ? 'PAID' : (inv.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => {
+                                const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
+                                onOpenInvoice(linkedOrder);
+                              }}
+                              className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                            >
+                              Print / PDF
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
-                  {customerInvoices.map(inv => (
-                    <tr key={inv.id} className="hover:bg-slate-50/70">
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-700" title={inv.orderId}>
-                        {(() => {
-                          const linked = orders.find(o => o.id === inv.orderId);
-                          return linked?.customerOrderId || (inv.orderId && inv.orderId.includes('-') ? inv.orderId.split('-').pop() : inv.orderId);
-                        })()}
-                      </td>
-                      <td className="py-3.5 px-4">{formatDate(inv.issueDate)}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(inv.total)}</td>
-                      <td className="py-3.5 px-4 text-emerald-600 font-bold">{formatCurrency(inv.paidAmount)}</td>
-                      <td className="py-3.5 px-4 font-extrabold text-amber-700">{formatCurrency(inv.balanceDue)}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
-                          inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
-                            onOpenInvoice(linkedOrder);
-                          }}
-                          className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                        >
-                          Print / PDF
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
       )}
+
+      {/* MODULE 3B: CUSTOMER INVOICE REGISTER (DETAILED WITH PER-COLUMN SEARCH) */}
+      {activeTab === 'invoice_register' && (
+        <div className="space-y-4 animate-fade-in pb-12">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-extrabold text-slate-900 text-base">Customer Invoice Register</h3>
+                <span className="text-xs bg-slate-100 text-slate-800 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                  Item Specs &amp; Tax Breakdown
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">Comprehensive item-level sales register with artwork inspection and specs breakdown.</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Status:</span>
+                <select
+                  value={custInvRegStatusFilter}
+                  onChange={(e) => setCustInvRegStatusFilter(e.target.value)}
+                  className="bg-transparent text-xs text-slate-800 font-semibold outline-none cursor-pointer"
+                >
+                  <option value="all">All ({customerInvoices.length})</option>
+                  <option value="paid">Paid</option>
+                  <option value="partial">Partial</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+
+              {(custInvRegStatusFilter !== 'all' || custInvRegSearchId || custInvRegSearchSpecs || custInvRegSearchDoriPlastic || custInvRegSearchQty || custInvRegSearchRate) && (
+                <button
+                  onClick={() => {
+                    setCustInvRegStatusFilter('all');
+                    setCustInvRegSearchId('');
+                    setCustInvRegSearchSpecs('');
+                    setCustInvRegSearchDoriPlastic('');
+                    setCustInvRegSearchQty('');
+                    setCustInvRegSearchRate('');
+                  }}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 font-medium transition-colors cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+              <span className="text-xs text-slate-700 font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
+                {filteredCustInvoiceRegister.length} of {flattenedCustInvoiceItems.length} Item(s)
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+            <table className="w-full table-fixed min-w-[1100px] text-left text-xs text-slate-700">
+              <colgroup>
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '100px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '110px' }} />
+              </colgroup>
+              <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
+                <tr>
+                  <th className="py-3 px-3 font-semibold">Invoice &amp; Order</th>
+                  <th className="py-3 px-3 text-center font-semibold">Artwork</th>
+                  <th className="py-3 px-4 font-semibold">Brand &amp; Item Specs</th>
+                  <th className="py-3 px-3 font-semibold">Dori &amp; Plastic</th>
+                  <th className="py-3 px-3 text-right font-semibold">Qty</th>
+                  <th className="py-3 px-3 text-right font-semibold">Rate</th>
+                  <th className="py-3 px-3 text-right font-semibold">Total</th>
+                  <th className="py-3 px-3 text-center font-semibold">Status</th>
+                  <th className="py-3 px-4 text-right font-semibold">Action</th>
+                </tr>
+                {/* Search Row */}
+                <tr className="bg-slate-50/70 border-b border-slate-200">
+                  <th className="py-2 px-3 font-normal">
+                    <input
+                      type="text"
+                      value={custInvRegSearchId}
+                      onChange={(e) => setCustInvRegSearchId(e.target.value)}
+                      placeholder="Search ID..."
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none font-mono"
+                    />
+                  </th>
+                  <th className="py-2 px-3 font-normal"></th>
+                  <th className="py-2 px-4 font-normal">
+                    <input
+                      type="text"
+                      value={custInvRegSearchSpecs}
+                      onChange={(e) => setCustInvRegSearchSpecs(e.target.value)}
+                      placeholder="Search specs, brand..."
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none"
+                    />
+                  </th>
+                  <th className="py-2 px-3 font-normal">
+                    <input
+                      type="text"
+                      value={custInvRegSearchDoriPlastic}
+                      onChange={(e) => setCustInvRegSearchDoriPlastic(e.target.value)}
+                      placeholder="Search trims..."
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none"
+                    />
+                  </th>
+                  <th className="py-2 px-3 font-normal">
+                    <input
+                      type="text"
+                      value={custInvRegSearchQty}
+                      onChange={(e) => setCustInvRegSearchQty(e.target.value)}
+                      placeholder="Qty..."
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none text-right font-mono"
+                    />
+                  </th>
+                  <th className="py-2 px-3 font-normal">
+                    <input
+                      type="text"
+                      value={custInvRegSearchRate}
+                      onChange={(e) => setCustInvRegSearchRate(e.target.value)}
+                      placeholder="Rate..."
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none text-right font-mono"
+                    />
+                  </th>
+                  <th className="py-2 px-3 font-normal"></th>
+                  <th className="py-2 px-3 font-normal"></th>
+                  <th className="py-2 px-4 text-right font-normal">
+                    {(custInvRegStatusFilter !== 'all' || custInvRegSearchId || custInvRegSearchSpecs || custInvRegSearchDoriPlastic || custInvRegSearchQty || custInvRegSearchRate) && (
+                      <button
+                        onClick={() => {
+                          setCustInvRegStatusFilter('all');
+                          setCustInvRegSearchId('');
+                          setCustInvRegSearchSpecs('');
+                          setCustInvRegSearchDoriPlastic('');
+                          setCustInvRegSearchQty('');
+                          setCustInvRegSearchRate('');
+                        }}
+                        className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {filteredCustInvoiceRegister.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="py-12 text-center text-slate-400 text-xs">
+                      {customerInvoices.length === 0 ? 'No billing invoices issued yet.' : 'No invoices match your filter criteria.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCustInvoiceRegister.map(({ rowKey, invoice: inv, item, linkedOrder }) => {
+                    const artworkImg = item.image || linkedOrder?.items?.[0]?.image;
+
+                    return (
+                      <tr key={rowKey} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-4 px-3 align-top font-mono">
+                          <div className="font-bold text-slate-900 text-xs">{inv.id}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{inv.orderId}</div>
+                          {linkedOrder?.customerOrderId && (
+                            <span className="text-[9px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1 rounded inline-block mt-1">
+                              {linkedOrder.customerOrderId}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-3 align-top text-center">
+                          {artworkImg ? (
+                            <div
+                              onClick={() => setPreviewArtworkUrl(artworkImg)}
+                              className="relative group cursor-pointer inline-block"
+                              title="Click to zoom artwork"
+                            >
+                              <img
+                                src={artworkImg}
+                                alt="Artwork"
+                                className="w-14 h-14 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs group-hover:scale-105 transition-all"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 mx-auto">
+                              TAG
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 align-top">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200">
+                              {item.itemCode || item.name || 'ITEM'}
+                            </span>
+                            <span className="font-bold text-slate-900 text-sm">
+                              {item.brandName || customer.company}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-1 items-center">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
+                              {item.type || 'Tag'}
+                            </span>
+                            {item.material && (
+                              <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-200 text-[11px]">
+                                {item.material}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 px-3 align-top text-xs space-y-1">
+                          {item.dori ? <div className="text-slate-700">Dori: <strong>{item.dori}</strong></div> : <span className="text-slate-400 text-[11px]">No Dori</span>}
+                          {item.plastic && <div className="text-slate-700">Seal: <strong>{item.plastic}</strong></div>}
+                        </td>
+                        <td className="py-4 px-3 align-top text-right font-mono font-bold text-slate-900">
+                          {Number(item.quantity || 0).toLocaleString()}
+                          <span className="text-[10px] text-slate-400 block font-normal">pcs</span>
+                        </td>
+                        <td className="py-4 px-3 align-top text-right font-mono text-slate-700">
+                          {formatCurrency(item.unitPrice || 0)}
+                        </td>
+                        <td className="py-4 px-3 align-top text-right font-mono font-bold text-slate-900">
+                          {formatCurrency(item.total || Number(item.quantity || 0) * Number(item.unitPrice || 0))}
+                        </td>
+                        <td className="py-4 px-3 align-top text-center">
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-block ${
+                            inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            (inv.paidAmount > 0 && inv.balanceDue > 0) ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {inv.status === 'paid' ? 'PAID' : (inv.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 align-top text-right">
+                          <button
+                            onClick={() => {
+                              const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
+                              onOpenInvoice(linkedOrder);
+                            }}
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                          >
+                            Print
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+
       {/* MODULE 4: OUTSTANDING LEDGER */}
       {activeTab === 'outstanding_ledger' && (
         <div className="space-y-6 animate-fade-in">

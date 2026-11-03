@@ -281,7 +281,7 @@ function DashboardV18({
 
         {/* Card 3: Total Revenue Volume */}
         <div 
-          onClick={() => onNavigateTab(portalType === 'customer' ? 'invoice_register' : 'all_invoices')}
+          onClick={() => onNavigateTab('invoice_list')}
           className="bg-white rounded-3xl p-5 border border-stone-200/70 shadow-[0_4px_20px_rgba(0,0,0,0.02)] flex items-center space-x-3.5 hover:-translate-y-1 transition-all cursor-pointer"
         >
           <div className="w-10 h-10 rounded-2xl bg-[#f7eedf] flex items-center justify-center text-[#8d693f]">
@@ -300,7 +300,7 @@ function DashboardV18({
 
         {/* Card 4: Outstanding Dues (Dark Forest Green Card from Video UI) */}
         <div 
-          onClick={() => onNavigateTab(portalType === 'customer' ? 'outstanding_ledger' : 'ledgers')}
+          onClick={() => onNavigateTab('outstanding_ledger')}
           className="bg-[#415b4e] rounded-3xl p-5 text-white shadow-[0_6px_25px_rgba(65,91,78,0.25)] flex items-center justify-between hover:-translate-y-1 transition-all cursor-pointer"
         >
           <div>
@@ -602,7 +602,7 @@ function DashboardV18({
                 </div>
               ))
             ) : (
-              <div className="text-center py-4 text-xs text-stone-400">No orders placed yet</div>
+              <div className="text-center py-4 text-xs text-stone-400">There are no orders placed currently</div>
             )}
           </div>
 

@@ -12,6 +12,7 @@
 - **Per-Column Search & Register Filtering**: Full feature parity across Customer and Admin Order Registers, with dedicated per-column search inputs (`Order ID`, `Customer`, `Specs`, `Dori/Plastic`, `Amt/Qty`) and interactive status counters.
 - **Dynamic Production Flow Pipeline**: Seamless workflow from approved orders into active manufacturing. Features visual artwork thumbnail previews with hover-crop and file upload, compact job card numbering (`JO_01_P1`), prominent Customer Order Number displays (`Order: MGC01`), operator assignment dropdowns (Cutting, Printing, Punching), finished tags produced input in Handwork (pcs/tags, not sheets), system-automated live wastage calculation, customizable production cycles, multi-card component job cards, mandatory 9-field job tickets, proportional tag wastage (200 extra tags per 5,000 tags), and exact sheet issuance without post-sheet buffers.
 - **In-Browser Artwork Studio**: Live artwork cropping with industry-standard hangtag aspect ratios (2:3 standard, 1:1 square, 1:2 slim tag, 3:4 card tag), zoom, rotate, and pan.
+- **Dedicated Attendance & Shift-Based Payroll Suite**: Decoupled from production with a dedicated Level-1 Left Sidebar module. Features an Executive Attendance Dashboard showing live present/absent rates, active floor shift coverage, and a prominent **Payroll Pending to Give** queue with instant single-click and bulk disbursement actions; a Factory Shift Master & Assignment Matrix; shift-driven monthly salary computations; and an interactive Android App simulator demonstrating biometric Face Scan auto-identification, GPS/Wi-Fi geofencing, and Karigar Job Moving.
 - **Zero-Dependency Lightweight Stack**: Runs pure React 18 and Tailwind CSS directly in the browser via a standalone PowerShell HTTP server (`server.ps1`) with flat-file JSON persistence—no heavy Node/npm runtime required.
 - **Enterprise Minimalist Aesthetic**: Designed with an off-white Warm Ivory Paper Linen palette (`#F9F8F5`), crisp slate-900 typography, semantic status badges, and an emoji-free professional UI.
 
@@ -29,12 +30,14 @@
 │    - Dashboard                    │    - Dashboard                     │
 │    - Orders (Studio & Register)   │    - Orders (Studio & Register)    │
 │    - Billing (Invoices & Ledgers) │    - Operations (Production/Stock) │
-│    - Support (Account Chat)       │    - Billing & Finance (Invoices)  │
+│    - Support (Account Chat)       │    - Attendance & Payroll (Shifts) │
+│                                   │    - Billing & Finance (Invoices)  │
 │  • Level 2 Dynamic Top Sub-Nav    │  • Level 2 Dynamic Top Sub-Nav     │
 │  • In-Browser Artwork Cropper     │  • Kanban & Order Register Search  │
 │  • Order Status & Live Timeline   │  • Production Flow (5-Step Cycle)  │
-│  • Aging Outstanding Ledger       │  • Paper Catalog & Inventory       │
-│  • General Ledger (Debit/Credit)  │  • Piece-Rate Payroll & Attendance │
+│  • Aging Outstanding Ledger       │  • Attendance Dashboard & Roster   │
+│  • General Ledger (Debit/Credit)  │  • Shift-Based Payroll Register    │
+│                                   │  • Android Biometric Kiosk Preview │
 └───────────────────────────────────┴────────────────────────────────────┘
                                     │
                                     ▼
@@ -99,11 +102,13 @@ uBMS comes pre-configured with operational team members and customer accounts:
 - Preserved 30 actual papers with standardized `Paper #01`, `Paper #02` nomenclature.
 - Real-time stock alerts and reorder thresholds.
 
-### 5. Billing, Ledgers & Payroll
-- **Invoicing**: Generate printable A4 commercial invoices with item breakdown, customer details, and delivery terms.
-- **Outstanding Aging Ledger**: Categorizes unpaid receivables into `0-30 Days`, `31-60 Days`, and `60+ Days Overdue`.
-- **General Ledger**: Complete double-entry style journal (Debit, Credit, Running Balance) for each account.
-- **Piece-Rate Payroll**: Automatic calculation of wages for handwork laborers based on units processed.
+### 5. Billing & Finance Suite
+- **Create Invoice Studio**: Dual-mode billing (Bill from Manufacturing Order vs. Direct Custom/Proforma Invoice) with dynamic line items editor, GST tax tier selection (0%, 5%, 12%, 18%, 28%), shipping charges, due date pickers, payment terms notes, and instant print/PDF preview.
+- **Commercial Invoice List**: Executive invoice-level master overview featuring 5 top KPI summary cards (Total Invoiced, Total Collected, Net Balance Due, Settlement Status breakdown, and Overdue count), status filter tabs (`All`, `Paid`, `Unpaid`, `Partial`, `Overdue`), global search, and 1-click "Pay In" action buttons.
+- **Commercial Invoice Register**: Item-level sales registry built with full per-column real-time search row (`Invoice & Order ID`, `Artwork`, `Customer Party`, `Brand & Specs`, `Dori & Plastic`, `Qty`, `Rate & Total`, `Status`), high-resolution artwork zoom lightbox modal, and contextual empty states.
+- **Payment In (Receipts Hub)**: Dedicated client collections console with customer party selector, invoice knock-off dropdown with "Fill Full Due" shortcut, payment mode selection (NEFT/RTGS, UPI, Cheque, Cash, NetBanking), and live collections log.
+- **Customer General Ledger**: Party-wise double-entry statement of account with debits, credits, running balance, and quick clickable party selection chips.
+- **Outstanding & Aging Ledger**: Real-time receivables aging analysis across 0-30 days (Current), 31-60 days (Attention), and 60+ days (Critical) buckets with party-wise breakdown cards and direct collection shortcuts.
 
 ---
 

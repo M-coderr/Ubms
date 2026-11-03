@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.1  
-**Last Updated**: October 30, 2026  
+**Version**: 3.4  
+**Last Updated**: November 3, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -49,16 +49,75 @@
 | | Wastage Rule Engine | ✅ Complete | 200 extra tags per 5,000 tags (5k→5.2k, 10k→10.4k) with exact sheets issued without post-buffers |
 | | Paper Catalog Management | ✅ Complete | Master paper sizes, GSM, finishes, vendor rates, Paper# numbering, 30 preserved actual papers |
 | | Inventory & Raw Materials | ✅ Complete | Real-time stock counts for boards, dori spools, plastic locks, and ink |
-| | Invoice Generator | ✅ Complete | Tax-exempt & commercial invoice generation with custom terms |
-| | Payment Receipts | ✅ Complete | Record client payments, balance reconciliation |
-| | Customer Ledgers | ✅ Complete | Individual customer debit/credit journals and transaction logs |
-| | Payroll & Attendance | ✅ Complete | Piece-rate calculation for handwork laborers + operator attendance |
+| **Billing & Finance Suite** | Create Invoice Studio | ✅ Complete | Dual-mode billing (Bill from Order vs Direct Custom Invoice) with dynamic line items, GST rate selector, and instant Print preview |
+| | Commercial Invoice List | ✅ Complete | Invoice-level registry with KPI financial metrics, global search, status tabs (Paid/Unpaid/Partial/Overdue), and 1-click Pay In |
+| | Commercial Invoice Register | ✅ Complete | Item-level sales registry with per-column real-time search row, artwork lightbox, item specifications, trims, and GST tax computation |
+| | Payment In (Receipts Hub) | ✅ Complete | Client collections recording, invoice knock-off selector with 1-click full due fill, and collections ledger |
+| | General Ledger Journal | ✅ Complete | Party-wise double-entry statement of account with debits, credits, running balance, and quick party selection chips |
+| | Outstanding & Aging Ledger | ✅ Complete | Receivables aging analysis (0-30d, 31-60d, 60+d overdue) with party-wise breakdown cards and direct collection shortcuts |
+| **Attendance & Payroll** | Dedicated Left Nav Module | ✅ Complete | Completely decoupled from Production Flow with bespoke Biometric Left Nav icon |
+| | Executive Attendance Dashboard | ✅ Complete | Live presence rates, late/leave metrics, floor shift coverage, and prominent Pending Payroll queue |
+| | Shift Roster & Rules Engine | ✅ Complete | 4 production shifts (General, Press, Punching, Artisan Flex) with grace times and overtime rates |
+| | Shift Assignment Matrix | ✅ Complete | Shift allocation for office staff, machine operators, and piece-rate karigars |
+| | Shift-Based Payroll Computation | ✅ Complete | Working days pro-ration, overtime pay, piece-rate earnings, and instant 'Disburse Salary' actions |
+| | Unified Android App Simulator | ✅ Complete | Interactive mobile terminal preview with Face Scan auto-id, GPS/WiFi geofencing, and Karigar Job Moving |
 
 ---
 
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.4 — November 3, 2026
+- **Comprehensive Billing & Finance Suite Overhaul**:
+  - Re-architected the Billing module into 6 dedicated, production-ready modules matching the depth of the Order Creation and Order Register studios:
+    1. **Create Invoice Studio (`create_invoice`)**:
+       - Dual billing workflows: Mode A (Bill from Manufacturing Order) with pre-filled line items, customer details, and terms vs. Mode B (Direct Custom Invoice) with dynamic line items editor (`+ Add Item`).
+       - Auto-generated sequential Invoice IDs (`INV-2026-001`, `INV-2026-002`, etc.) with collision-free numbering.
+       - Configurable GST Tax Rates (0%, 5%, 12%, 18%, 28%), shipping charges, due date pickers, and payment terms notes.
+       - Live calculation sidebar with real-time Subtotal, CGST, SGST, Shipping, Grand Total, and instant Print Preview.
+    2. **Commercial Invoice List (`invoice_list`)**:
+       - Invoice-level master overview featuring 5 top KPI summary cards (Total Invoiced, Total Collected, Net Balance Due, Settlement Status breakdown, and Overdue count).
+       - Status filter tabs (`All`, `Paid`, `Unpaid`, `Partial`, `Overdue`), global search by Invoice No, Customer Party, or Order Reference.
+       - Quick-action shortcuts: instant "Print / PDF" and 1-click "Pay In" navigating to payment posting with pre-filled balance.
+    3. **Commercial Invoice Register (`invoice_register`)**:
+       - Full item-level sales register with per-column real-time search inputs row (`Invoice & Order ID`, `Artwork`, `Customer Party`, `Brand & Specs`, `Dori & Plastic`, `Qty`, `Rate & Total`, `Status`).
+       - High-resolution artwork preview thumbnail with hover zoom lightbox modal.
+       - Contextual empty states for no invoices in system vs. no search filter matches.
+    4. **Payment In Hub (`payment_in`)**:
+       - Dedicated client collections console with customer party selector, invoice knock-off dropdown with "Fill Full Due" shortcut, payment mode selection (NEFT/RTGS, UPI, Cheque, Cash, NetBanking), and reference UTR logging.
+       - Master collections ledger tracking all incoming payments with live search.
+    5. **Customer General Ledger (`general_ledger`)**:
+       - Party-wise double-entry statement of account with debits, credits, running balance, and quick clickable party selection chips.
+    6. **Outstanding & Aging Ledger (`outstanding_ledger`)**:
+       - Real-time receivables aging analysis across 0-30 days (Current), 31-60 days (Attention), and 60+ days (Critical) buckets.
+       - Party-wise receivables breakdown cards and unpaid/overdue bills breakdown with days overdue badges and direct "Record Payment" shortcuts.
+  - Added parallel support in Customer Portal for `Invoice List` and `Invoice Register` alongside existing `Outstanding Ledger` and `General Ledger`.
+  - Maintained full backwards compatibility with legacy tab aliases (`all_invoices`, `payments`, `ledgers`).
+
+### Version 3.3 — November 3, 2026
+- **Decoupled Attendance & Payroll from Production**:
+  - Removed attendance from under `Operations` (Production Flow) in `ADMIN_NAV_GROUPS`.
+  - Added dedicated Level-1 Module Group `attendance_payroll` ("Attendance & Payroll") on the Left Sidebar Strip (`LeftSidebarStrip.js`) with custom user-check biometric icon.
+  - Created modular component `AttendancePayrollSection.js` with 5 dedicated sub-views.
+- **Attendance & Workforce Payroll Dashboard (`attendance_dashboard`)**:
+  - Top 6 KPI summary cards: Total Staff, Present Today (with % attendance), Absent/Leave, Active Shifts Running, **Payroll Pending to Give (Disburse)**, and Paid/Disbursed Total.
+  - Prominent **Pending Payroll Queue** with individual "Disburse" buttons and bulk "Disburse All Pending" action.
+  - Shift coverage progress bars across all 4 factory machine lines.
+  - Real-time shop-floor punch feed with one-click quick mark actions (Present, Late, Leave).
+- **Shift Roster & Rules Engine (`shift_management`)**:
+  - Master Shift Definitions: General Day Shift (09:00-18:00), Printing Press Early Shift (08:00-17:00), Punching & Die Press Shift (08:30-17:30), and Artisan Flexible Piece Shift (09:00-19:00).
+  - Shift parameters: standard working hours (8h), grace periods (15m-30m), half-day thresholds (4.0h-4.5h), and overtime multipliers (₹200-₹350/hr).
+  - Interactive Shift Assignment Matrix allowing administrators to map any staff member to their designated shift and classification (`Office Staff`, `Machine Operator`, `Karigar`).
+- **Shift-Driven Payroll Register (`payroll_register`)**:
+  - Dynamic payroll computation factoring shift days worked, overtime hours, and piece-rate completed tags.
+  - Preserved and enhanced Handwork Piece-Rate Production Ledger for Karigars (Sumit).
+- **Unified Android App & Terminal Simulator (`mobile_punch_terminal`)**:
+  - Smartphone frame preview showcasing the single unified Android app for both normal employees and karigars:
+    1. **Face Scan Biometric Punch**: Camera reticle, 99.4% confidence score, passive liveness blink check, auto-identification against roster.
+    2. **Geofence Punch**: 50m factory radius validation, factory Wi-Fi BSSID matching, and mock-location anti-cheat verification.
+    3. **Karigar Job Moving Studio**: Barcode/QR scan simulation for job cards (`JO_01_P1`), stage advancement, and completed tags piece-rate crediting.
+  - Comprehensive engineering analysis on Face Scan vs Location punch.
 
 ### Version 3.1 — October 30, 2026
 - **System-Wide Reset of Transactional Data (Orders, Job Orders, Bills & Ledgers)**:

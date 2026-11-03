@@ -1,4 +1,4 @@
-﻿// uBMS Core Data & State Management Layer (Comprehensive ERP & OMS Architecture)
+// uBMS Core Data & State Management Layer (Comprehensive ERP & OMS Architecture)
 window.uBMS = window.uBMS || {};
 
 const STAGES = [
@@ -144,7 +144,7 @@ const DataService = {
   fetchProduction: () => fetchEntity('production', []),
   saveProduction: (data) => saveEntity('production', data),
 
-  fetchPayroll: () => fetchEntity('payroll', { staffSummary: [], dailyAttendance: [] }),
+  fetchPayroll: () => fetchEntity('payroll', { shifts: [], staffSummary: [], dailyAttendance: [], pieceRateLedger: [] }),
   savePayroll: (data) => saveEntity('payroll', data),
 
   fetchMessages: () => fetchEntity('messages', []),
@@ -517,8 +517,9 @@ const CUSTOMER_NAV_GROUPS = [
   {
     id: 'billing',
     label: 'Billing',
-    defaultTab: 'invoice_register',
+    defaultTab: 'invoice_list',
     tabs: [
+      { key: 'invoice_list', label: 'Invoice List' },
       { key: 'invoice_register', label: 'Invoice Register' },
       { key: 'outstanding_ledger', label: 'Outstanding Ledger' },
       { key: 'general_ledger', label: 'General Ledger' }
@@ -559,31 +560,48 @@ const ADMIN_NAV_GROUPS = [
     tabs: [
       { key: 'production', label: 'Production Flow' },
       { key: 'inventory', label: 'Raw Materials & Stock' },
-      { key: 'payroll', label: 'Attendance & Payroll' },
       { key: 'label_config', label: 'Paper Catalogs & Types' }
+    ]
+  },
+  {
+    id: 'attendance_payroll',
+    label: 'Attendance & Payroll',
+    defaultTab: 'attendance_dashboard',
+    tabs: [
+      { key: 'attendance_dashboard', label: 'Attendance Dashboard' },
+      { key: 'daily_attendance', label: 'Daily Punch Register' },
+      { key: 'shift_management', label: 'Shift Roster & Rules' },
+      { key: 'payroll_register', label: 'Payroll & Compensation' },
+      { key: 'mobile_punch_terminal', label: 'Android App & Terminal' }
     ]
   },
   {
     id: 'billing',
     label: 'Billing & Finance',
-    defaultTab: 'all_invoices',
+    defaultTab: 'create_invoice',
     tabs: [
-      { key: 'all_invoices', label: 'All Invoices' },
       { key: 'create_invoice', label: 'Create Invoice' },
-      { key: 'payments', label: 'Payment Entries' },
-      { key: 'ledgers', label: 'Ledgers Hub' }
+      { key: 'invoice_list', label: 'Invoice List' },
+      { key: 'invoice_register', label: 'Invoice Register' },
+      { key: 'payment_in', label: 'Payment In' },
+      { key: 'general_ledger', label: 'General Ledger' },
+      { key: 'outstanding_ledger', label: 'Outstanding Ledger' }
     ]
   }
 ];
 
 function getCustomerGroupForTab(tab) {
   if (tab === 'profile') return 'dashboard';
+  if (['invoice_list', 'invoice_register', 'outstanding_ledger', 'general_ledger'].includes(tab)) return 'billing';
   const grp = CUSTOMER_NAV_GROUPS.find(g => g.tabs.some(t => t.key === tab));
   return grp ? grp.id : 'orders';
 }
 
 function getAdminGroupForTab(tab) {
   if (tab === 'profile') return 'dashboard';
+  if (['create_invoice', 'invoice_list', 'invoice_register', 'payment_in', 'general_ledger', 'outstanding_ledger', 'all_invoices', 'payments', 'ledgers'].includes(tab)) return 'billing';
+  if (['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'mobile_punch_terminal', 'payroll'].includes(tab)) return 'attendance_payroll';
+  if (['production', 'inventory', 'label_config'].includes(tab)) return 'operations';
   const grp = ADMIN_NAV_GROUPS.find(g => g.tabs.some(t => t.key === tab));
   return grp ? grp.id : 'orders';
 }

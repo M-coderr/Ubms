@@ -4,6 +4,70 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-03] — Version 3.4
+
+### 💰 Comprehensive Billing & Finance Suite Overhaul: Create Invoice, Invoice List, Invoice Register, Payment In, General Ledger & Outstanding Ledger
+- **Architecture & Navigation Restructuring**:
+  - Re-architected the Billing module in [`AdminPortal.js`](file:///e:/Projects/Ubms/js/components/AdminPortal.js) and [`CustomerPortal.js`](file:///e:/Projects/Ubms/js/components/CustomerPortal.js) with 6 comprehensive sub-tabs:
+    1. **Create Invoice** (`create_invoice`): Dedicated Commercial Invoice Studio with dual billing modes (Bill from Manufacturing Order vs. Direct Custom/Proforma Invoice), auto-calculated sequential invoice numbering (`INV-2026-001`), configurable GST tax tiers (0%, 5%, 12%, 18%, 28%), shipping charges, due date pickers, payment terms notes, and instant print/PDF preview.
+    2. **Invoice List** (`invoice_list`): Master invoice-level registry with 5 top KPI summary cards (Total Invoiced, Total Collected, Net Balance Due, Settlement Status breakdown, and Overdue count), status filter tabs (`All`, `Paid`, `Unpaid`, `Partial`, `Overdue`), global search by Invoice No, Customer Party, or Order Reference, and 1-click "Pay In" action buttons.
+    3. **Invoice Register** (`invoice_register`): Item-level sales registry built with full per-column real-time search row (`Invoice & Order ID`, `Artwork`, `Customer Party`, `Brand & Specs`, `Dori & Plastic`, `Qty`, `Rate & Total`, `Status`), high-resolution artwork zoom lightbox modal, and contextual empty states.
+    4. **Payment In** (`payment_in`): Dedicated client collections posting console with customer party selector, invoice knock-off dropdown with "Fill Full Due" shortcut, payment mode selection (NEFT/RTGS, UPI, Cheque, Cash, NetBanking), and live collections log.
+    5. **General Ledger** (`general_ledger`): Party-wise double-entry statement of account with debits, credits, running balance, and quick clickable party selection chips.
+    6. **Outstanding Ledger** (`outstanding_ledger`): Receivables aging analysis across 0-30 days (Current), 31-60 days (Attention), and 60+ days (Critical) buckets with party-wise breakdown cards and direct collection shortcuts.
+- **Bi-Directional State Synchronization & Portal Parity**:
+  - Updated [`js/data.js`](file:///e:/Projects/Ubms/js/data.js) with updated `ADMIN_NAV_GROUPS` and `CUSTOMER_NAV_GROUPS`.
+  - Added parallel `Invoice List` and `Invoice Register` support to the Customer Portal.
+  - Enhanced [`InvoiceModal.js`](file:///e:/Projects/Ubms/js/components/InvoiceModal.js) to cleanly handle both `INV-` IDs and order references, with GST tax breakdown rendering.
+  - Updated dashboard navigation links in [`DashboardV18.js`](file:///e:/Projects/Ubms/js/components/DashboardV18.js) to route seamlessly to the new billing tabs.
+  - Full backward compatibility maintained for legacy tab keys (`all_invoices`, `payments`, `ledgers`).
+
+---
+
+## [2026-11-03] — Version 3.3
+
+### 🕒 Decoupled Attendance & Workforce Payroll Suite with Shift Engine & Android App Architecture
+- **Architecture Decoupling**:
+  - Removed attendance and payroll from `Operations` / Production Flow module.
+  - Established a dedicated Level-1 Module Group `attendance_payroll` ("Attendance & Payroll") on the Left Sidebar Strip with a custom biometric user-verification icon.
+  - Created modular component [`AttendancePayrollSection.js`](file:///e:/Projects/Ubms/js/components/AttendancePayrollSection.js) with 5 dedicated sub-views.
+- **Attendance & Payroll Executive Dashboard (`attendance_dashboard`)**:
+  - Top 6 KPI summary cards: Total Staff Headcount, Present Today (with % attendance badge), Absent/Leave count, Active Machine Line Shifts, **Payroll Pending to Give (Disburse)** with prominent alert styling, and Paid/Disbursed Total.
+  - Prominent **Pending Payroll Action Queue** displaying all staff awaiting disbursement with single-click `[💰 Disburse]` buttons and top-level `[⚡ Disburse All Pending]` bulk trigger.
+  - Live floor shift occupancy gauges covering General Day Shift, Printing Press Early Shift, Punching & Die Press Shift, and Artisan Flexible Piece Shift.
+  - Real-time shop-floor punch feed with instant quick mark actions (Present, Late, Leave).
+- **Shift Roster & Rules Engine (`shift_management`)**:
+  - Shift definitions with Start/End times, net standard hours (8h), grace periods (15m-30m), half-day thresholds (4.0h-4.5h), and overtime multiplier rates (₹200-₹350/hr).
+  - Employee & Karigar Shift Assignment Matrix to allocate staff to shifts and classifications (`Office Staff`, `Machine Operator`, `Karigar`).
+- **Shift-Driven Payroll Register (`payroll_register`)**:
+  - Dynamic monthly salary calculations driven by shift attendance days, overtime hours, and piece-rate completed tags.
+  - Preserved and enhanced Handwork Piece-Rate Production Ledger for Karigars (Sumit).
+- **Unified Android App & Terminal Simulator (`mobile_punch_terminal`)**:
+  - Smartphone viewfinder simulation demonstrating:
+    1. **Face Scan Biometric Punch**: On-device camera frame, 99.4% confidence score, passive blink liveness check, auto-identification against roster.
+    2. **Geofence Punch**: 50m factory radius validation, factory Wi-Fi BSSID matching, and mock-location anti-cheat verification.
+    3. **Karigar Job Moving Studio**: Barcode/QR scan simulation for job cards (`JO_01_P1`), stage advancement, and completed tags piece-rate crediting.
+  - In-depth architectural evaluation and recommendation on Face Scan vs Location punch.
+
+---
+
+## [2026-11-03] — Version 3.2
+
+### 📋 Contextual Order Register Empty State ("There are no orders placed currently")
+- **Root Cause & Visual Issue**:
+  - Previously, when all orders were cleared from the system, the Customer Order Register and Admin Order Register table bodies displayed the search filter error: *"No orders match your filter criteria / Try clearing or adjusting the search bars or status filter. / Clear all filters"*, which falsely implied an active filter was hiding existing orders.
+- **Differentiated Empty State Logic**:
+  - Implemented a clear condition check distinguishing between an empty system/customer dataset (`customerOrders.length === 0` / `orders.length === 0`) versus an empty search result (`filteredCustomerOrders.length === 0` with active filters).
+  - When no orders are placed currently, the table body now prominently displays:
+    - Heading: **"There are no orders placed currently"**
+    - Subtext: *"You haven't placed any manufacturing orders yet."* (or *"Orders booked by customers or admins will appear here in the registry."* for admin)
+    - Action CTA: **`+ Place Order`** button directing the user straight into the Order Studio.
+  - The filter-specific empty message (*"No orders match your filter criteria"*) with the *"Clear all filters"* reset button is only shown when orders exist in the database but none match the current search terms.
+- **Executive Dashboard**:
+  - Updated the Recent Orders card in [`DashboardV18.js`](file:///e:/Projects/Ubms/js/components/DashboardV18.js) to display *"There are no orders placed currently"* when 0 orders exist.
+
+---
+
 ## [2026-10-30] — Version 3.1
 
 ### 🧹 System-Wide Reset of Transactional Data (Orders, Job Orders, Bills & Ledgers)

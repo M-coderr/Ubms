@@ -1,6 +1,7 @@
-﻿// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
+// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
 window.uBMS = window.uBMS || {};
 
+const PaperCatalogCombobox = window.uBMS.PaperCatalogCombobox;
 function AdminPortal({ 
   currentMember, 
   orders, 
@@ -877,8 +878,8 @@ function AdminPortal({
   // Multi-Card Tag composition
   const [adminIsMultiCard, setAdminIsMultiCard] = React.useState(false);
   const [adminTagCards, setAdminTagCards] = React.useState([
-    { id: 1, title: 'Tag 1 (Base Tag)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
-    { id: 2, title: 'Tag 2 (Upper Tag)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
+    { id: 1, title: '1st Pc (Base Pc)', catalogId: availableCatalogs[0]?.id || 'CAT-IV350', dimension: '' },
+    { id: 2, title: '2nd Pc (Upper Pc)', catalogId: availableCatalogs[1]?.id || 'CAT-KF280', dimension: '' }
   ]);
 
   // PU Leather options
@@ -1084,12 +1085,16 @@ function AdminPortal({
   const handleAdminAddThirdCard = () => {
     if (adminTagCards.length >= 3) return;
     setAdminTagCards(prev => [
-      ...prev,
-      { id: 3, title: 'Tag 3 (Overlay Tag)', catalogId: availableCatalogs[3]?.id || 'CAT-TR115', dimension: '' }
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+      { id: 3, title: '3rd Pc (Upper Pc)', catalogId: availableCatalogs[2]?.id || availableCatalogs[0]?.id, dimension: '' }
     ]);
   };
   const handleAdminRemoveThirdCard = () => {
-    setAdminTagCards(prev => prev.slice(0, 2));
+    setAdminTagCards(prev => [
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+    ]);
   };
 
   // Image Upload handler for Admin
@@ -1487,54 +1492,239 @@ function AdminPortal({
     onUpdateLabelTypes(updated);
   };
 
-  // --- MODULE 3: CREATE INVOICE STATE ---
+  // --- BILLING MODULES (1. Create Invoice, 2. Invoice List, 3. Invoice Register, 4. Payment In, 5. General Ledger, 6. Outstanding Ledger) ---
+  const nextInvoiceId = React.useMemo(() => {
+    const existingNums = (invoices || []).map(i => {
+      const match = (i.id || '').match(/INV-\d{4}-(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+    const maxNum = existingNums.length > 0 ? Math.max(...existingNums, 0) : 0;
+    return 'INV-2026-' + String(maxNum + 1).padStart(3, '0');
+  }, [invoices]);
+
+  // MODULE 1: CREATE INVOICE STATE
+  const [invMode, setInvMode] = React.useState('from_order'); // 'from_order' or 'custom'
   const [invOrderId, setInvOrderId] = React.useState(orders[0]?.id || '');
-  const [invDueDate, setInvDueDate] = React.useState('');
+  const [invIssueDate, setInvIssueDate] = React.useState(() => new Date().toISOString().split('T')[0]);
+  const [invDueDate, setInvDueDate] = React.useState(() => new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0]);
+  const [invTaxRate, setInvTaxRate] = React.useState(18); // 0, 5, 12, 18, 28%
+  const [invShipping, setInvShipping] = React.useState(0);
+  const [invNotes, setInvNotes] = React.useState('Payment due within 10 days of invoice date. NEFT / RTGS or UPI accepted.');
+
+  // Custom Invoice mode fields
+  const [customInvCustomerId, setCustomInvCustomerId] = React.useState(users.customers[0]?.id || '');
+  const [customInvPoRef, setCustomInvPoRef] = React.useState('');
+  const [customInvItems, setCustomInvItems] = React.useState([
+    { name: 'Custom Die-Cut Hang Tags', specs: '350 GSM Art Board • Matt Lamination', quantity: 5000, unitPrice: 1.50, total: 7500 }
+  ]);
+
   const targetOrder = orders.find(o => o.id === invOrderId) || orders[0];
 
-  const handleCreateInvoiceSubmit = (e) => {
-    e.preventDefault();
-    if (!targetOrder) return;
-
-    const invId = 'INV-2026-0' + Math.floor(100 + Math.random() * 900);
-    const newInv = {
-      id: invId,
-      orderId: targetOrder.id,
-      customerId: targetOrder.customerId,
-      customerName: targetOrder.customerName,
-      customerCompany: targetOrder.customerCompany,
-      issueDate: new Date().toISOString(),
-      dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
-      items: targetOrder.items,
-      subtotal: targetOrder.subtotal,
-      tax: targetOrder.tax,
-      shipping: targetOrder.shipping,
-      total: targetOrder.total,
-      paidAmount: targetOrder.paymentStatus === 'paid' ? targetOrder.total : 0,
-      balanceDue: targetOrder.paymentStatus === 'paid' ? 0 : targetOrder.total,
-      status: targetOrder.paymentStatus === 'paid' ? 'paid' : 'unpaid'
-    };
-
-    onSaveInvoice(newInv);
-    alert(`Tax Invoice ${invId} created for order ${targetOrder.id}!`);
-    setActiveTab('all_invoices');
+  const handleAddCustomInvItem = () => {
+    setCustomInvItems(prev => [
+      ...prev,
+      { name: 'Embossed Woven Labels', specs: 'Taffeta Satin High-Density', quantity: 2000, unitPrice: 2.20, total: 4400 }
+    ]);
   };
 
-  // --- MODULE 5: LEDGERS PARTY SELECTION ---
-  const [selectedLedgerPartyId, setSelectedLedgerPartyId] = React.useState(users.customers[0]?.id || '');
-  const partyLedger = React.useMemo(() => {
-    return window.uBMS.computeCustomerGeneralLedger(selectedLedgerPartyId, invoices, payments);
-  }, [selectedLedgerPartyId, invoices, payments]);
+  const handleUpdateCustomInvItem = (index, field, value) => {
+    setCustomInvItems(prev => {
+      const updated = [...prev];
+      const item = { ...updated[index], [field]: value };
+      if (field === 'quantity' || field === 'unitPrice') {
+        const q = Number(field === 'quantity' ? value : item.quantity) || 0;
+        const r = Number(field === 'unitPrice' ? value : item.unitPrice) || 0;
+        item.total = Math.round(q * r * 100) / 100;
+      }
+      updated[index] = item;
+      return updated;
+    });
+  };
 
-  // --- MODULE 6: PAYMENT ENTRIES STATE ---
+  const handleRemoveCustomInvItem = (index) => {
+    if (customInvItems.length <= 1) return;
+    setCustomInvItems(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleCreateInvoiceSubmit = (e, openPrint = false) => {
+    if (e && e.preventDefault) e.preventDefault();
+
+    let newInv = null;
+    if (invMode === 'from_order') {
+      if (!targetOrder) return alert('Please select a valid order to bill.');
+      const subtotal = Number(targetOrder.subtotal) || Number(targetOrder.total) || 0;
+      const taxAmt = Math.round(subtotal * (Number(invTaxRate) / 100) * 100) / 100;
+      const shipAmt = Number(invShipping) || 0;
+      const grandTotal = Math.round((subtotal + taxAmt + shipAmt) * 100) / 100;
+
+      newInv = {
+        id: nextInvoiceId,
+        orderId: targetOrder.id,
+        customerId: targetOrder.customerId,
+        customerName: targetOrder.customerName,
+        customerCompany: targetOrder.customerCompany,
+        issueDate: invIssueDate ? new Date(invIssueDate).toISOString() : new Date().toISOString(),
+        dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
+        items: targetOrder.items,
+        subtotal: subtotal,
+        taxRate: Number(invTaxRate) || 0,
+        tax: taxAmt,
+        shipping: shipAmt,
+        total: grandTotal,
+        paidAmount: targetOrder.paymentStatus === 'paid' ? grandTotal : 0,
+        balanceDue: targetOrder.paymentStatus === 'paid' ? 0 : grandTotal,
+        status: targetOrder.paymentStatus === 'paid' ? 'paid' : 'unpaid',
+        notes: invNotes
+      };
+    } else {
+      const cust = users.customers.find(c => c.id === customInvCustomerId) || users.customers[0];
+      if (!cust) return alert('Please select a valid customer.');
+      const subtotal = customInvItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+      const taxAmt = Math.round(subtotal * (Number(invTaxRate) / 100) * 100) / 100;
+      const shipAmt = Number(invShipping) || 0;
+      const grandTotal = Math.round((subtotal + taxAmt + shipAmt) * 100) / 100;
+
+      newInv = {
+        id: nextInvoiceId,
+        orderId: customInvPoRef.trim() || 'DIRECT-JOB',
+        customerId: cust.id,
+        customerName: cust.name,
+        customerCompany: cust.company,
+        issueDate: invIssueDate ? new Date(invIssueDate).toISOString() : new Date().toISOString(),
+        dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
+        items: customInvItems,
+        subtotal: subtotal,
+        taxRate: Number(invTaxRate) || 0,
+        tax: taxAmt,
+        shipping: shipAmt,
+        total: grandTotal,
+        paidAmount: 0,
+        balanceDue: grandTotal,
+        status: 'unpaid',
+        notes: invNotes
+      };
+    }
+
+    onSaveInvoice(newInv);
+    if (openPrint) {
+      onOpenInvoice(newInv);
+    }
+    setActiveTab('invoice_list');
+  };
+
+  // MODULE 2: INVOICE LIST STATE & FILTER
+  const [invListSearch, setInvListSearch] = React.useState('');
+  const [invListStatusFilter, setInvListStatusFilter] = React.useState('all');
+
+  const filteredInvoiceList = React.useMemo(() => {
+    return (invoices || []).filter(inv => {
+      if (invListStatusFilter === 'paid' && inv.status !== 'paid') return false;
+      if (invListStatusFilter === 'unpaid' && (inv.status === 'paid' || (inv.paidAmount > 0 && inv.balanceDue > 0))) return false;
+      if (invListStatusFilter === 'partial' && (inv.paidAmount <= 0 || inv.balanceDue <= 0)) return false;
+      if (invListStatusFilter === 'overdue') {
+        const isPastDue = inv.dueDate && new Date(inv.dueDate) < new Date();
+        if (!isPastDue || inv.status === 'paid' || inv.balanceDue <= 0) return false;
+      }
+      if (invListSearch.trim()) {
+        const q = invListSearch.toLowerCase().trim();
+        const matchId = (inv.id || '').toLowerCase().includes(q);
+        const matchOrd = (inv.orderId || '').toLowerCase().includes(q);
+        const matchCust = (inv.customerCompany || inv.customerName || '').toLowerCase().includes(q);
+        if (!matchId && !matchOrd && !matchCust) return false;
+      }
+      return true;
+    });
+  }, [invoices, invListStatusFilter, invListSearch]);
+
+  // MODULE 3: INVOICE REGISTER STATE & PER-COLUMN SEARCH
+  const [invRegSearchId, setInvRegSearchId] = React.useState('');
+  const [invRegSearchCustomer, setInvRegSearchCustomer] = React.useState('');
+  const [invRegSearchSpecs, setInvRegSearchSpecs] = React.useState('');
+  const [invRegSearchDoriPlastic, setInvRegSearchDoriPlastic] = React.useState('');
+  const [invRegSearchQty, setInvRegSearchQty] = React.useState('');
+  const [invRegSearchRateTotal, setInvRegSearchRateTotal] = React.useState('');
+  const [invRegStatusFilter, setInvRegStatusFilter] = React.useState('all');
+
+  const flattenedInvoiceItems = React.useMemo(() => {
+    const list = [];
+    (invoices || []).forEach(inv => {
+      const linkedOrder = orders.find(o => o.id === inv.orderId);
+      const items = (inv.items && inv.items.length > 0) ? inv.items : (linkedOrder?.items || [{ name: 'Commercial Goods', quantity: 1, unitPrice: inv.total, total: inv.total }]);
+      items.forEach((item, idx) => {
+        list.push({
+          rowKey: `${inv.id}_item_${idx}`,
+          invoice: inv,
+          item: item,
+          itemIndex: idx,
+          linkedOrder: linkedOrder
+        });
+      });
+    });
+    return list;
+  }, [invoices, orders]);
+
+  const filteredInvoiceRegister = React.useMemo(() => {
+    return flattenedInvoiceItems.filter(({ invoice: inv, item, linkedOrder }) => {
+      if (invRegStatusFilter === 'paid' && inv.status !== 'paid') return false;
+      if (invRegStatusFilter === 'unpaid' && (inv.status === 'paid' || (inv.paidAmount > 0 && inv.balanceDue > 0))) return false;
+      if (invRegStatusFilter === 'partial' && (inv.paidAmount <= 0 || inv.balanceDue <= 0)) return false;
+      if (invRegStatusFilter === 'overdue') {
+        const isPastDue = inv.dueDate && new Date(inv.dueDate) < new Date();
+        if (!isPastDue || inv.status === 'paid' || inv.balanceDue <= 0) return false;
+      }
+      if (invRegSearchId.trim()) {
+        const q = invRegSearchId.toLowerCase().trim();
+        const matchInvId = (inv.id || '').toLowerCase().includes(q);
+        const matchOrdId = (inv.orderId || '').toLowerCase().includes(q);
+        const matchCustOrdId = (linkedOrder?.customerOrderId || '').toLowerCase().includes(q);
+        if (!matchInvId && !matchOrdId && !matchCustOrdId) return false;
+      }
+      if (invRegSearchCustomer.trim()) {
+        const q = invRegSearchCustomer.toLowerCase().trim();
+        const matchCust = (inv.customerCompany || inv.customerName || '').toLowerCase().includes(q);
+        if (!matchCust) return false;
+      }
+      if (invRegSearchSpecs.trim()) {
+        const q = invRegSearchSpecs.toLowerCase().trim();
+        const specsStr = `${item.name || ''}`.toLowerCase();
+        if (!specsStr.includes(q)) return false;
+      }
+      if (invRegSearchDoriPlastic.trim()) {
+        const q = invRegSearchDoriPlastic.toLowerCase().trim();
+        const trimStr = `${item.dori || ''} ${item.plastic || ''}`.toLowerCase();
+        if (!trimStr.includes(q)) return false;
+      }
+      if (invRegSearchQty.trim()) {
+        const q = invRegSearchQty.trim();
+        if (!String(item.quantity || '').includes(q)) return false;
+      }
+      if (invRegSearchRateTotal.trim()) {
+        const q = invRegSearchRateTotal.trim();
+        const matchRate = String(item.unitPrice || '').includes(q);
+        const matchTotal = String(item.total || inv.total || '').includes(q);
+        if (!matchRate && !matchTotal) return false;
+      }
+      return true;
+    });
+  }, [flattenedInvoiceItems, invRegStatusFilter, invRegSearchId, invRegSearchCustomer, invRegSearchSpecs, invRegSearchDoriPlastic, invRegSearchQty, invRegSearchRateTotal]);
+
+  // MODULE 4: PAYMENT IN (RECORD INWARD PAYMENTS)
   const [payCustId, setPayCustId] = React.useState(users.customers[0]?.id || '');
   const [payInvId, setPayInvId] = React.useState('');
   const [payAmount, setPayAmount] = React.useState('');
   const [payMode, setPayMode] = React.useState('NEFT / Bank Transfer');
   const [payRefNo, setPayRefNo] = React.useState('');
   const [payNotes, setPayNotes] = React.useState('');
+  const [paySearch, setPaySearch] = React.useState('');
 
-  const custPendingInvoices = invoices.filter(i => i.customerId === payCustId && i.balanceDue > 0);
+  const custPendingInvoices = (invoices || []).filter(i => i.customerId === payCustId && Number(i.balanceDue) > 0);
+
+  const handleInitiatePaymentForInvoice = (inv) => {
+    setPayCustId(inv.customerId);
+    setPayInvId(inv.id);
+    setPayAmount(String(inv.balanceDue || inv.total));
+    setActiveTab('payment_in');
+  };
 
   const handleRecordPayment = (e) => {
     e.preventDefault();
@@ -1563,10 +1753,85 @@ function AdminPortal({
     setPayAmount('');
     setPayRefNo('');
     setPayNotes('');
-    alert(`Payment of ${formatCurrency(amt)} recorded under Receipt ${payId}!`);
+    alert(Payment of  recorded under Receipt !);
   };
 
-  // --- MODULE 7: SHOP-FLOOR PRODUCTION PIPELINE HANDLERS ---
+  // MODULE 5: GENERAL LEDGER (DOUBLE-ENTRY PARTY STATEMENT)
+  const [selectedLedgerPartyId, setSelectedLedgerPartyId] = React.useState(users.customers[0]?.id || '');
+  const partyLedger = React.useMemo(() => {
+    return window.uBMS.computeCustomerGeneralLedger(selectedLedgerPartyId, invoices, payments);
+  }, [selectedLedgerPartyId, invoices, payments]);
+
+  // MODULE 6: OUTSTANDING LEDGER (AGING ANALYSIS)
+  const [outstandingPartyFilter, setOutstandingPartyFilter] = React.useState('all');
+  const globalOutstanding = React.useMemo(() => {
+    const now = new Date();
+    let totalOutstanding = 0;
+    let aging0to30 = 0;
+    let aging31to60 = 0;
+    let aging60Plus = 0;
+    const partyMap = {};
+
+    users.customers.forEach(c => {
+      partyMap[c.id] = {
+        customer: c,
+        totalDue: 0,
+        unpaidCount: 0,
+        aging0to30: 0,
+        aging31to60: 0,
+        aging60Plus: 0,
+        oldestDate: null
+      };
+    });
+
+    const unpaidInvoices = (invoices || []).filter(i => {
+      if (outstandingPartyFilter !== 'all' && i.customerId !== outstandingPartyFilter) return false;
+      return Number(i.balanceDue) > 0;
+    });
+
+    const bills = unpaidInvoices.map(inv => {
+      const due = Number(inv.balanceDue) || 0;
+      totalOutstanding += due;
+
+      const issueDate = new Date(inv.issueDate);
+      const diffDays = Math.max(0, Math.floor((now - issueDate) / (1000 * 60 * 60 * 24)));
+      const isOverdue = inv.dueDate ? new Date(inv.dueDate) < now : diffDays > 10;
+      const overdueDays = inv.dueDate ? Math.max(0, Math.floor((now - new Date(inv.dueDate)) / (1000 * 60 * 60 * 24))) : Math.max(0, diffDays - 10);
+
+      if (diffDays <= 30) aging0to30 += due;
+      else if (diffDays <= 60) aging31to60 += due;
+      else aging60Plus += due;
+
+      if (partyMap[inv.customerId]) {
+        partyMap[inv.customerId].totalDue += due;
+        partyMap[inv.customerId].unpaidCount += 1;
+        if (diffDays <= 30) partyMap[inv.customerId].aging0to30 += due;
+        else if (diffDays <= 60) partyMap[inv.customerId].aging31to60 += due;
+        else partyMap[inv.customerId].aging60Plus += due;
+        if (!partyMap[inv.customerId].oldestDate || issueDate < new Date(partyMap[inv.customerId].oldestDate)) {
+          partyMap[inv.customerId].oldestDate = inv.issueDate;
+        }
+      }
+
+      return {
+        ...inv,
+        diffDays,
+        isOverdue,
+        overdueDays
+      };
+    });
+
+    return {
+      bills,
+      totalOutstanding,
+      aging0to30,
+      aging31to60,
+      aging60Plus,
+      partyBreakdown: Object.values(partyMap).filter(p => p.totalDue > 0)
+    };
+  }, [invoices, users.customers, outstandingPartyFilter]);
+
+    // --- MODULE 7: SHOP-FLOOR PRODUCTION PIPELINE HANDLERS ---
   const [productionFilterStage, setProductionFilterStage] = React.useState('all');
   const [sheetInputs, setSheetInputs] = React.useState({}); // { [jobId]: { printed: '', waste: '', punched: '', pieces: '', doriRate: 0.20, plasticRate: 0.10, labourerId: '' } }
   const [dispatchModalOrder, setDispatchModalOrder] = React.useState(null);
@@ -2465,7 +2730,7 @@ function AdminPortal({
             <div>
               <div className="flex items-center space-x-2.5">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Production Order Studio
+                  Place Order
                 </h1>
                 <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Auto-generated sequential Order ID">
                   {currentAdminOrderId}
@@ -2474,9 +2739,6 @@ function AdminPortal({
                   Admin Entry Console
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Precision manufacturing order entry with dynamic materials, custom trims, prepress proof &amp; instant booking.
-              </p>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -2509,29 +2771,10 @@ function AdminPortal({
                 
                 {/* Customer Account Party Selection - Structured Same as Brand Name Entry */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="mb-1.5">
                     <label className="text-[11px] font-semibold text-slate-700">
                       Customer Account Party <span className="text-rose-500">*</span>
                     </label>
-                    {users.customers.length > 0 && (
-                      <div className="flex items-center space-x-1 text-[10px] text-slate-400">
-                        <span>Parties:</span>
-                        {users.customers.slice(0, 4).map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => handleSelectCustomerParty(c)}
-                            className={`px-2 py-0.5 rounded transition-colors cursor-pointer font-medium ${
-                              selectedCust?.id === c.id 
-                                ? 'bg-slate-900 text-white shadow-2xs' 
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                            }`}
-                          >
-                            {c.company}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="relative">
                     <input
@@ -2589,9 +2832,6 @@ function AdminPortal({
                     <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                       Production Run Type
                     </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Choose whether you are booking a new design run or repeating a past manufactured order.
-                    </p>
                   </div>
                 </div>
 
@@ -2779,30 +3019,10 @@ function AdminPortal({
                 {adminOrderType === 'New Order' && (
                   <div className="pt-2 border-t border-slate-100 space-y-3">
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="mb-1.5">
                         <label className="text-[11px] font-semibold text-slate-700">
                           Brand / Client Label <span className="text-rose-500">*</span>
                         </label>
-                        {adminCustomerSavedBrands.length > 0 && (
-                          <div className="flex items-center space-x-1 text-[10px] text-slate-400">
-                            <span>Saved:</span>
-                            {adminCustomerSavedBrands.slice(0, 3).map((sb, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => {
-                                  setAdminBrandName(sb);
-                                  if (adminStepValidationErrors.brandName) {
-                                    setAdminStepValidationErrors(prev => ({ ...prev, brandName: null }));
-                                  }
-                                }}
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
-                              >
-                                {sb}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <div className="relative">
                         <input
@@ -2877,9 +3097,6 @@ function AdminPortal({
                   <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                     Product Architecture &amp; Specifications
                   </label>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Select the garment accessory category and configure physical dimensions and paper board qualities.
-                  </p>
                 </div>
 
                 {/* Category & Piece Format Row */}
@@ -2914,17 +3131,32 @@ function AdminPortal({
                             setAdminIsMultiCard(false);
                           } else if (val === '2 PC') {
                             setAdminIsMultiCard(true);
-                            if (adminTagCards.length > 2) handleAdminRemoveThirdCard();
+                            if (adminTagCards.length > 2) {
+                              handleAdminRemoveThirdCard();
+                            } else {
+                              setAdminTagCards(prev => [
+                                { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+                                { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+                              ]);
+                            }
                           } else if (val === '3 PC') {
                             setAdminIsMultiCard(true);
-                            if (adminTagCards.length < 3) handleAdminAddThirdCard();
+                            if (adminTagCards.length < 3) {
+                              handleAdminAddThirdCard();
+                            } else {
+                              setAdminTagCards(prev => [
+                                { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+                                { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+                                { id: 3, title: '3rd Pc (Upper Pc)', catalogId: prev[2]?.catalogId || availableCatalogs[2]?.id, dimension: prev[2]?.dimension || '' }
+                              ]);
+                            }
                           }
                         }}
                         className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                       >
-                        <option value="1 PC">1 PC (Single Tag)</option>
-                        <option value="2 PC">2 PC (2-Piece Tag Set)</option>
-                        <option value="3 PC">3 PC (3-Piece Tag Kit)</option>
+                        <option value="1 PC">Single Tag (1 Pc)</option>
+                        <option value="2 PC">2-Piece Tag (Base + Upper)</option>
+                        <option value="3 PC">3-Piece Tag (Base + Middle + Upper)</option>
                       </select>
                     </div>
                   ) : (
@@ -2953,33 +3185,28 @@ function AdminPortal({
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
                               Paper Catalog Board <span className="text-rose-500">*</span>
                             </label>
-                            <select
-                              value={adminSelectedCatalogId}
-                              onChange={(e) => {
-                                setAdminSelectedCatalogId(e.target.value);
+                            <PaperCatalogCombobox
+                              selectedCatalogId={adminSelectedCatalogId}
+                              onSelectCatalog={(catId) => {
+                                setAdminSelectedCatalogId(catId);
                                 if (adminStepValidationErrors.selectedCatalogId) {
                                   setAdminStepValidationErrors(prev => ({ ...prev, selectedCatalogId: null }));
                                 }
                               }}
-                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
-                            >
-                              {availableCatalogs.map(cat => (
-                                <option key={cat.id} value={cat.id}>
-                                  {cat.code} - {cat.gsm} GSM ({cat.finish})
-                                </option>
-                              ))}
-                            </select>
+                              availableCatalogs={availableCatalogs}
+                              error={adminStepValidationErrors.selectedCatalogId}
+                            />
                           </div>
                           <div>
                             <label className="text-[11px] font-semibold text-slate-700 block mb-1.5">
-                              Die-Cut Dimensions (Size L x Size B)
+                              Product Size
                             </label>
                             <input
                               type="text"
                               placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
                               value={adminSingleCardDimension}
                               onChange={(e) => setAdminSingleCardDimension(e.target.value)}
-                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
+                              className="w-full bg-slate-50/70 hover:bg-white focus:bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 font-medium shadow-2xs transition-all"
                             />
                           </div>
                         </div>
@@ -3005,7 +3232,7 @@ function AdminPortal({
                               <div key={card.id} className="bg-slate-50/70 border border-slate-200 rounded-xl p-3 space-y-2.5">
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-bold text-slate-800">
-                                    {card.title}
+                                    {window.uBMS.getTagPieceTitle(idx, adminTagCards.length)}
                                   </span>
                                   {idx === 2 && (
                                     <button
@@ -3022,28 +3249,23 @@ function AdminPortal({
                                     <label className="text-[10px] font-semibold text-slate-500 block mb-1">
                                       Paper Board Quality
                                     </label>
-                                    <select
-                                      value={card.catalogId}
-                                      onChange={(e) => handleAdminUpdateCardCatalog(idx, e.target.value)}
-                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium"
-                                    >
-                                      {availableCatalogs.map(cat => (
-                                        <option key={cat.id} value={cat.id}>
-                                          {cat.code} - {cat.gsm} GSM
-                                        </option>
-                                      ))}
-                                    </select>
+                                    <PaperCatalogCombobox
+                                      selectedCatalogId={card.catalogId}
+                                      onSelectCatalog={(newCatId) => handleAdminUpdateCardCatalog(idx, newCatId)}
+                                      availableCatalogs={availableCatalogs}
+                                      placeholder="Select paper board..."
+                                    />
                                   </div>
                                   <div>
                                     <label className="text-[10px] font-semibold text-slate-500 block mb-1">
-                                      Finished Dimensions
+                                      Product Size
                                     </label>
                                     <input
                                       type="text"
                                       placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
                                       value={card.dimension}
                                       onChange={(e) => handleAdminUpdateCardDimension(idx, e.target.value)}
-                                      className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium shadow-2xs"
                                     />
                                   </div>
                                 </div>
@@ -3139,161 +3361,154 @@ function AdminPortal({
                     <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                       Handwork Fasteners &amp; Attachments
                     </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Configure tag hanging cords (Dori) and molded barcode seal locks.
-                    </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Dori */}
-                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-800">Dori (String)</span>
-                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAdminDoriOption('none');
-                              setAdminDoriCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminDoriOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            None
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAdminDoriOption('reg');
-                              setAdminDoriCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminDoriOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Reg. (₹0.20)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAdminDoriOption('custom')}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminDoriOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Custom
-                          </button>
-                        </div>
+                        <span className="text-xs font-bold text-slate-800">Dori (String)</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {adminDoriOption === 'none' ? 'None' : adminDoriOption === 'reg' ? 'Regular (+\u20B90.20)' : 'Custom'}
+                        </span>
                       </div>
-                      {adminDoriOption === 'custom' ? (
+                      <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminDoriOption('none');
+                            setAdminDoriCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            adminDoriOption === 'none'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminDoriOption('reg');
+                            setAdminDoriCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                            adminDoriOption === 'reg'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          <span>Reg.</span>
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            adminDoriOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            &#8377;0.20
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminDoriOption('custom')}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            adminDoriOption === 'custom'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {adminDoriOption === 'custom' && (
                         <input
                           type="text"
                           placeholder="Specify custom dori (e.g. Waxed Cotton / Satin cord)"
                           value={adminDoriCustom}
                           onChange={(e) => setAdminDoriCustom(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
                         />
-                      ) : (
-                        <div className="text-[11px] text-slate-500">
-                          {adminDoriOption === 'none' ? 'No string attachment required' : 'Standard cotton string included (₹0.20/pc)'}
-                        </div>
                       )}
                     </div>
 
-                    {/* Barcode Plastic Seal */}
-                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                    {/* Barcode Plastic */}
+                    <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-800">Barcode Plastic Seal</span>
-                        <div className="flex items-center space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAdminPlasticOption('none');
-                              setAdminPlasticCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminPlasticOption === 'none' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            None
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAdminPlasticOption('reg');
-                              setAdminPlasticCustom('');
-                            }}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminPlasticOption === 'reg' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Reg. (₹0.10)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setAdminPlasticOption('custom')}
-                            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
-                              adminPlasticOption === 'custom' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            Custom
-                          </button>
-                        </div>
+                        <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {adminPlasticOption === 'none' ? 'None' : adminPlasticOption === 'reg' ? 'Regular (+\u20B90.10)' : 'Custom'}
+                        </span>
                       </div>
-                      {adminPlasticOption === 'custom' ? (
+                      <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminPlasticOption('none');
+                            setAdminPlasticCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            adminPlasticOption === 'none'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdminPlasticOption('reg');
+                            setAdminPlasticCustom('');
+                          }}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                            adminPlasticOption === 'reg'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          <span>Reg.</span>
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            adminPlasticOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            &#8377;0.10
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAdminPlasticOption('custom')}
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
+                            adminPlasticOption === 'custom'
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {adminPlasticOption === 'custom' && (
                         <input
                           type="text"
-                          placeholder="Specify custom seal (e.g. Embossed Square Seal)"
+                          placeholder="Specify custom barcode plastic (e.g. Embossed Square Seal)"
                           value={adminPlasticCustom}
                           onChange={(e) => setAdminPlasticCustom(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 font-medium"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 placeholder-slate-400 font-medium focus:outline-none focus:ring-1 focus:ring-slate-400"
                         />
-                      ) : (
-                        <div className="text-[11px] text-slate-500">
-                          {adminPlasticOption === 'none' ? 'No seal lock required' : 'Standard molded barcode seal lock (₹0.10/pc)'}
-                        </div>
                       )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* SECTION 4: Production Volume & Commercial Rates */}
+              {/* SECTION 4: Commercials */}
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs space-y-4">
                 <div>
                   <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
-                    Production Volume &amp; Commercials
+                    Commercials
                   </label>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Specify required pieces and agreed unit manufacturing pricing.
-                  </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                  {/* Quantity Input with Presets */}
+                  {/* Quantity Input */}
                   <div className="sm:col-span-6 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-semibold text-slate-700">
-                        Order Quantity (Pcs) <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="flex items-center space-x-1">
-                        {[1000, 2500, 5000, 10000].map(val => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => {
-                              setAdminQty(val);
-                              if (adminStepValidationErrors.qty) setAdminStepValidationErrors(prev => ({ ...prev, qty: null }));
-                            }}
-                            className={`text-[10px] px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                              Number(adminQty) === val
-                                ? 'bg-slate-900 text-white border-slate-900 font-bold'
-                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {val >= 1000 ? `${val / 1000}k` : val}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <label className="text-[11px] font-semibold text-slate-700 block">
+                      Order Quantity (Pcs) <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       type="number"
                       placeholder="e.g. 5000"
@@ -3384,9 +3599,7 @@ function AdminPortal({
                   >
                     <span>+ Add Another Article to this Order Batch</span>
                   </button>
-                  <span className="text-[11px] text-slate-400">
-                    Combine multiple tag references into one job card
-                  </span>
+
                 </div>
               </div>
 
@@ -3400,9 +3613,6 @@ function AdminPortal({
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">Artwork &amp; Prepress Proof</h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Visual framing and prepress alignment for offset printing.
-                    </p>
                   </div>
                   {adminOrderImage && (
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
@@ -3434,9 +3644,7 @@ function AdminPortal({
                     <p className="text-[11px] text-slate-500 max-w-xs mt-1 leading-relaxed">
                       Drag &amp; drop customer logo or tag artwork file (JPG, PNG, WEBP).
                     </p>
-                    <span className="text-[10px] text-slate-400 mt-2 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/80">
-                      Optional: Offset studio generates prepress proof if blank
-                    </span>
+
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -3537,17 +3745,10 @@ function AdminPortal({
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Composition:</span>
                     <span className="font-semibold text-slate-900 text-right">
-                      {adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit' ? (adminIsMultiCard ? `${adminTagCards.length}-Piece Set` : 'Single Card Tag') : 'Standard Unit'}
+                      {adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit' ? (adminIsMultiCard ? (adminTagCards.length === 2 ? '2-Piece Tag (Base + Upper)' : adminTagCards.length === 3 ? '3-Piece Tag (Base + Middle + Upper)' : `${adminTagCards.length}-Piece Set`) : 'Single Tag (1 Pc)') : 'Standard Unit'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-start gap-2">
-                    <span className="text-slate-500 text-[11px]">Material Board:</span>
-                    <span className="font-semibold text-slate-900 text-right text-[11px] max-w-[160px] truncate">
-                      {adminSelectedType === 'Tag' || adminSelectedType === 'Tag Kit'
-                        ? (availableCatalogs.find(c => c.id === adminSelectedCatalogId)?.code || 'Stock Board')
-                        : `${adminPuOrigin} PU (${adminPuThickness}mm)`}
-                    </span>
-                  </div>
+
                   <div className="flex justify-between items-start gap-2">
                     <span className="text-slate-500 text-[11px]">Volume:</span>
                     <span className="font-semibold font-mono text-slate-900 text-right">{Number(adminQty || 0).toLocaleString()} pcs</span>
@@ -3605,9 +3806,7 @@ function AdminPortal({
                     </>
                   )}
                 </button>
-                <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-                  Direct manufacturing entry. Press cards and jobs will be scheduled immediately.
-                </p>
+
               </div>
 
             </div>
@@ -4650,127 +4849,726 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 3: CREATE INVOICE */}
+      {/* MODULE 1: CREATE INVOICE STUDIO */}
       {activeTab === 'create_invoice' && (
-        <div className="max-w-2xl mx-auto bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs text-slate-800 animate-fade-in space-y-4">
-          <div>
-            <h3 className="font-bold text-slate-900 text-base">Generate Commercial Invoice</h3>
-            <p className="text-xs text-slate-500">Issue an invoice against a completed manufacturing order.</p>
+        <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-12">
+          {/* Studio Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+            <div>
+              <div className="flex items-center space-x-2.5">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                  Commercial Invoice Studio
+                </h1>
+                <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Auto-generated Invoice ID">
+                  {nextInvoiceId}
+                </span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-medium border border-slate-200">
+                  Admin Billing Console
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Generate tax-compliant commercial sales invoices against completed manufacturing orders or draft direct custom invoices.
+              </p>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setInvMode('from_order')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  invMode === 'from_order'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Bill from Order ({orders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setInvMode('custom')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  invMode === 'custom'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Direct Custom Invoice
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 pt-2 border-t border-slate-100">
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Select Order to Bill</label>
-              <select
-                value={invOrderId}
-                onChange={(e) => setInvOrderId(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                {orders.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.id} &bull; {o.customerCompany} &bull; {formatCurrency(o.total)} ({o.status})
-                  </option>
-                ))}
-              </select>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Form Column (2 Cols) */}
+            <div className="lg:col-span-2 space-y-5">
+              {invMode === 'from_order' ? (
+                /* Mode A: Bill from Order */
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                      1. Select Manufacturing Order to Bill
+                    </span>
+                    <span className="text-xs font-mono text-slate-500">
+                      {orders.length} order(s) available
+                    </span>
+                  </div>
+
+                  {orders.length === 0 ? (
+                    <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 text-xs">
+                      No orders placed in system yet. You can use <strong>Direct Custom Invoice</strong> mode or place an order first.
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Select Client Order
+                      </label>
+                      <select
+                        value={invOrderId}
+                        onChange={(e) => setInvOrderId(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                      >
+                        {orders.map(o => (
+                          <option key={o.id} value={o.id}>
+                            {o.id} • {o.customerCompany} • {formatCurrency(o.total)} • [{o.status.toUpperCase()}]
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {targetOrder && (
+                    <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
+                        <div>
+                          <span className="text-xs text-slate-500">Customer Party</span>
+                          <div className="font-bold text-slate-900 text-sm">{targetOrder.customerCompany}</div>
+                          <span className="text-[11px] text-slate-500">{targetOrder.customerName} • {targetOrder.customerPhone || targetOrder.customerEmail}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-slate-500">Order Booking Ref</span>
+                          <div className="font-mono font-bold text-slate-900 text-xs">{targetOrder.id}</div>
+                          {targetOrder.customerOrderId && (
+                            <span className="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded">
+                              {targetOrder.customerOrderId}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Items Preview */}
+                      <div>
+                        <span className="text-[11px] uppercase font-bold text-slate-500 block mb-1">Order Line Items</span>
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                          {targetOrder.items.map((it, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200 text-xs">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-mono font-bold text-[11px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                                  #{idx + 1}
+                                </span>
+                                <span className="font-bold text-slate-900">{it.brandName || it.name}</span>
+                                <span className="text-slate-500">({it.type || 'Tag'} • {it.material || ''})</span>
+                              </div>
+                              <div className="font-mono text-slate-900 text-right">
+                                <span className="text-slate-500 text-[11px] mr-2">{it.quantity} pcs @ ₹{it.unitPrice}</span>
+                                <strong>{formatCurrency(it.total || it.quantity * it.unitPrice)}</strong>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Invoice Terms & Parameters */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Invoice Issue Date
+                      </label>
+                      <input
+                        type="date"
+                        value={invIssueDate}
+                        onChange={(e) => setInvIssueDate(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Payment Due Date
+                      </label>
+                      <input
+                        type="date"
+                        value={invDueDate}
+                        onChange={(e) => setInvDueDate(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        GST Tax Rate (%)
+                      </label>
+                      <select
+                        value={invTaxRate}
+                        onChange={(e) => setInvTaxRate(Number(e.target.value))}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      >
+                        <option value={0}>0% (Tax Exempt / Nil Rated)</option>
+                        <option value={5}>5% (Concessional Goods)</option>
+                        <option value={12}>12% (Standard Trims)</option>
+                        <option value={18}>18% (Standard Manufacturing - 9% CGST + 9% SGST)</option>
+                        <option value={28}>28% (Luxury / Specialized)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Shipping &amp; Freight Charges (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={invShipping}
+                        onChange={(e) => setInvShipping(Number(e.target.value))}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Payment Terms &amp; Special Remarks
+                    </label>
+                    <input
+                      type="text"
+                      value={invNotes}
+                      onChange={(e) => setInvNotes(e.target.value)}
+                      placeholder="e.g. Due within 10 days, NEFT/UPI accepted"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Mode B: Direct Custom Invoice */
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                      1. Custom Commercial Bill Entry
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Direct invoice without linked order
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Select Customer Party
+                      </label>
+                      <select
+                        value={customInvCustomerId}
+                        onChange={(e) => setCustomInvCustomerId(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                      >
+                        {users.customers.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.company} ({c.name})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        PO / Client Reference (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={customInvPoRef}
+                        onChange={(e) => setCustomInvPoRef(e.target.value)}
+                        placeholder="e.g. PO-9821 / Direct Batch"
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Line Items Editor */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-slate-800">
+                        Line Items ({customInvItems.length})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleAddCustomInvItem}
+                        className="text-xs text-slate-900 font-bold hover:underline flex items-center space-x-1 cursor-pointer"
+                      >
+                        <span>+ Add Item</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {customInvItems.map((item, idx) => (
+                        <div key={idx} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-2.5 items-center">
+                          <div className="col-span-12 sm:col-span-4">
+                            <label className="text-[10px] text-slate-500 font-medium block">Item Name / Desc</label>
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => handleUpdateCustomInvItem(idx, 'name', e.target.value)}
+                              placeholder="e.g. Die-Cut Hang Tags"
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                            />
+                          </div>
+                          <div className="col-span-12 sm:col-span-3">
+                            <label className="text-[10px] text-slate-500 font-medium block">Specifications</label>
+                            <input
+                              type="text"
+                              value={item.specs}
+                              onChange={(e) => handleUpdateCustomInvItem(idx, 'specs', e.target.value)}
+                              placeholder="e.g. 350 GSM Art Board"
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                            />
+                          </div>
+                          <div className="col-span-4 sm:col-span-2">
+                            <label className="text-[10px] text-slate-500 font-medium block">Qty (Pcs)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleUpdateCustomInvItem(idx, 'quantity', e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                            />
+                          </div>
+                          <div className="col-span-4 sm:col-span-2">
+                            <label className="text-[10px] text-slate-500 font-medium block">Rate (₹)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.unitPrice}
+                              onChange={(e) => handleUpdateCustomInvItem(idx, 'unitPrice', e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                            />
+                          </div>
+                          <div className="col-span-4 sm:col-span-1 flex items-center justify-end pt-3">
+                            {customInvItems.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCustomInvItem(idx)}
+                                className="text-rose-600 hover:text-rose-800 p-1.5 text-xs font-bold cursor-pointer"
+                                title="Remove line item"
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Invoice Issue Date
+                      </label>
+                      <input
+                        type="date"
+                        value={invIssueDate}
+                        onChange={(e) => setInvIssueDate(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Payment Due Date
+                      </label>
+                      <input
+                        type="date"
+                        value={invDueDate}
+                        onChange={(e) => setInvDueDate(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        GST Tax Rate (%)
+                      </label>
+                      <select
+                        value={invTaxRate}
+                        onChange={(e) => setInvTaxRate(Number(e.target.value))}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      >
+                        <option value={0}>0% (Tax Exempt / Nil Rated)</option>
+                        <option value={5}>5% (Concessional Goods)</option>
+                        <option value={12}>12% (Standard Trims)</option>
+                        <option value={18}>18% (Standard Manufacturing - 9% CGST + 9% SGST)</option>
+                        <option value={28}>28% (Luxury / Specialized)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 block mb-1">
+                        Shipping &amp; Freight Charges (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={invShipping}
+                        onChange={(e) => setInvShipping(Number(e.target.value))}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Payment Terms &amp; Special Remarks
+                    </label>
+                    <input
+                      type="text"
+                      value={invNotes}
+                      onChange={(e) => setInvNotes(e.target.value)}
+                      placeholder="e.g. Due within 10 days, NEFT/UPI accepted"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {targetOrder && (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Customer:</span>
-                  <span className="font-semibold text-slate-900">{targetOrder.customerCompany} ({targetOrder.customerName})</span>
+            {/* Live Invoice Preview & Actions (Right Column) */}
+            <div className="space-y-4">
+              <div className="bg-white border-2 border-slate-900 rounded-2xl p-6 shadow-md space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                  <span className="font-extrabold text-slate-900 text-sm">Invoice Summary</span>
+                  <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded">
+                    {nextInvoiceId}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Items:</span>
-                  <span className="text-slate-700">{targetOrder.items.map(i => i.name).join(', ')}</span>
-                </div>
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-slate-200">
-                  <span className="text-slate-900">Total Billable:</span>
-                  <span className="text-slate-900 font-mono">{formatCurrency(targetOrder.total)}</span>
+
+                {/* Calculation breakdown */}
+                {(() => {
+                  let sub = 0;
+                  if (invMode === 'from_order' && targetOrder) {
+                    sub = Number(targetOrder.subtotal) || Number(targetOrder.total) || 0;
+                  } else if (invMode === 'custom') {
+                    sub = customInvItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+                  }
+                  const tax = Math.round(sub * (Number(invTaxRate) / 100) * 100) / 100;
+                  const ship = Number(invShipping) || 0;
+                  const total = Math.round((sub + tax + ship) * 100) / 100;
+
+                  return (
+                    <div className="space-y-2.5 text-xs">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Items Subtotal:</span>
+                        <span className="font-mono font-bold text-slate-900">{formatCurrency(sub)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>GST ({invTaxRate}%):</span>
+                        <span className="font-mono font-medium text-slate-800">{formatCurrency(tax)}</span>
+                      </div>
+                      {ship > 0 && (
+                        <div className="flex justify-between text-slate-600">
+                          <span>Shipping / Freight:</span>
+                          <span className="font-mono font-medium text-slate-800">{formatCurrency(ship)}</span>
+                        </div>
+                      )}
+                      <div className="pt-3 border-t-2 border-slate-900 flex justify-between items-baseline">
+                        <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
+                        <span className="font-mono font-black text-slate-900 text-xl">{formatCurrency(total)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Primary Action Buttons */}
+                <div className="pt-2 space-y-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleCreateInvoiceSubmit(e, false)}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <span>✓ Generate Commercial Invoice</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleCreateInvoiceSubmit(e, true)}
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2.5 rounded-xl transition-all border border-slate-300 flex items-center justify-center space-x-1.5 cursor-pointer"
+                  >
+                    <span>Print / View PDF Now</span>
+                  </button>
                 </div>
               </div>
-            )}
-
-            <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Payment Due Date</label>
-              <input
-                type="date"
-                value={invDueDate}
-                onChange={(e) => setInvDueDate(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              />
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-3 rounded-xl transition-colors"
-            >
-              Generate Commercial Invoice
-            </button>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* MODULE 4: VIEW ALL INVOICES */}
-      {activeTab === 'all_invoices' && (
-        <div className="space-y-4 animate-fade-in">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-bold text-slate-900 text-base mb-1">Commercial Invoices Register</h3>
-            <p className="text-xs text-slate-500 mb-4">Master record of all tax invoices and payment collections.</p>
+      {/* MODULE 2: INVOICE LIST */}
+      {(activeTab === 'invoice_list' || activeTab === 'all_invoices') && (
+        <div className="space-y-5 animate-fade-in pb-12">
+          {/* Header & Quick Action */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-slate-900 text-base">Commercial Invoices List</h3>
+                <span className="text-xs bg-slate-100 text-slate-800 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                  {invoices.length} Bills
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Master record of all tax invoices, customer collections, and payment settlement statuses.
+              </p>
+            </div>
 
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('create_invoice')}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+              >
+                <span>+ Create Invoice</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Top KPI Metrics Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Total Invoiced</span>
+              <span className="text-lg font-black text-slate-900 font-mono mt-0.5 block">
+                {formatCurrency(invoices.reduce((acc, i) => acc + (Number(i.total) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Collected</span>
+              <span className="text-lg font-black text-emerald-700 font-mono mt-0.5 block">
+                {formatCurrency(invoices.reduce((acc, i) => acc + (Number(i.paidAmount) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Net Balance Due</span>
+              <span className="text-lg font-black text-amber-700 font-mono mt-0.5 block">
+                {formatCurrency(invoices.reduce((acc, i) => acc + (Number(i.balanceDue) || 0), 0))}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Settlement Status</span>
+              <span className="text-xs font-semibold text-slate-800 mt-1 block">
+                <span className="text-emerald-700 font-bold">{invoices.filter(i => i.status === 'paid').length} Paid</span>
+                <span className="text-slate-400 mx-1">•</span>
+                <span className="text-amber-700 font-bold">{invoices.filter(i => i.status !== 'paid').length} Pending</span>
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider block">Overdue Invoices</span>
+              <span className="text-lg font-black text-rose-700 font-mono mt-0.5 block">
+                {invoices.filter(i => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== 'paid' && i.balanceDue > 0).length}
+              </span>
+            </div>
+          </div>
+
+          {/* Search and Filters Bar */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[260px]">
+                <input
+                  type="text"
+                  value={invListSearch}
+                  onChange={(e) => setInvListSearch(e.target.value)}
+                  placeholder="Search Invoice #, Party, Order Ref..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+                />
+                {invListSearch && (
+                  <button
+                    onClick={() => setInvListSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              {/* Status pills */}
+              <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                {[
+                  { key: 'all', label: `All (${invoices.length})` },
+                  { key: 'paid', label: `Paid (${invoices.filter(i => i.status === 'paid').length})` },
+                  { key: 'unpaid', label: `Unpaid (${invoices.filter(i => i.status === 'unpaid').length})` },
+                  { key: 'partial', label: `Partial (${invoices.filter(i => i.paidAmount > 0 && i.balanceDue > 0).length})` },
+                  { key: 'overdue', label: `Overdue (${invoices.filter(i => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== 'paid' && i.balanceDue > 0).length})` }
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setInvListStatusFilter(tab.key)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      invListStatusFilter === tab.key
+                        ? 'bg-slate-900 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {(invListSearch || invListStatusFilter !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvListSearch('');
+                    setInvListStatusFilter('all');
+                  }}
+                  className="text-xs text-slate-600 hover:text-slate-900 underline font-semibold px-2 py-1 cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+
+            <span className="text-xs font-mono font-medium text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg">
+              Showing {filteredInvoiceList.length} of {invoices.length} Invoice(s)
+            </span>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Invoice No</th>
                     <th className="py-3 px-4 font-semibold">Customer Party</th>
                     <th className="py-3 px-4 font-semibold">Order Ref</th>
                     <th className="py-3 px-4 font-semibold">Issue Date</th>
+                    <th className="py-3 px-4 font-semibold">Due Date</th>
                     <th className="py-3 px-4 font-semibold">Total Amount</th>
                     <th className="py-3 px-4 font-semibold">Collected</th>
                     <th className="py-3 px-4 font-semibold">Balance Due</th>
-                    <th className="py-3 px-4 font-semibold">Status</th>
+                    <th className="py-3 px-4 font-semibold text-center">Status</th>
                     <th className="py-3 px-4 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {invoices.length === 0 && (
-                    <tr>
-                      <td colSpan="9" className="py-12 text-center text-slate-400 text-xs">
-                        No billing invoices issued yet.
-                      </td>
-                    </tr>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filteredInvoiceList.length === 0 ? (
+                    invoices.length === 0 ? (
+                      <tr>
+                        <td colSpan="10" className="py-14 text-center text-slate-400">
+                          <div className="font-bold text-slate-800 text-sm">There are no invoices generated currently</div>
+                          <p className="text-xs text-slate-400 mt-1">Issue commercial invoices against completed manufacturing orders or draft direct invoices.</p>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('create_invoice')}
+                            className="mt-3.5 inline-flex items-center space-x-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                          >
+                            <span>+ Create Invoice</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <td colSpan="10" className="py-12 text-center text-slate-400">
+                          <div className="font-medium text-slate-700">No invoices match your search filters</div>
+                          <p className="text-xs text-slate-400 mt-1">Try clearing or adjusting the search query or status filter.</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInvListSearch('');
+                              setInvListStatusFilter('all');
+                            }}
+                            className="mt-3 inline-block px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium rounded-xl border border-slate-200 cursor-pointer"
+                          >
+                            Clear all filters
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  ) : (
+                    filteredInvoiceList.map(inv => {
+                      const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && inv.status !== 'paid' && inv.balanceDue > 0;
+                      const linkedOrder = orders.find(o => o.id === inv.orderId);
+
+                      return (
+                        <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                            {inv.id}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-slate-900 text-sm">{inv.customerCompany || inv.customerName}</div>
+                            <div className="text-[11px] text-slate-500">{inv.customerName}</div>
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-slate-600 text-xs">
+                            <div>{inv.orderId}</div>
+                            {linkedOrder?.customerOrderId && (
+                              <span className="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1 py-0.2 rounded mt-0.5 inline-block">
+                                {linkedOrder.customerOrderId}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                            {formatDate(inv.issueDate)}
+                          </td>
+                          <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                            <div>{formatDate(inv.dueDate)}</div>
+                            {isOverdue && (
+                              <span className="text-[9px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded-full inline-block mt-0.5">
+                                Overdue
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">
+                            {formatCurrency(inv.total)}
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-emerald-700 font-mono">
+                            {formatCurrency(inv.paidAmount || 0)}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold font-mono">
+                            <span className={inv.balanceDue > 0 ? 'text-amber-700' : 'text-slate-400'}>
+                              {formatCurrency(inv.balanceDue || 0)}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-block ${
+                              inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              (inv.paidAmount > 0 && inv.balanceDue > 0) ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                              'bg-rose-50 text-rose-700 border border-rose-200'
+                            }`}>
+                              {inv.status === 'paid' ? 'PAID' : (inv.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                            {inv.balanceDue > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleInitiatePaymentForInvoice(inv)}
+                                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                                title="Record payment receipt against this invoice"
+                              >
+                                Pay In
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const orderToOpen = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard', shippingAddress: 'Client Registered Godown' };
+                                onOpenInvoice(orderToOpen);
+                              }}
+                              className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                            >
+                              Print / PDF
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
-                  {invoices.map(inv => (
-                    <tr key={inv.id} className="hover:bg-slate-50/70">
-                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{inv.id}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-900">{inv.customerCompany || inv.customerName}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-500">{inv.orderId}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{formatDate(inv.issueDate)}</td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">{formatCurrency(inv.total)}</td>
-                      <td className="py-3.5 px-4 text-emerald-700 font-medium">{formatCurrency(inv.paidAmount)}</td>
-                      <td className="py-3.5 px-4 font-bold text-amber-700">{formatCurrency(inv.balanceDue)}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
-                          inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, shippingAddress: 'Client Registered Address', priority: 'standard' };
-                            onOpenInvoice(linkedOrder);
-                          }}
-                          className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Print / View
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
                 </tbody>
               </table>
             </div>
@@ -4778,21 +5576,685 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 5: LEDGERS HUB */}
-      {activeTab === 'ledgers' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
+      {/* MODULE 3: INVOICE REGISTER (ITEM-WISE DETAILED REGISTER) */}
+      {activeTab === 'invoice_register' && (
+        <div className="space-y-4 animate-fade-in pb-12">
+          {/* Header */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-slate-900 text-base">Commercial Invoice Register</h3>
+                <span className="text-xs bg-slate-100 text-slate-800 font-mono font-bold px-2 py-0.5 rounded-md border border-slate-200">
+                  Item-Level Sales Registry
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Item-wise line register with artwork inspection, specifications breakdown, quantity, unit rate, and GST tax computation.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Status Dropdown */}
+              <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                <span className="text-xs text-slate-500 font-medium whitespace-nowrap">Status:</span>
+                <select
+                  value={invRegStatusFilter}
+                  onChange={(e) => setInvRegStatusFilter(e.target.value)}
+                  className="bg-transparent text-xs text-slate-800 font-semibold outline-none cursor-pointer"
+                >
+                  <option value="all">All Invoices ({invoices.length})</option>
+                  <option value="paid">Fully Paid ({invoices.filter(i => i.status === 'paid').length})</option>
+                  <option value="partial">Partially Paid ({invoices.filter(i => i.paidAmount > 0 && i.balanceDue > 0).length})</option>
+                  <option value="unpaid">Unpaid ({invoices.filter(i => i.status === 'unpaid').length})</option>
+                  <option value="overdue">Overdue ({invoices.filter(i => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== 'paid' && i.balanceDue > 0).length})</option>
+                </select>
+              </div>
+
+              {(invRegStatusFilter !== 'all' || invRegSearchId || invRegSearchCustomer || invRegSearchSpecs || invRegSearchDoriPlastic || invRegSearchQty || invRegSearchRateTotal) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInvRegStatusFilter('all');
+                    setInvRegSearchId('');
+                    setInvRegSearchCustomer('');
+                    setInvRegSearchSpecs('');
+                    setInvRegSearchDoriPlastic('');
+                    setInvRegSearchQty('');
+                    setInvRegSearchRateTotal('');
+                  }}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 font-medium transition-colors cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+              <span className="text-xs text-slate-700 font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
+                {filteredInvoiceRegister.length} of {flattenedInvoiceItems.length} Item(s)
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('create_invoice')}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                + Create Invoice
+              </button>
+            </div>
+          </div>
+
+          {/* Table with per-column search */}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+            <table className="w-full table-fixed min-w-[1240px] text-left text-xs text-slate-700">
+              <colgroup>
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '80px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: 'auto' }} />
+                <col style={{ width: '140px' }} />
+                <col style={{ width: '90px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '120px' }} />
+                <col style={{ width: '130px' }} />
+                <col style={{ width: '120px' }} />
+              </colgroup>
+              <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
+                <tr>
+                  <th className="py-3 px-3 font-semibold">Invoice &amp; Order</th>
+                  <th className="py-3 px-3 text-center font-semibold">Artwork</th>
+                  <th className="py-3 px-3 font-semibold">Customer Party</th>
+                  <th className="py-3 px-4 font-semibold">Brand &amp; Item Specs</th>
+                  <th className="py-3 px-3 font-semibold">Dori &amp; Plastic</th>
+                  <th className="py-3 px-3 text-right font-semibold">Qty</th>
+                  <th className="py-3 px-3 text-right font-semibold">Rate (₹)</th>
+                  <th className="py-3 px-3 text-right font-semibold">Item Total</th>
+                  <th className="py-3 px-3 text-center font-semibold">Payment Status</th>
+                  <th className="py-3 px-4 text-right font-semibold">Actions</th>
+                </tr>
+                {/* Per-Column Real-Time Search Row matching Admin Order Register */}
+                <tr className="bg-slate-50/70 border-b border-slate-200">
+                  {/* Search Invoice/Order ID */}
+                  <th className="py-2 px-3 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchId}
+                        onChange={(e) => setInvRegSearchId(e.target.value)}
+                        placeholder="Search ID..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none font-mono"
+                      />
+                      {invRegSearchId && (
+                        <button
+                          onClick={() => setInvRegSearchId('')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Artwork spacer */}
+                  <th className="py-2 px-3 font-normal"></th>
+                  {/* Search Customer Party */}
+                  <th className="py-2 px-3 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchCustomer}
+                        onChange={(e) => setInvRegSearchCustomer(e.target.value)}
+                        placeholder="Search customer..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none"
+                      />
+                      {invRegSearchCustomer && (
+                        <button
+                          onClick={() => setInvRegSearchCustomer('')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Search Brand & Specs */}
+                  <th className="py-2 px-4 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchSpecs}
+                        onChange={(e) => setInvRegSearchSpecs(e.target.value)}
+                        placeholder="Search specs, brand, paper..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2.5 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none"
+                      />
+                      {invRegSearchSpecs && (
+                        <button
+                          onClick={() => setInvRegSearchSpecs('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Search Dori & Plastic */}
+                  <th className="py-2 px-3 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchDoriPlastic}
+                        onChange={(e) => setInvRegSearchDoriPlastic(e.target.value)}
+                        placeholder="Search dori / plastic..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none"
+                      />
+                      {invRegSearchDoriPlastic && (
+                        <button
+                          onClick={() => setInvRegSearchDoriPlastic('')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Filter Qty */}
+                  <th className="py-2 px-3 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchQty}
+                        onChange={(e) => setInvRegSearchQty(e.target.value)}
+                        placeholder="Filter qty..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none text-right font-mono"
+                      />
+                      {invRegSearchQty && (
+                        <button
+                          onClick={() => setInvRegSearchQty('')}
+                          className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Filter Rate / Total */}
+                  <th className="py-2 px-3 font-normal">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={invRegSearchRateTotal}
+                        onChange={(e) => setInvRegSearchRateTotal(e.target.value)}
+                        placeholder="Filter rate..."
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 rounded-lg px-2 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none text-right font-mono"
+                      />
+                      {invRegSearchRateTotal && (
+                        <button
+                          onClick={() => setInvRegSearchRateTotal('')}
+                          className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                  {/* Total spacer */}
+                  <th className="py-2 px-3 font-normal"></th>
+                  {/* Status spacer */}
+                  <th className="py-2 px-3 font-normal"></th>
+                  {/* Clear filter action */}
+                  <th className="py-2 px-4 text-right font-normal">
+                    {(invRegStatusFilter !== 'all' || invRegSearchId || invRegSearchCustomer || invRegSearchSpecs || invRegSearchDoriPlastic || invRegSearchQty || invRegSearchRateTotal) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInvRegStatusFilter('all');
+                          setInvRegSearchId('');
+                          setInvRegSearchCustomer('');
+                          setInvRegSearchSpecs('');
+                          setInvRegSearchDoriPlastic('');
+                          setInvRegSearchQty('');
+                          setInvRegSearchRateTotal('');
+                        }}
+                        className="text-[11px] text-slate-700 hover:text-slate-900 font-semibold underline cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {filteredInvoiceRegister.length === 0 ? (
+                  invoices.length === 0 ? (
+                    <tr>
+                      <td colSpan="10" className="py-14 text-center text-slate-400">
+                        <div className="font-bold text-slate-800 text-sm">There are no invoices in the register currently</div>
+                        <p className="text-xs text-slate-400 mt-1">Commercial invoices issued will appear here with complete item specifications.</p>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('create_invoice')}
+                          className="mt-3.5 inline-flex items-center space-x-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+                        >
+                          <span>+ Create Invoice</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td colSpan="10" className="py-12 text-center text-slate-400">
+                        <div className="font-medium text-slate-700">No invoice items match your register filters</div>
+                        <p className="text-xs text-slate-400 mt-1">Try clearing or adjusting the search fields or status filter.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInvRegStatusFilter('all');
+                            setInvRegSearchId('');
+                            setInvRegSearchCustomer('');
+                            setInvRegSearchSpecs('');
+                            setInvRegSearchDoriPlastic('');
+                            setInvRegSearchQty('');
+                            setInvRegSearchRateTotal('');
+                          }}
+                          className="mt-3 inline-block px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium rounded-xl border border-slate-200 cursor-pointer"
+                        >
+                          Clear all filters
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                ) : (
+                  filteredInvoiceRegister.map(({ rowKey, invoice: inv, item, linkedOrder }) => {
+                    const artworkImg = item.image || linkedOrder?.items?.[0]?.image;
+
+                    return (
+                      <tr key={rowKey} className="hover:bg-slate-50 transition-colors">
+                        {/* 1. Invoice & Order ID */}
+                        <td className="py-4 px-3 align-top font-mono">
+                          <div className="font-bold text-slate-900 text-xs">{inv.id}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{inv.orderId}</div>
+                          {linkedOrder?.customerOrderId && (
+                            <span className="text-[9px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1 rounded inline-block mt-1">
+                              {linkedOrder.customerOrderId}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 2. Artwork */}
+                        <td className="py-4 px-3 align-top text-center">
+                          {artworkImg ? (
+                            <div
+                              onClick={() => setPreviewArtworkUrl(artworkImg)}
+                              className="relative group cursor-pointer inline-block"
+                              title="Click to zoom artwork"
+                            >
+                              <img
+                                src={artworkImg}
+                                alt="Artwork"
+                                className="w-14 h-14 object-contain rounded-xl border border-slate-200 bg-white shadow-2xs group-hover:scale-105 transition-all"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 mx-auto">
+                              TAG
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 3. Customer Party */}
+                        <td className="py-4 px-3 align-top">
+                          <div className="font-bold text-slate-900 text-sm leading-snug">{inv.customerCompany || inv.customerName}</div>
+                          <div className="text-[11px] text-slate-500">{inv.customerName}</div>
+                        </td>
+
+                        {/* 4. Brand & Specs */}
+                        <td className="py-4 px-4 align-top">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200">
+                              {item.itemCode || item.name || 'ITEM'}
+                            </span>
+                            <span className="font-bold text-slate-900 text-sm">
+                              {item.brandName || inv.customerCompany}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-1 items-center">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-medium">
+                              {item.type || 'Tag'}
+                            </span>
+                            {item.material && (
+                              <span className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-600 border border-slate-200 text-[11px]">
+                                {item.material}
+                              </span>
+                            )}
+                            {item.specs && (
+                              <span className="text-[11px] text-slate-500">
+                                {item.specs}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. Dori & Plastic */}
+                        <td className="py-4 px-3 align-top">
+                          <div className="text-xs space-y-1">
+                            {item.dori ? (
+                              <div className="text-slate-700">Dori: <strong>{item.dori}</strong></div>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">No Dori</span>
+                            )}
+                            {item.plastic && (
+                              <div className="text-slate-700">Seal: <strong>{item.plastic}</strong></div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 6. Quantity */}
+                        <td className="py-4 px-3 align-top text-right font-mono font-bold text-slate-900">
+                          {Number(item.quantity || 0).toLocaleString()}
+                          <span className="text-[10px] text-slate-400 block font-normal">pcs</span>
+                        </td>
+
+                        {/* 7. Rate */}
+                        <td className="py-4 px-3 align-top text-right font-mono text-slate-700">
+                          {formatCurrency(item.unitPrice || 0)}
+                        </td>
+
+                        {/* 8. Item Total */}
+                        <td className="py-4 px-3 align-top text-right font-mono font-bold text-slate-900">
+                          {formatCurrency(item.total || Number(item.quantity || 0) * Number(item.unitPrice || 0))}
+                        </td>
+
+                        {/* 9. Payment Status */}
+                        <td className="py-4 px-3 align-top text-center">
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase inline-block ${
+                            inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            (inv.paidAmount > 0 && inv.balanceDue > 0) ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {inv.status === 'paid' ? 'PAID' : (inv.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')}
+                          </span>
+                          {inv.balanceDue > 0 && (
+                            <div className="text-[10px] text-amber-700 font-mono font-medium mt-1">
+                              Bal: {formatCurrency(inv.balanceDue)}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 10. Actions */}
+                        <td className="py-4 px-4 align-top text-right whitespace-nowrap space-x-1.5">
+                          {inv.balanceDue > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleInitiatePaymentForInvoice(inv)}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                              title="Record payment for this invoice"
+                            >
+                              Pay In
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const orderToOpen = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard', shippingAddress: 'Client Registered Godown' };
+                              onOpenInvoice(orderToOpen);
+                            }}
+                            className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                          >
+                            Print
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODULE 4: PAYMENT IN */}
+      {(activeTab === 'payment_in' || activeTab === 'payments') && (
+        <div className="space-y-6 animate-fade-in pb-12">
+          {/* Header */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-slate-900 text-base">Payment In &amp; Collections Hub</h3>
+                <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono font-bold px-2 py-0.5 rounded-md">
+                  Cash &amp; Bank Ledger
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Post customer collections, knock off open invoices, and track the master inward payments log.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-mono text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
+                {payments.length} Receipt(s) Posted
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Form: Record Inward Payment */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
+              <div className="pb-3 border-b border-slate-100">
+                <h4 className="font-bold text-slate-900 text-sm">Post Inward Payment Receipt</h4>
+                <p className="text-xs text-slate-500">Record funds received from client to reduce outstanding balance.</p>
+              </div>
+
+              <form onSubmit={handleRecordPayment} className="space-y-3.5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Customer Party</label>
+                  <select
+                    value={payCustId}
+                    onChange={(e) => {
+                      setPayCustId(e.target.value);
+                      setPayInvId('');
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  >
+                    {users.customers.map(c => (
+                      <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Knock-off Invoice (Optional)</label>
+                  <select
+                    value={payInvId}
+                    onChange={(e) => {
+                      const selId = e.target.value;
+                      setPayInvId(selId);
+                      if (selId) {
+                        const matchedInv = invoices.find(i => i.id === selId);
+                        if (matchedInv) setPayAmount(String(matchedInv.balanceDue || matchedInv.total));
+                      }
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  >
+                    <option value="">General On-Account Advance</option>
+                    {custPendingInvoices.map(inv => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.id} • Due: {formatCurrency(inv.balanceDue)} ({inv.orderId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-700">Amount Received (₹)</label>
+                    {payInvId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matchedInv = invoices.find(i => i.id === payInvId);
+                          if (matchedInv) setPayAmount(String(matchedInv.balanceDue || matchedInv.total));
+                        }}
+                        className="text-[10px] text-emerald-700 font-bold hover:underline cursor-pointer"
+                      >
+                        Fill Full Due
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    required
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    placeholder="Enter amount in ₹"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono font-bold focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Payment Mode</label>
+                  <select
+                    value={payMode}
+                    onChange={(e) => setPayMode(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  >
+                    <option value="NEFT / Bank Transfer">NEFT / RTGS</option>
+                    <option value="UPI (Corporate)">UPI (Corporate)</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Cash">Cash</option>
+                    <option value="IMPS / NetBanking">IMPS / NetBanking</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Reference / UTR / Cheque No</label>
+                  <input
+                    type="text"
+                    value={payRefNo}
+                    onChange={(e) => setPayRefNo(e.target.value)}
+                    placeholder="e.g. UTR-202610294812"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Remarks / Particulars</label>
+                  <input
+                    type="text"
+                    value={payNotes}
+                    onChange={(e) => setPayNotes(e.target.value)}
+                    placeholder="e.g. Advance settlement for Diwali batch"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition-all shadow-xs mt-2 cursor-pointer"
+                >
+                  Post Payment In Receipt
+                </button>
+              </form>
+            </div>
+
+            {/* Right: Collections Log & Historical Receipts */}
+            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 border-b border-slate-100 gap-2">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">Recent Collections Ledger</h4>
+                  <p className="text-xs text-slate-500">Historical customer inward payments posted to accounts.</p>
+                </div>
+
+                <div className="relative min-w-[200px]">
+                  <input
+                    type="text"
+                    value={paySearch}
+                    onChange={(e) => setPaySearch(e.target.value)}
+                    placeholder="Search receipt, party..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none"
+                  />
+                  {paySearch && (
+                    <button
+                      onClick={() => setPaySearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
+                    <tr>
+                      <th className="py-3 px-4 font-semibold">Receipt No</th>
+                      <th className="py-3 px-4 font-semibold">Customer Party</th>
+                      <th className="py-3 px-4 font-semibold">Date</th>
+                      <th className="py-3 px-4 font-semibold">Mode &amp; Ref</th>
+                      <th className="py-3 px-4 text-right font-semibold">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="py-12 text-center text-slate-400 text-xs">
+                          No payment receipts posted yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      payments
+                        .filter(p => {
+                          if (!paySearch.trim()) return true;
+                          const q = paySearch.toLowerCase().trim();
+                          return (p.id || '').toLowerCase().includes(q) ||
+                                 (p.customerCompany || p.customerName || '').toLowerCase().includes(q) ||
+                                 (p.referenceNumber || '').toLowerCase().includes(q) ||
+                                 (p.invoiceId || '').toLowerCase().includes(q);
+                        })
+                        .map(p => (
+                          <tr key={p.id} className="hover:bg-slate-50/70">
+                            <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{p.id}</td>
+                            <td className="py-3.5 px-4 font-medium text-slate-900">
+                              <div>{p.customerCompany || p.customerName}</div>
+                              {p.invoiceId && (
+                                <span className="text-[10px] text-slate-500 font-mono">Against {p.invoiceId}</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-600">{formatDate(p.date)}</td>
+                            <td className="py-3.5 px-4 text-slate-600">
+                              <span className="font-semibold text-slate-800">{p.paymentMode}</span>
+                              {p.referenceNumber && (
+                                <div className="text-[10px] font-mono text-slate-500">Ref: {p.referenceNumber}</div>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-bold text-emerald-700 font-mono text-sm">
+                              {formatCurrency(p.amount)}
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODULE 5: GENERAL LEDGER */}
+      {(activeTab === 'general_ledger' || activeTab === 'ledgers') && (
+        <div className="space-y-6 animate-fade-in pb-12">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-3">
               <div>
-                <h3 className="font-bold text-slate-900 text-base">Party-Wise Customer Ledgers</h3>
-                <p className="text-xs text-slate-500">Statement of Account with double-entry debits and credits.</p>
+                <h3 className="font-bold text-slate-900 text-base">Party-Wise Customer General Ledger</h3>
+                <p className="text-xs text-slate-500">Double-entry statement of account with chronological debits, credits, and running balance.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <label className="text-xs font-medium text-slate-600">Select Party:</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="text-xs font-semibold text-slate-700">Select Party:</label>
                 <select
                   value={selectedLedgerPartyId}
                   onChange={(e) => setSelectedLedgerPartyId(e.target.value)}
-                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 >
                   {users.customers.map(c => (
                     <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
@@ -4801,24 +6263,47 @@ function AdminPortal({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Total Invoiced (Debits)</span>
-                <span className="text-lg font-bold text-slate-900">{formatCurrency(partyLedger.totalDebited)}</span>
+            {/* Quick Party Selection Chips */}
+            <div className="flex flex-wrap gap-1.5 pt-3">
+              <span className="text-[11px] text-slate-400 font-semibold self-center mr-1">Quick Select:</span>
+              {users.customers.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedLedgerPartyId(c.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    selectedLedgerPartyId === c.id
+                      ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {c.company}
+                </button>
+              ))}
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-5">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 uppercase font-bold tracking-wider block">Total Invoiced (Debits)</span>
+                <span className="text-xl font-black text-slate-900 font-mono mt-1 block">{formatCurrency(partyLedger.totalDebited)}</span>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Total Received (Credits)</span>
-                <span className="text-lg font-bold text-emerald-700">{formatCurrency(partyLedger.totalCredited)}</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 uppercase font-bold tracking-wider block">Total Received (Credits)</span>
+                <span className="text-xl font-black text-emerald-700 font-mono mt-1 block">{formatCurrency(partyLedger.totalCredited)}</span>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
-                <span className="text-[11px] text-slate-500 uppercase font-semibold block tracking-wider">Current Net Balance</span>
-                <span className="text-lg font-bold text-slate-900">{formatCurrency(partyLedger.closingBalance)}</span>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 uppercase font-bold tracking-wider block">Closing Net Balance</span>
+                <span className={`text-xl font-black font-mono mt-1 block ${partyLedger.closingBalance > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+                  {formatCurrency(partyLedger.closingBalance)}
+                </span>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Journal Table */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Date</th>
                     <th className="py-3 px-4 font-semibold">Transaction / Type</th>
@@ -4829,18 +6314,32 @@ function AdminPortal({
                     <th className="py-3 px-4 text-right font-semibold">Running Balance (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {partyLedger.journal.map((j, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/70">
-                      <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
-                      <td className="py-3 px-4 font-medium text-slate-900">{j.type}</td>
-                      <td className="py-3 px-4 font-mono text-slate-600">{j.refNo}</td>
-                      <td className="py-3 px-4 text-slate-600">{j.particulars}</td>
-                      <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">{j.debit > 0 ? formatCurrency(j.debit) : '—'}</td>
-                      <td className="py-3 px-4 text-right font-mono font-medium text-emerald-700">{j.credit > 0 ? formatCurrency(j.credit) : '—'}</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">{formatCurrency(j.balance)}</td>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {partyLedger.journal.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="py-12 text-center text-slate-400 text-xs">
+                        No transactions recorded for this customer yet.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    partyLedger.journal.map((j, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/70">
+                        <td className="py-3 px-4 text-slate-500">{formatDate(j.date)}</td>
+                        <td className="py-3 px-4 font-medium text-slate-900">{j.type}</td>
+                        <td className="py-3 px-4 font-mono text-slate-600">{j.refNo}</td>
+                        <td className="py-3 px-4 text-slate-600">{j.particulars}</td>
+                        <td className="py-3 px-4 text-right font-mono font-medium text-slate-800">
+                          {j.debit > 0 ? formatCurrency(j.debit) : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-medium text-emerald-700">
+                          {j.credit > 0 ? formatCurrency(j.credit) : '—'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
+                          {formatCurrency(j.balance)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -4848,137 +6347,167 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 6: PAYMENT ENTRIES */}
-      {activeTab === 'payments' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-          
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-bold text-slate-900 text-base mb-1">Record Inward Payment</h3>
-            <p className="text-xs text-slate-500 mb-4">Post client collections to update outstanding ledgers.</p>
-
-            <form onSubmit={handleRecordPayment} className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Customer Party</label>
-                <select
-                  value={payCustId}
-                  onChange={(e) => setPayCustId(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                >
-                  {users.customers.map(c => (
-                    <option key={c.id} value={c.id}>{c.company} ({c.name})</option>
-                  ))}
-                </select>
+      {/* MODULE 6: OUTSTANDING LEDGER */}
+      {activeTab === 'outstanding_ledger' && (
+        <div className="space-y-6 animate-fade-in pb-12">
+          {/* Header */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-bold text-slate-900 text-base">Outstanding &amp; Aging Ledger</h3>
+                <span className="text-xs bg-rose-50 text-rose-800 border border-rose-200 font-mono font-bold px-2 py-0.5 rounded-md">
+                  Receivables Aging
+                </span>
               </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Real-time receivables aging analysis: 0-30 days current, 31-60 days attention, and 60+ days overdue bills across client accounts.
+              </p>
+            </div>
 
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Knock-off Invoice (Optional)</label>
-                <select
-                  value={payInvId}
-                  onChange={(e) => setPayInvId(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                >
-                  <option value="">General On-Account Advance</option>
-                  {custPendingInvoices.map(inv => (
-                    <option key={inv.id} value={inv.id}>
-                      {inv.id} (Due: {formatCurrency(inv.balanceDue)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Amount (₹)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-600 block mb-1">Payment Mode</label>
-                  <select
-                    value={payMode}
-                    onChange={(e) => setPayMode(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  >
-                    <option value="NEFT / Bank Transfer">NEFT / RTGS</option>
-                    <option value="UPI (Corporate)">UPI</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Cash">Cash</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Reference / UTR No</label>
-                <input
-                  type="text"
-                  value={payRefNo}
-                  onChange={(e) => setPayRefNo(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Remarks</label>
-                <input
-                  type="text"
-                  value={payNotes}
-                  onChange={(e) => setPayNotes(e.target.value)}
-                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-400"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 rounded-xl transition-colors mt-2"
+            <div className="flex items-center space-x-2">
+              <label className="text-xs font-semibold text-slate-700">Filter Party:</label>
+              <select
+                value={outstandingPartyFilter}
+                onChange={(e) => setOutstandingPartyFilter(e.target.value)}
+                className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-medium focus:ring-1 focus:ring-slate-900 focus:outline-none"
               >
-                Post Payment Receipt
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-bold text-slate-900 text-base mb-1">Recent Collections Log</h3>
-            <p className="text-xs text-slate-500 mb-4">Historical receipts posted to accounts.</p>
-
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
-                <tr>
-                  <th className="py-3 px-4 font-semibold">Receipt No</th>
-                  <th className="py-3 px-4 font-semibold">Customer</th>
-                  <th className="py-3 px-4 font-semibold">Date</th>
-                  <th className="py-3 px-4 font-semibold">Mode & Ref</th>
-                  <th className="py-3 px-4 text-right font-semibold">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {payments.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="py-12 text-center text-slate-400 text-xs">
-                      No payment receipts posted yet.
-                    </td>
-                  </tr>
-                )}
-                {payments.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-50/70">
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">{p.id}</td>
-                    <td className="py-3.5 px-4 font-medium text-slate-900">{p.customerCompany || p.customerName}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{formatDate(p.date)}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{p.paymentMode} ({p.referenceNumber})</td>
-                    <td className="py-3.5 px-4 text-right font-bold text-emerald-700">{formatCurrency(p.amount)}</td>
-                  </tr>
+                <option value="all">All Customer Parties</option>
+                {users.customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.company}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
           </div>
 
+          {/* Aging Summary KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Total Outstanding</span>
+              <div className="text-2xl font-black text-rose-600 mt-1 font-mono">
+                {formatCurrency(globalOutstanding.totalOutstanding)}
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">0 - 30 Days (Current)</span>
+              <div className="text-2xl font-black text-emerald-600 mt-1 font-mono">
+                {formatCurrency(globalOutstanding.aging0to30)}
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">31 - 60 Days (Watch)</span>
+              <div className="text-2xl font-black text-amber-600 mt-1 font-mono">
+                {formatCurrency(globalOutstanding.aging31to60)}
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">60+ Days (Critical)</span>
+              <div className="text-2xl font-black text-rose-700 mt-1 font-mono">
+                {formatCurrency(globalOutstanding.aging60Plus)}
+              </div>
+            </div>
+          </div>
+
+          {/* Party Receivables Breakdown Grid */}
+          {outstandingPartyFilter === 'all' && globalOutstanding.partyBreakdown.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-3">
+              <h4 className="font-bold text-slate-900 text-sm">Customer Party Receivables Summary</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {globalOutstanding.partyBreakdown.map(p => (
+                  <div key={p.customer.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-slate-900 text-xs">{p.customer.company}</div>
+                        <div className="text-[10px] text-slate-500">{p.customer.name}</div>
+                      </div>
+                      <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-bold px-1.5 py-0.5 rounded font-mono">
+                        {p.unpaidCount} Bill(s)
+                      </span>
+                    </div>
+                    <div className="font-mono font-bold text-rose-700 text-base">
+                      {formatCurrency(p.totalDue)}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
+                      <span>0-30d: <strong>{formatCurrency(p.aging0to30)}</strong></span>
+                      <span>60+d: <strong className={p.aging60Plus > 0 ? 'text-rose-600' : ''}>{formatCurrency(p.aging60Plus)}</strong></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Unpaid / Overdue Bills Breakdown Table */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
+            <h4 className="font-bold text-slate-900 text-sm">Unpaid Dues &amp; Aging Bills Breakdown</h4>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
+                  <tr>
+                    <th className="py-3 px-4 font-semibold">Invoice No</th>
+                    <th className="py-3 px-4 font-semibold">Customer Party</th>
+                    <th className="py-3 px-4 font-semibold">Issue Date</th>
+                    <th className="py-3 px-4 font-semibold">Due Date</th>
+                    <th className="py-3 px-4 font-semibold">Aging / Overdue Status</th>
+                    <th className="py-3 px-4 text-right font-semibold">Total Amount</th>
+                    <th className="py-3 px-4 text-right font-semibold">Balance Pending</th>
+                    <th className="py-3 px-4 text-right font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {globalOutstanding.bills.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="py-14 text-center text-slate-400">
+                        <div className="text-emerald-600 font-bold text-sm">Zero Outstanding Dues!</div>
+                        <p className="text-xs text-slate-400 mt-1">All invoices are settled in full. No accounts receivable pending.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    globalOutstanding.bills.map(b => (
+                      <tr key={b.id} className="hover:bg-slate-50/70">
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{b.id}</td>
+                        <td className="py-3.5 px-4 font-medium text-slate-900">
+                          <div>{b.customerCompany || b.customerName}</div>
+                          <span className="text-[10px] text-slate-500 font-mono">Ref: {b.orderId}</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-600">{formatDate(b.issueDate)}</td>
+                        <td className="py-3.5 px-4 text-slate-600">{formatDate(b.dueDate)}</td>
+                        <td className="py-3.5 px-4">
+                          {b.isOverdue ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              {b.overdueDays} Days Overdue
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Current ({b.diffDays}d since bill)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">
+                          {formatCurrency(b.total)}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-extrabold text-rose-600 font-mono text-sm">
+                          {formatCurrency(b.balanceDue)}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleInitiatePaymentForInvoice(b)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                          >
+                            Record Payment
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
+
 
       {/* MODULE 7: PRODUCTION FLOW MANAGER (FULL SHOP-FLOOR SEQUENTIAL PIPELINE) */}
       {activeTab === 'production' && (
@@ -5900,171 +7429,18 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 8: ATTENDANCE & PAYROLL FOR STAFF */}
-      {activeTab === 'payroll' && (
-        <div className="space-y-6 animate-fade-in">
-          
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-bold text-slate-900 text-base mb-1">Today&apos;s Staff Attendance Log</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700 mt-3">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Staff Member</th>
-                    <th className="py-3 px-4 font-semibold">Attendance Status</th>
-                    <th className="py-3 px-4 font-semibold">Check In</th>
-                    <th className="py-3 px-4 font-semibold">Check Out</th>
-                    <th className="py-3 px-4 font-semibold">Overtime</th>
-                    <th className="py-3 px-4 text-right font-semibold">Quick Mark</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payroll.dailyAttendance.map(att => (
-                    <tr key={att.staffId} className="hover:bg-slate-50/70">
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">{att.name}</td>
-                      <td className="py-3.5 px-4">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase ${
-                          att.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {att.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600">{att.checkIn}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600">{att.checkOut}</td>
-                      <td className="py-3.5 px-4 text-slate-900 font-semibold">{att.overtime}</td>
-                      <td className="py-3.5 px-4 text-right space-x-1">
-                        <button
-                          onClick={() => handleToggleAttendance(att.staffId, 'Present')}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors"
-                        >
-                          Present
-                        </button>
-                        <button
-                          onClick={() => handleToggleAttendance(att.staffId, 'Leave')}
-                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors"
-                        >
-                          Leave
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-bold text-slate-900 text-base mb-1">Monthly Staff Payroll & Salary Computation</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-700 mt-3">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Member</th>
-                    <th className="py-3 px-4 font-semibold">Role</th>
-                    <th className="py-3 px-4 font-semibold">Base Wage</th>
-                    <th className="py-3 px-4 font-semibold">Present Days</th>
-                    <th className="py-3 px-4 font-semibold">Net Payable</th>
-                    <th className="py-3 px-4 font-semibold">Disbursement</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payroll.staffSummary.map(staff => (
-                    <tr key={staff.staffId} className="hover:bg-slate-50/70">
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">{staff.name}</td>
-                      <td className="py-3.5 px-4 text-slate-500">{staff.role}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-700">{formatCurrency(staff.monthlySalary)}</td>
-                      <td className="py-3.5 px-4 text-slate-700">{staff.presentDays} / {staff.workingDays}</td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">{formatCurrency(staff.netPayable)}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {staff.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* PIECE-RATE HANDWORK (DORI & PLASTIC) PRODUCTION LEDGER */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs text-slate-800">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">
-                  Piece-Rate Handwork (Dori &amp; Plastic) Production Ledger
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Daily earnings accrued per completed tag batch by artisans (Standard: ₹0.20 Dori + ₹0.10 Plastic = ₹0.30/tag)
-                </p>
-              </div>
-              <div className="flex items-center space-x-3 text-xs bg-slate-50 px-3.5 py-1.5 rounded-xl border border-slate-200">
-                <span className="text-slate-500">Total Piece Payouts:</span>
-                <span className="font-bold text-slate-900 font-mono">
-                  {formatCurrency((payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.earnedAmount) || 0), 0))}
-                </span>
-                <span className="text-slate-300">|</span>
-                <span className="text-slate-500">Tags Finished:</span>
-                <span className="font-bold text-slate-900 font-mono">
-                  {(payroll.pieceRateLedger || []).reduce((s, it) => s + (Number(it.piecesCompleted) || 0), 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {(payroll.pieceRateLedger && payroll.pieceRateLedger.length > 0) ? (
-              <div className="overflow-x-auto mt-3">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 rounded-xl">
-                    <tr>
-                      <th className="py-3 px-4 font-semibold">Date</th>
-                      <th className="py-3 px-4 font-semibold">Artisan</th>
-                      <th className="py-3 px-4 font-semibold">Job / Order Ref</th>
-                      <th className="py-3 px-4 font-semibold">Pieces Assembled</th>
-                      <th className="py-3 px-4 font-semibold">Rate / Tag</th>
-                      <th className="py-3 px-4 font-mono font-semibold">Total Earned</th>
-                      <th className="py-3 px-4 text-right font-semibold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {payroll.pieceRateLedger.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/70">
-                        <td className="py-3.5 px-4 font-mono text-slate-500">{item.date}</td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-semibold text-slate-900">{item.name}</span>
-                          <span className="block text-[10px] text-slate-400 font-mono">{item.staffId}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-semibold text-slate-900">{item.jobId}</span>
-                          <span className="text-slate-500 text-[10px] ml-1.5 font-mono">({item.orderId})</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 font-mono">
-                          {Number(item.piecesCompleted || 0).toLocaleString()} tags
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600 font-mono">
-                          ₹{Number(item.ratePerTag || 0.30).toFixed(2)}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 font-mono text-sm">
-                          {formatCurrency(item.earnedAmount)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {item.status || 'Earned'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200 mt-3">
-                No handwork batches completed yet. As soon as a handwork batch is completed in the production tab, piece-rate earnings will post directly here.
-              </div>
-            )}
-          </div>
-
-        </div>
+      {/* MODULE 8: DEDICATED ATTENDANCE, SHIFTS & WORKFORCE PAYROLL SUITE */}
+      {(['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'mobile_punch_terminal', 'payroll'].includes(activeTab)) && (
+        <window.uBMS.AttendancePayrollSection
+          activeTab={activeTab === 'payroll' ? 'attendance_dashboard' : activeTab}
+          setActiveTab={setActiveTab}
+          payroll={payroll}
+          onUpdatePayroll={onUpdatePayroll}
+          users={users}
+          orders={orders}
+          formatCurrency={formatCurrency}
+          formatDate={formatDate}
+        />
       )}
 
       {/* MODULE 10: RAW MATERIALS & INVENTORY MANAGEMENT */}
