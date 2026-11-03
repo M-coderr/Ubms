@@ -135,7 +135,8 @@ function CustomerPortal({
   customer, 
   orders, 
   invoices, 
-  payments, 
+  payments,
+  estimates = [],
   labelTypes = [], 
   catalogs = [],
   messages, 
@@ -1360,8 +1361,13 @@ function CustomerPortal({
           portalType="customer"
           persona={customer}
           orders={customerOrders}
+          invoices={customerInvoices}
+          payments={payments}
+          estimates={estimates}
+          messages={messages}
           users={users}
           onNavigateTab={setActiveTab}
+          onOpenInvoice={onOpenInvoice}
         />
       )}
 
@@ -2567,7 +2573,7 @@ function CustomerPortal({
                       <tr key={order.id} className="hover:bg-slate-50/70 transition-colors">
                         {/* 1. ORDER ID (CUSTOMER-FACING NUMBER) */}
                         <td className="py-4 px-4 align-top">
-                          <div className="font-mono font-bold text-slate-900 text-sm" title={order.id}>
+                          <div className="font-mono font-bold text-slate-900 text-sm" title={`Order ${order.customerOrderId || (window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(order.id) : order.id)}`}>
                             {order.customerOrderId || (order.id.includes('-') ? order.id.split('-').pop() : order.id)}
                           </div>
                           <div className="text-[11px] text-slate-400 mt-0.5">{formatDate(order.createdAt)}</div>
@@ -2874,7 +2880,7 @@ function CustomerPortal({
                           <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{inv.id}</td>
                           <td className="py-3.5 px-4 font-mono font-semibold text-slate-700">
                             <div>{linked?.customerOrderId || (inv.orderId && inv.orderId.includes('-') ? inv.orderId.split('-').pop() : inv.orderId)}</div>
-                            <span className="text-[10px] text-slate-400">{inv.orderId}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">Order Ref: {window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(inv.orderId || linked?.customerOrderId) : (linked?.customerOrderId || inv.orderId)}</span>
                           </td>
                           <td className="py-3.5 px-4 text-slate-600">{formatDate(inv.issueDate)}</td>
                           <td className="py-3.5 px-4 text-slate-600">
@@ -2905,7 +2911,7 @@ function CustomerPortal({
                             <button
                               onClick={() => {
                                 const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
-                                onOpenInvoice(linkedOrder);
+                                onOpenInvoice(inv);
                               }}
                               className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                             >
@@ -3083,7 +3089,7 @@ function CustomerPortal({
                       <tr key={rowKey} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-3 align-top font-mono">
                           <div className="font-bold text-slate-900 text-xs">{inv.id}</div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">{inv.orderId}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">{window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(inv.orderId || linkedOrder?.customerOrderId) : (linkedOrder?.customerOrderId || inv.orderId)}</div>
                           {linkedOrder?.customerOrderId && (
                             <span className="text-[9px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1 rounded inline-block mt-1">
                               {linkedOrder.customerOrderId}
@@ -3156,7 +3162,7 @@ function CustomerPortal({
                           <button
                             onClick={() => {
                               const linkedOrder = orders.find(o => o.id === inv.orderId) || { ...inv, priority: 'standard' };
-                              onOpenInvoice(linkedOrder);
+                              onOpenInvoice(inv);
                             }}
                             className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                           >
@@ -3325,7 +3331,7 @@ function CustomerPortal({
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">
                   <span>Edit Manufacturing Order</span>
-                  <span className="font-mono text-slate-600 text-sm ml-2">({editingOrder.id})</span>
+                  <span className="font-mono text-slate-600 text-sm ml-2">({editingOrder.customerOrderId || (window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(editingOrder.id) : editingOrder.id)})</span>
                 </h3>
                 <p className="text-xs text-slate-500">Order is awaiting admin approval. You can modify any specifications below.</p>
               </div>

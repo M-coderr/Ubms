@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.5  
+**Version**: 3.6  
 **Last Updated**: November 3, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -68,7 +68,32 @@
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
 
-### Version 3.4 — November 3, 2026
+### Version 3.6 — November 3, 2026
+- **Create Invoice Redesign with Multi-Order Bundling & Ready-to-Dispatch Item Selector**:
+  - **Simplified Title**: Renamed `Commercial Invoice Studio` to simple and clean `Create Invoice`.
+  - **Customer / Brand First Selection**:
+    - The first step prompts for Customer Name / Brand Name before any item selection.
+    - Selecting customer name is identical to selecting brand name: typing either company name or brand name immediately resolves to that customer party.
+    - Quick 1-click brand selection pills (`Denim Club`, `Urban Stitch`, `Vogue Nation`, `Rasam`, `Kalamkari Ethnic`, `Ventage`, `Mufti Casuals`) instantly select the respective customer.
+    - Live Customer Profile card displaying customer company, contact person, phone/email, associated brands, and ready-to-dispatch inventory counters.
+  - **Multi-Order Ready-to-Dispatch Item Selector**:
+    - Aggregates ready-to-dispatch items across **all orders** of the selected customer party.
+    - Filters by default to items marked `Ready to Dispatch` with option to toggle to all open order items.
+    - Displays high-resolution artwork thumbnail, item code, brand badge, customer order ID badge, specs, trims, unit rate, and calculated line total.
+    - **Interactive Final Made Qty**: Editable number input initialized to ordered quantity. Updating final produced quantity immediately recalculates line total and invoice grand total.
+    - **Multi-Order Bundling**: Allows selecting items across multiple different orders into a single consolidated invoice (e.g. bundling items from `MGC01` and `MGC03`).
+  - **Tax Rate Policy Update**:
+    - **GST Tax Rate defaults strictly to 0%** (`0% (Tax Exempt / Nil Rated - Default)`).
+  - **Strict Customer Order ID Masking**:
+    - Clients / customers are strictly shown only their own Customer Order ID (e.g. `MGC01`, `ARC02`), never the internal Admin Order ID (`TGRS25-ORD-...`), on bills/printed invoices (`InvoiceModal.js`), Invoice List, Invoice Register, Order Register, and Edit Order modals.
+    - Implemented and exported `window.uBMS.getCustomerFacingOrderId` to guarantee clean client ID formatting everywhere.
+
+### Version 3.5 — November 3, 2026
+- **Place Order Console Redesign: Minimalist Streamlining, Searchable Catalog Combobox, Multi-Piece Naming & Spacious Trim Grids**:
+  - Renamed `Production Order Studio` to `Place Order`.
+  - Autocomplete live-search `PaperCatalogCombobox` across all 30 preserved sheet catalogs.
+  - Hierarchical multi-piece tag naming (`1st Pc (Base Pc)`, `2nd Pc (Upper Pc)`).
+  - Generous 3-column segmented button grids for Dori and Barcode Plastic trims.
 - **Comprehensive Billing & Finance Suite Overhaul**:
   - Re-architected the Billing module into 6 dedicated, production-ready modules matching the depth of the Order Creation and Order Register studios:
     1. **Create Invoice Studio (`create_invoice`)**:

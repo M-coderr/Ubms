@@ -104,7 +104,15 @@ uBMS comes pre-configured with operational team members and customer accounts:
 - Real-time stock alerts and reorder thresholds.
 
 ### 5. Billing & Finance Suite
-- **Create Invoice Studio**: Dual-mode billing (Bill from Manufacturing Order vs. Direct Custom/Proforma Invoice) with dynamic line items editor, GST tax tier selection (0%, 5%, 12%, 18%, 28%), shipping charges, due date pickers, payment terms notes, and instant print/PDF preview.
+- **Create Invoice Console**: Simplified, streamlined billing studio designed to create tax-compliant sales invoices with complete clarity:
+  - **Customer / Brand First**: Asks for Customer Name or Brand Name first. Selecting customer name is identical to selecting brand name (e.g. selecting `Denim Club` resolves to `MG Creation`). Features instant autocomplete search and 1-click brand quick-chips.
+  - **Multi-Order Ready-to-Dispatch Item Selector**: Queries all orders for the selected customer, featuring items marked `Ready to Dispatch` with full artwork preview thumbnails, item codes, brand badges, and trims.
+  - **Interactive Final Made Qty**: Editable number input initialized to ordered quantity. Adjusting final produced piece quantity dynamically recalculates line total and invoice subtotal in real time.
+  - **Multi-Order Bundling**: Allows checking and bundling items across multiple separate customer orders into a single consolidated invoice (e.g. bundling items from `MGC01` and `MGC03`).
+  - **Default 0% Tax**: Default GST tax rate is strictly set to **0% (Tax Exempt / Nil Rated)** by default.
+  - **Direct Line Items**: Supports adding custom extra charges, finishing, or packaging charges on the fly.
+- **Strict Customer Order ID Masking**:
+  - Clients and customers are strictly shown only their own Customer Order ID (e.g. `MGC01`, `ARC02`), never the internal Admin Order ID (`TGRS25-ORD-...`), on printed bills/invoices (`InvoiceModal.js`), Invoice List, Invoice Register, Order Register, and Edit Order modals.
 - **Commercial Invoice List**: Executive invoice-level master overview featuring 5 top KPI summary cards (Total Invoiced, Total Collected, Net Balance Due, Settlement Status breakdown, and Overdue count), status filter tabs (`All`, `Paid`, `Unpaid`, `Partial`, `Overdue`), global search, and 1-click "Pay In" action buttons.
 - **Commercial Invoice Register**: Item-level sales registry built with full per-column real-time search row (`Invoice & Order ID`, `Artwork`, `Customer Party`, `Brand & Specs`, `Dori & Plastic`, `Qty`, `Rate & Total`, `Status`), high-resolution artwork zoom lightbox modal, and contextual empty states.
 - **Payment In (Receipts Hub)**: Dedicated client collections console with customer party selector, invoice knock-off dropdown with "Fill Full Due" shortcut, payment mode selection (NEFT/RTGS, UPI, Cheque, Cash, NetBanking), and live collections log.

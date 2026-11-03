@@ -6,6 +6,8 @@ function InvoiceModal({ order, onClose }) {
 
   const formatCurrency = window.uBMS.formatCurrency;
   const formatDate = window.uBMS.formatDate;
+  const getCustomerFacingOrderId = window.uBMS.getCustomerFacingOrderId || ((id) => id);
+  const orderRefText = getCustomerFacingOrderId(order.orderId || order.customerOrderId || (order.id && !order.id.startsWith('INV-') ? order.id : ''));
 
   const handlePrint = () => {
     window.print();
@@ -55,7 +57,12 @@ function InvoiceModal({ order, onClose }) {
 
             <div className="sm:text-right">
               <h2 className="text-2xl font-black uppercase text-slate-900">INVOICE</h2>
-              <div className="text-sm font-bold text-slate-900 font-mono mt-1">{order.id && order.id.startsWith('INV-') ? order.id : `INV-${order.id}`}</div>
+              <div className="text-sm font-bold text-slate-900 font-mono mt-1">{order.id && order.id.startsWith('INV-') ? order.id : `INV-${orderRefText || '2026'}`}</div>
+              {orderRefText && (
+                <div className="text-xs font-mono font-bold text-slate-700 mt-0.5">
+                  Order Ref: <span className="text-slate-900 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">{orderRefText}</span>
+                </div>
+              )}
               <div className="text-xs text-slate-500 mt-1">Date: {formatDate(order.issueDate || order.createdAt)}</div>
               <div className="text-xs text-slate-500">Due: {formatDate(order.dueDate || order.expectedDelivery)}</div>
             </div>
@@ -89,7 +96,7 @@ function InvoiceModal({ order, onClose }) {
                     Manufacturing Reference
                   </span>
                   <p className="text-slate-700 leading-relaxed font-medium">
-                    Direct Manufacturing Order
+                    {orderRefText ? `Order: ${orderRefText}` : 'Direct Manufacturing Order'}
                   </p>
                 </>
               )}

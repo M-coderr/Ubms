@@ -1,1 +1,278 @@
-[]
+﻿[
+    {
+        "id":  "TGRS01-ORD-2026-MGC01",
+        "orderType":  "New Order",
+        "customerId":  "CUST-001",
+        "customerName":  "Mohit Samnani",
+        "customerCompany":  "MG Creation",
+        "customerEmail":  "mohit@mgcreation.com",
+        "customerPhone":  "+91 98201 11223",
+        "status":  "placed",
+        "paymentStatus":  "partial",
+        "rejectionReason":  null,
+        "createdAt":  "2026-10-13T10:30:00.000Z",
+        "expectedDelivery":  "2026-10-20T10:30:00.000Z",
+        "assignedTo":  "Kanu",
+        "items":  [
+                      {
+                          "id":  "ITEM-2026-9063-0",
+                          "itemCode":  "MGC_Tag_DenimClub_1",
+                          "name":  "Custom Die-Cut Hang Tags (Special Emboss)",
+                          "brandName":  "Denim Club",
+                          "type":  "Tag",
+                          "material":  "350 GSM Art Card",
+                          "isMultiCard":  false,
+                          "cards":  [
+
+                                    ],
+                          "catalogId":  null,
+                          "catalogCode":  null,
+                          "dori":  "Black Waxed Cotton",
+                          "doriRate":  0.2,
+                          "plastic":  "Matte Black Seal",
+                          "plasticRate":  0.1,
+                          "image":  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgMzAwIDMwMCI+CiAgICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiByeD0iMjQiIGZpbGw9IiMxZTI5M2IiLz4KICAgIDxyZWN0IHg9IjE1IiB5PSIxNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIyNzAiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsNCIgb3BhY2l0eT0iMC40Ii8+CiAgICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSI0NSIgcj0iOSIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iMTQwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZjhmYWZjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iMiI+REVOSU0gQ0xVQjwvdGV4dD4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iMTcwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjExIiBmaWxsPSIjZjhmYWZjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBvcGFjaXR5PSIwLjgiIGxldHRlci1zcGFjaW5nPSIzIj5UQUc8L3RleHQ+CiAgICA8bGluZSB4MT0iNzUiIHkxPSIxOTIiIHgyPSIyMjUiIHkyPSIxOTIiIHN0cm9rZT0iI2Y4ZmFmYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuMyIvPgogICAgPHRleHQgeD0iMTUwIiB5PSIyMTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2Y4ZmFmYyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgb3BhY2l0eT0iMC43Ij5VQk1TICZidWxsOyBCRVNQT0tFIFBST0RVQ1RJT048L3RleHQ+CiAgPC9zdmc+",
+                          "quantity":  10000,
+                          "unitPrice":  1.45,
+                          "total":  14500
+                      }
+                  ],
+        "subtotal":  14500,
+        "tax":  2610,
+        "shipping":  0,
+        "total":  17110,
+        "tracking":  {
+                         "carrier":  "Courier Pending",
+                         "trackingNumber":  "Awaiting Dispatch",
+                         "status":  "Order Placed - Awaiting Confirmation",
+                         "lastUpdate":  "13 Oct 2026, 4:00 pm"
+                     },
+        "timeline":  [
+                         {
+                             "stage":  "pending",
+                             "title":  "Order Placed",
+                             "description":  "Manufacturing order booked by Mohit Samnani (1 item(s)).",
+                             "timestamp":  "13 Oct 2026, 4:00 pm",
+                             "author":  "Mohit Samnani"
+                         },
+                         {
+                             "stage":  "approved",
+                             "title":  "Order Approved by Admin",
+                             "description":  "Approved by Parth. Ready for production scheduling.",
+                             "timestamp":  "13 Oct 2026, 4:00 pm",
+                             "author":  "Parth"
+                         },
+                         {
+                             "stage":  "in_production",
+                             "title":  "Manufacturing Started",
+                             "description":  "Job allocated to Kanu. Offset printing in progress.",
+                             "timestamp":  "13 Oct 2026, 4:00 pm",
+                             "author":  "Kanu"
+                         }
+                     ],
+        "internalNotes":  [
+
+                          ],
+        "customerNotes":  "Special embossing required on brand logo.",
+        "customerOrderId":  "MGC01"
+    },
+    {
+        "id":  "TGRS02-ORD-2026-MGC02",
+        "orderType":  "New Order",
+        "customerId":  "CUST-001",
+        "customerName":  "Mohit Samnani",
+        "customerCompany":  "MG Creation",
+        "customerEmail":  "mohit@mgcreation.com",
+        "customerPhone":  "+91 98201 11223",
+        "status":  "in_production",
+        "paymentStatus":  "pending",
+        "rejectionReason":  null,
+        "createdAt":  "2026-10-10T14:15:00.000Z",
+        "expectedDelivery":  "2026-10-17T14:15:00.000Z",
+        "assignedTo":  "Parth",
+        "items":  [
+                      {
+                          "id":  "ITEM-2026-1045-0",
+                          "itemCode":  "MGC_TagKit_UrbanStitch_1",
+                          "name":  "Urban Stitch Bespoke 3-Card Tag Kit",
+                          "brandName":  "Urban Stitch",
+                          "type":  "Tag Kit",
+                          "material":  "Multi-Catalog Card Set",
+                          "isMultiCard":  true,
+                          "cards":  [
+                                        {
+                                            "title":  "Main Tag",
+                                            "catalogCode":  "ULTIMA-WHITE-350",
+                                            "name":  "ULTIMA WHITE 350",
+                                            "gsm":  350
+                                        },
+                                        {
+                                            "title":  "Price Card",
+                                            "catalogCode":  "KRAFT-NATURAL-250",
+                                            "name":  "Natural Kraft Card",
+                                            "gsm":  250
+                                        },
+                                        {
+                                            "title":  "Care Label Card",
+                                            "catalogCode":  "IVORY-SMOOTH-200",
+                                            "name":  "Smooth Ivory Board",
+                                            "gsm":  200
+                                        }
+                                    ],
+                          "catalogId":  null,
+                          "catalogCode":  null,
+                          "dori":  "Cotton Cord",
+                          "doriRate":  0.2,
+                          "plastic":  "Bullet Seal Lock",
+                          "plasticRate":  0.1,
+                          "image":  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgMzAwIDMwMCI+CiAgICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiByeD0iMjQiIGZpbGw9IiMwNDc4NTciLz4KICAgIDxyZWN0IHg9IjE1IiB5PSIxNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIyNzAiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNmZGY1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsNCIgb3BhY2l0eT0iMC40Ii8+CiAgICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSI0NSIgcj0iOSIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZWNmZGY1IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iMTQwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZWNmZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iMiI+VVJCQU4gU1RJVENIPC90ZXh0PgogICAgPHRleHQgeD0iMTUwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNlY2ZkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIG9wYWNpdHk9IjAuOCIgbGV0dGVyLXNwYWNpbmc9IjMiPlRBRyBLSVQ8L3RleHQ+CiAgICA8bGluZSB4MT0iNzUiIHkxPSIxOTIiIHgyPSIyMjUiIHkyPSIxOTIiIHN0cm9rZT0iI2VjZmRmNSIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuMyIvPgogICAgPHRleHQgeD0iMTUwIiB5PSIyMTgiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOSIgZmlsbD0iI2VjZmRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgb3BhY2l0eT0iMC43Ij5VQk1TICZidWxsOyBCRVNQT0tFIFBST0RVQ1RJT048L3RleHQ+CiAgPC9zdmc+",
+                          "quantity":  5000,
+                          "unitPrice":  4.8,
+                          "total":  24000
+                      }
+                  ],
+        "subtotal":  24000,
+        "tax":  4320,
+        "shipping":  0,
+        "total":  28320,
+        "tracking":  {
+                         "carrier":  "Courier Pending",
+                         "trackingNumber":  "Awaiting Dispatch",
+                         "status":  "Order Placed - Awaiting Confirmation",
+                         "lastUpdate":  "10 Oct 2026, 7:45 pm"
+                     },
+        "timeline":  [
+                         {
+                             "stage":  "pending",
+                             "title":  "Order Placed",
+                             "description":  "Manufacturing order booked by Mohit Samnani (1 item(s)).",
+                             "timestamp":  "10 Oct 2026, 7:45 pm",
+                             "author":  "Mohit Samnani"
+                         },
+                         {
+                             "stage":  "approved",
+                             "title":  "Order Approved by Admin",
+                             "description":  "Approved by Parth. Ready for production scheduling.",
+                             "timestamp":  "10 Oct 2026, 7:45 pm",
+                             "author":  "Parth"
+                         },
+                         {
+                             "stage":  "in_production",
+                             "title":  "Production Job Form Created",
+                             "description":  "Production job cards created by Meet. Assigned to Standard 5-Step Tag Cycle.",
+                             "timestamp":  "28 Oct 2026, 7:03 pm",
+                             "author":  "Meet"
+                         },
+                         {
+                             "stage":  "ready_dispatch",
+                             "title":  "Dori \u0026 Plastic Handwork Completed",
+                             "description":  "210 tags completed by Sumit. Moved to godown / dispatch stage.",
+                             "timestamp":  "28 Oct 2026, 7:09 pm",
+                             "author":  "Sumit"
+                         },
+                         {
+                             "stage":  "ready_dispatch",
+                             "title":  "Dori \u0026 Plastic Handwork Completed",
+                             "description":  "5220 tags completed by Sumit. Moved to godown / dispatch stage.",
+                             "timestamp":  "30 Oct 2026, 7:02 pm",
+                             "author":  "Sumit"
+                         }
+                     ],
+        "internalNotes":  [
+
+                          ],
+        "customerNotes":  "Eyelet punch through all 3 cards together.",
+        "customerOrderId":  "MGC02"
+    },
+    {
+        "id":  "TGRS03-ORD-2026-MGC03",
+        "orderType":  "New Order",
+        "customerId":  "CUST-001",
+        "customerName":  "Mohit Samnani",
+        "customerCompany":  "MG Creation",
+        "customerEmail":  "mohit@mgcreation.com",
+        "customerPhone":  "+91 98201 11223",
+        "status":  "delivered",
+        "paymentStatus":  "pending",
+        "rejectionReason":  null,
+        "createdAt":  "2026-10-04T09:00:00.000Z",
+        "expectedDelivery":  "2026-10-11T09:00:00.000Z",
+        "assignedTo":  "Shivakant",
+        "items":  [
+                      {
+                          "id":  "ITEM-2026-1044-0",
+                          "itemCode":  "MGC_Bag_CottonCraft_1",
+                          "name":  "Eco Kraft Paper Carry Bags (Twisted Handle)",
+                          "brandName":  "Cotton Craft",
+                          "type":  "Paper Bag",
+                          "material":  "300 GSM Brown Ribbed Kraft",
+                          "isMultiCard":  false,
+                          "cards":  [
+
+                                    ],
+                          "catalogId":  null,
+                          "catalogCode":  null,
+                          "dori":  "Jute Twine",
+                          "doriRate":  0.2,
+                          "plastic":  "None",
+                          "plasticRate":  0,
+                          "image":  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgMzAwIDMwMCI+CiAgICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiByeD0iMjQiIGZpbGw9IiM3ODM1MGYiLz4KICAgIDxyZWN0IHg9IjE1IiB5PSIxNSIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIyNzAiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmVmM2M3IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYsNCIgb3BhY2l0eT0iMC40Ii8+CiAgICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSI0NSIgcj0iOSIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjZmVmM2M3IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iMTQwIiBmb250LWZhbWlseT0ic3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZmVmM2M3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBsZXR0ZXItc3BhY2luZz0iMiI+Q09UVE9OIENSQUZUPC90ZXh0PgogICAgPHRleHQgeD0iMTUwIiB5PSIxNzAiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMTEiIGZpbGw9IiNmZWYzYzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIG9wYWNpdHk9IjAuOCIgbGV0dGVyLXNwYWNpbmc9IjMiPlBBUEVSIEJBRzwvdGV4dD4KICAgIDxsaW5lIHgxPSI3NSIgeTE9IjE5MiIgeDI9IjIyNSIgeTI9IjE5MiIgc3Ryb2tlPSIjZmVmM2M3IiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC4zIi8+CiAgICA8dGV4dCB4PSIxNTAiIHk9IjIxOCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI5IiBmaWxsPSIjZmVmM2M3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBvcGFjaXR5PSIwLjciPlVCTVMgJmJ1bGw7IEJFU1BPS0UgUFJPRFVDVElPTjwvdGV4dD4KICA8L3N2Zz4=",
+                          "quantity":  2500,
+                          "unitPrice":  38,
+                          "total":  95000
+                      }
+                  ],
+        "subtotal":  95000,
+        "tax":  17100,
+        "shipping":  0,
+        "total":  112100,
+        "tracking":  {
+                         "carrier":  "BlueDart Express",
+                         "trackingNumber":  "BD-14066693",
+                         "status":  "In Transit - Out for Delivery",
+                         "lastUpdate":  "4 Oct 2026, 2:30 pm"
+                     },
+        "timeline":  [
+                         {
+                             "stage":  "pending",
+                             "title":  "Order Placed",
+                             "description":  "Manufacturing order booked by Mohit Samnani (1 item(s)).",
+                             "timestamp":  "4 Oct 2026, 2:30 pm",
+                             "author":  "Mohit Samnani"
+                         },
+                         {
+                             "stage":  "approved",
+                             "title":  "Order Approved by Admin",
+                             "description":  "Approved by Parth. Ready for production scheduling.",
+                             "timestamp":  "4 Oct 2026, 2:30 pm",
+                             "author":  "Parth"
+                         },
+                         {
+                             "stage":  "in_production",
+                             "title":  "Manufacturing Started",
+                             "description":  "Job allocated to Shivakant. Offset printing in progress.",
+                             "timestamp":  "4 Oct 2026, 2:30 pm",
+                             "author":  "Shivakant"
+                         },
+                         {
+                             "stage":  "ready_dispatch",
+                             "title":  "Quality Check \u0026 Packing Complete",
+                             "description":  "Inspected and verified in Godown. Sealed in master cartons.",
+                             "timestamp":  "4 Oct 2026, 2:30 pm",
+                             "author":  "Sumit"
+                         },
+                         {
+                             "stage":  "shipped",
+                             "title":  "Dispatched via BlueDart Express",
+                             "description":  "Handed over to courier. Waybill #BD-40899355.",
+                             "timestamp":  "4 Oct 2026, 2:30 pm",
+                             "author":  "Parth"
+                         }
+                     ],
+        "internalNotes":  [
+
+                          ],
+        "customerNotes":  "Reinforced bottom cardboard included.",
+        "customerOrderId":  "MGC03"
+    }
+]

@@ -1631,107 +1631,216 @@ function AdminPortal({
   }, [invoices]);
 
   // MODULE 1: CREATE INVOICE STATE
-  const [invMode, setInvMode] = React.useState('from_order'); // 'from_order' or 'custom'
-  const [invOrderId, setInvOrderId] = React.useState(orders[0]?.id || '');
+  const [invCustomerId, setInvCustomerId] = React.useState(users.customers[0]?.id || 'CUST-001');
+  const [invPartySearch, setInvPartySearch] = React.useState('');
+  const [invOnlyReady, setInvOnlyReady] = React.useState(true);
+  const [invSelectedKeys, setInvSelectedKeys] = React.useState({});
+  const [invFinalQtyMap, setInvFinalQtyMap] = React.useState({});
+  const [invDirectItems, setInvDirectItems] = React.useState([]);
   const [invIssueDate, setInvIssueDate] = React.useState(() => new Date().toISOString().split('T')[0]);
   const [invDueDate, setInvDueDate] = React.useState(() => new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString().split('T')[0]);
-  const [invTaxRate, setInvTaxRate] = React.useState(18); // 0, 5, 12, 18, 28%
+  const [invTaxRate, setInvTaxRate] = React.useState(0); // 0% tax default as specified
   const [invShipping, setInvShipping] = React.useState(0);
   const [invNotes, setInvNotes] = React.useState('Payment due within 10 days of invoice date. NEFT / RTGS or UPI accepted.');
 
-  // Custom Invoice mode fields
-  const [customInvCustomerId, setCustomInvCustomerId] = React.useState(users.customers[0]?.id || '');
-  const [customInvPoRef, setCustomInvPoRef] = React.useState('');
-  const [customInvItems, setCustomInvItems] = React.useState([
-    { name: 'Custom Die-Cut Hang Tags', specs: '350 GSM Art Board • Matt Lamination', quantity: 5000, unitPrice: 1.50, total: 7500 }
-  ]);
+  const selectedCust = users.customers.find(c => c.id === invCustomerId) || users.customers[0];
 
-  const targetOrder = orders.find(o => o.id === invOrderId) || orders[0];
+  // All orders for the selected customer party
+  const customerOrders = React.useMemo(() => {
+    if (!selectedCust) return [];
+    return orders.filter(o => 
+      o.customerId === selectedCust.id || 
+      (o.customerCompany && o.customerCompany.toLowerCase() === selectedCust.company.toLowerCase()) ||
+      (o.customerEmail && o.customerEmail.toLowerCase() === selectedCust.email?.toLowerCase())
+    );
+  }, [orders, selectedCust]);
 
-  const handleAddCustomInvItem = () => {
-    setCustomInvItems(prev => [
+  // Aggregate candidate items across all customer orders (multi-order aggregation)
+  const candidateItems = React.useMemo(() => {
+    const list = [];
+    customerOrders.forEach(ord => {
+      const isOrderReady = ['ready_dispatch', 'delivered', 'shipped'].includes(ord.status);
+      const custOrdId = ord.customerOrderId || (window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(ord) : (ord.id ? ord.id.split('-').pop() : '01'));
+      (ord.items || []).forEach((it, idx) => {
+        const uniqueKey = ${ord.id}__;
+        const isReady = isOrderReady || it.readyToDispatch === true || it.status === 'ready_dispatch';
+        list.push({
+          uniqueKey,
+          orderId: ord.id,
+          customerOrderId: custOrdId,
+          orderDate: ord.createdAt,
+          orderStatus: ord.status,
+          isReadyToDispatch: isReady,
+          itemId: it.id || ITEM-,
+          itemCode: it.itemCode || ITEM-,
+          name: it.name || 'Custom Product',
+          brandName: it.brandName || selectedCust?.brands?.[0] || selectedCust?.company || '',
+          type: it.type || 'Tag',
+          material: it.material || '',
+          dori: it.dori || '',
+          plastic: it.plastic || '',
+          image: it.image || null,
+          orderedQty: Number(it.quantity) || 1,
+          defaultMadeQty: Number(it.producedQuantity || it.finalMadeQty || it.quantity) || 1,
+          unitPrice: Number(it.unitPrice) || 0
+        });
+      });
+    });
+    return list;
+  }, [customerOrders, selectedCust]);
+
+  // Auto-select ready-to-dispatch items and initialize final made qty when customer changes
+  React.useEffect(() => {
+    const newSelected = {};
+    const newQty = {};
+    candidateItems.forEach(it => {
+      if (it.isReadyToDispatch) {
+        newSelected[it.uniqueKey] = true;
+      }
+      newQty[it.uniqueKey] = it.defaultMadeQty;
+    });
+    setInvSelectedKeys(newSelected);
+    setInvFinalQtyMap(newQty);
+  }, [invCustomerId, candidateItems.length]);
+
+  const handleToggleItemSelect = (uniqueKey) => {
+    setInvSelectedKeys(prev => ({ ...prev, [uniqueKey]: !prev[uniqueKey] }));
+  };
+
+  const handleUpdateItemFinalQty = (uniqueKey, val) => {
+    const num = Math.max(1, parseInt(val, 10) || 1);
+    setInvFinalQtyMap(prev => ({ ...prev, [uniqueKey]: num }));
+  };
+
+  const handleSelectAllReady = () => {
+    const newSelected = { ...invSelectedKeys };
+    candidateItems.forEach(it => {
+      if (it.isReadyToDispatch) {
+        newSelected[it.uniqueKey] = true;
+      }
+    });
+    setInvSelectedKeys(newSelected);
+  };
+
+  const handleDeselectAll = () => {
+    setInvSelectedKeys({});
+  };
+
+  const handleMarkItemReady = (uniqueKey) => {
+    setInvSelectedKeys(prev => ({ ...prev, [uniqueKey]: true }));
+  };
+
+  const handleAddDirectItem = () => {
+    setInvDirectItems(prev => [
       ...prev,
-      { name: 'Embossed Woven Labels', specs: 'Taffeta Satin High-Density', quantity: 2000, unitPrice: 2.20, total: 4400 }
+      { id: 'DIR-' + Date.now(), name: 'Sample / Finishing Charges', specs: 'Bespoke finishing & packaging', quantity: 1, unitPrice: 500, total: 500 }
     ]);
   };
 
-  const handleUpdateCustomInvItem = (index, field, value) => {
-    setCustomInvItems(prev => {
-      const updated = [...prev];
-      const item = { ...updated[index], [field]: value };
+  const handleUpdateDirectItem = (idx, field, val) => {
+    setInvDirectItems(prev => {
+      const copy = [...prev];
+      const it = { ...copy[idx], [field]: val };
       if (field === 'quantity' || field === 'unitPrice') {
-        const q = Number(field === 'quantity' ? value : item.quantity) || 0;
-        const r = Number(field === 'unitPrice' ? value : item.unitPrice) || 0;
-        item.total = Math.round(q * r * 100) / 100;
+        const q = Number(field === 'quantity' ? val : it.quantity) || 0;
+        const r = Number(field === 'unitPrice' ? val : it.unitPrice) || 0;
+        it.total = Math.round(q * r * 100) / 100;
       }
-      updated[index] = item;
-      return updated;
+      copy[idx] = it;
+      return copy;
     });
   };
 
-  const handleRemoveCustomInvItem = (index) => {
-    if (customInvItems.length <= 1) return;
-    setCustomInvItems(prev => prev.filter((_, idx) => idx !== index));
+  const handleRemoveDirectItem = (idx) => {
+    setInvDirectItems(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleCreateInvoiceSubmit = (e, openPrint = false) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (!selectedCust) return alert('Please select a valid customer party.');
 
-    let newInv = null;
-    if (invMode === 'from_order') {
-      if (!targetOrder) return alert('Please select a valid order to bill.');
-      const subtotal = Number(targetOrder.subtotal) || Number(targetOrder.total) || 0;
-      const taxAmt = Math.round(subtotal * (Number(invTaxRate) / 100) * 100) / 100;
-      const shipAmt = Number(invShipping) || 0;
-      const grandTotal = Math.round((subtotal + taxAmt + shipAmt) * 100) / 100;
+    const billedItems = [];
+    candidateItems.forEach(it => {
+      if (invSelectedKeys[it.uniqueKey]) {
+        const qty = Number(invFinalQtyMap[it.uniqueKey]) > 0 ? Number(invFinalQtyMap[it.uniqueKey]) : it.defaultMadeQty;
+        const total = Math.round(qty * it.unitPrice * 100) / 100;
+        billedItems.push({
+          id: it.itemId,
+          itemCode: it.itemCode,
+          name: it.name,
+          brandName: it.brandName,
+          type: it.type,
+          material: it.material,
+          dori: it.dori,
+          plastic: it.plastic,
+          image: it.image,
+          quantity: qty,
+          finalMadeQty: qty,
+          orderedQty: it.orderedQty,
+          unitPrice: it.unitPrice,
+          total: total,
+          sourceOrderId: it.orderId,
+          sourceCustomerOrderId: it.customerOrderId
+        });
+      }
+    });
 
-      newInv = {
-        id: nextInvoiceId,
-        orderId: targetOrder.id,
-        customerId: targetOrder.customerId,
-        customerName: targetOrder.customerName,
-        customerCompany: targetOrder.customerCompany,
-        issueDate: invIssueDate ? new Date(invIssueDate).toISOString() : new Date().toISOString(),
-        dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
-        items: targetOrder.items,
-        subtotal: subtotal,
-        taxRate: Number(invTaxRate) || 0,
-        tax: taxAmt,
-        shipping: shipAmt,
-        total: grandTotal,
-        paidAmount: targetOrder.paymentStatus === 'paid' ? grandTotal : 0,
-        balanceDue: targetOrder.paymentStatus === 'paid' ? 0 : grandTotal,
-        status: targetOrder.paymentStatus === 'paid' ? 'paid' : 'unpaid',
-        notes: invNotes
-      };
-    } else {
-      const cust = users.customers.find(c => c.id === customInvCustomerId) || users.customers[0];
-      if (!cust) return alert('Please select a valid customer.');
-      const subtotal = customInvItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
-      const taxAmt = Math.round(subtotal * (Number(invTaxRate) / 100) * 100) / 100;
-      const shipAmt = Number(invShipping) || 0;
-      const grandTotal = Math.round((subtotal + taxAmt + shipAmt) * 100) / 100;
+    invDirectItems.forEach(it => {
+      if (it.name) {
+        billedItems.push({
+          id: it.id,
+          itemCode: 'CUSTOM',
+          name: it.name,
+          brandName: selectedCust.brands?.[0] || selectedCust.company,
+          type: 'Custom',
+          material: it.specs || 'Service / Finishing',
+          quantity: Number(it.quantity) || 1,
+          finalMadeQty: Number(it.quantity) || 1,
+          orderedQty: Number(it.quantity) || 1,
+          unitPrice: Number(it.unitPrice) || 0,
+          total: Number(it.total) || 0,
+          sourceOrderId: 'DIRECT-JOB',
+          sourceCustomerOrderId: 'Direct'
+        });
+      }
+    });
 
-      newInv = {
-        id: nextInvoiceId,
-        orderId: customInvPoRef.trim() || 'DIRECT-JOB',
-        customerId: cust.id,
-        customerName: cust.name,
-        customerCompany: cust.company,
-        issueDate: invIssueDate ? new Date(invIssueDate).toISOString() : new Date().toISOString(),
-        dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
-        items: customInvItems,
-        subtotal: subtotal,
-        taxRate: Number(invTaxRate) || 0,
-        tax: taxAmt,
-        shipping: shipAmt,
-        total: grandTotal,
-        paidAmount: 0,
-        balanceDue: grandTotal,
-        status: 'unpaid',
-        notes: invNotes
-      };
+    if (billedItems.length === 0) {
+      return alert('Please select at least one ready-to-dispatch item to generate the invoice.');
     }
+
+    const selectedCustOrderIds = Array.from(new Set(billedItems.map(it => it.sourceCustomerOrderId).filter(Boolean)));
+    const orderIdDisplay = selectedCustOrderIds.length > 0 ? selectedCustOrderIds.join(', ') : 'Direct Invoice';
+    const selectedAdminOrderIds = Array.from(new Set(billedItems.map(it => it.sourceOrderId).filter(Boolean)));
+
+    const subtotal = billedItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+    const taxAmt = Math.round(subtotal * (Number(invTaxRate) / 100) * 100) / 100;
+    const shipAmt = Number(invShipping) || 0;
+    const grandTotal = Math.round((subtotal + taxAmt + shipAmt) * 100) / 100;
+
+    const newInv = {
+      id: nextInvoiceId,
+      orderId: orderIdDisplay,
+      orderIds: selectedCustOrderIds,
+      adminOrderIds: selectedAdminOrderIds,
+      customerId: selectedCust.id,
+      customerName: selectedCust.name,
+      customerCompany: selectedCust.company,
+      customerPhone: selectedCust.phone || '+91 98201 11223',
+      customerEmail: selectedCust.email || 'customer@ubms.internal',
+      issueDate: invIssueDate ? new Date(invIssueDate).toISOString() : new Date().toISOString(),
+      dueDate: invDueDate ? new Date(invDueDate).toISOString() : new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString(),
+      items: billedItems,
+      subtotal: subtotal,
+      taxRate: Number(invTaxRate) || 0,
+      tax: taxAmt,
+      shipping: shipAmt,
+      total: grandTotal,
+      paidAmount: 0,
+      balanceDue: grandTotal,
+      status: 'unpaid',
+      notes: invNotes
+    };
 
     onSaveInvoice(newInv);
     if (openPrint) {
@@ -1740,7 +1849,7 @@ function AdminPortal({
     setActiveTab('invoice_list');
   };
 
-  // MODULE 2: INVOICE LIST STATE & FILTER
+    // MODULE 2: INVOICE LIST STATE & FILTER
   const [invListSearch, setInvListSearch] = React.useState('');
   const [invListStatusFilter, setInvListStatusFilter] = React.useState('all');
 
@@ -2844,11 +2953,13 @@ function AdminPortal({
           portalType="admin"
           persona={currentMember}
           orders={orders}
+          invoices={invoices}
+          payments={payments}
           users={users}
           onNavigateTab={setActiveTab}
+          onOpenInvoice={onOpenInvoice}
         />
       )}
-
       {/* MODULE 1: PRODUCTION ORDER STUDIO (ADMIN ON-BEHALF STUDIO) */}
       {activeTab === 'place_order' && (
         <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16">
@@ -4977,468 +5088,622 @@ function AdminPortal({
         </div>
       )}
 
-      {/* MODULE 1: CREATE INVOICE STUDIO */}
-      {activeTab === 'create_invoice' && (
-        <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-12">
-          {/* Studio Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-            <div>
-              <div className="flex items-center space-x-2.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-                  Commercial Invoice Studio
-                </h1>
-                <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Auto-generated Invoice ID">
-                  {nextInvoiceId}
-                </span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-medium border border-slate-200">
-                  Admin Billing Console
+      {/* MODULE 1: CREATE INVOICE */}
+      {activeTab === 'create_invoice' && (() => {
+        // Filter candidate items
+        const displayedItems = invOnlyReady 
+          ? candidateItems.filter(it => it.isReadyToDispatch)
+          : candidateItems;
+
+        const readyCount = candidateItems.filter(it => it.isReadyToDispatch).length;
+
+        // Selected items breakdown for calculation
+        const selectedCandidateItems = candidateItems.filter(it => invSelectedKeys[it.uniqueKey]);
+        const calcSubtotal = selectedCandidateItems.reduce((acc, it) => {
+          const qty = Number(invFinalQtyMap[it.uniqueKey]) > 0 ? Number(invFinalQtyMap[it.uniqueKey]) : it.defaultMadeQty;
+          return acc + (qty * it.unitPrice);
+        }, 0) + invDirectItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+
+        const calcTax = Math.round(calcSubtotal * (Number(invTaxRate) / 100) * 100) / 100;
+        const calcShipping = Number(invShipping) || 0;
+        const calcGrandTotal = Math.round((calcSubtotal + calcTax + calcShipping) * 100) / 100;
+
+        const bundledCustOrderIds = Array.from(new Set(selectedCandidateItems.map(it => it.customerOrderId).filter(Boolean)));
+
+        // Filter customers/brands based on search query
+        const filteredCustomers = users.customers.filter(c => {
+          if (!invPartySearch.trim()) return true;
+          const q = invPartySearch.toLowerCase().trim();
+          const matchCompany = (c.company || '').toLowerCase().includes(q);
+          const matchName = (c.name || '').toLowerCase().includes(q);
+          const matchBrand = (c.brands || []).some(b => b.toLowerCase().includes(q));
+          return matchCompany || matchName || matchBrand;
+        });
+
+        // Curated brands across all customers for quick 1-click selection
+        const allBrandsWithCust = [];
+        users.customers.forEach(c => {
+          (c.brands || []).forEach(b => {
+            allBrandsWithCust.push({ brand: b, customerId: c.id, company: c.company });
+          });
+        });
+
+        return (
+          <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-16">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
+              <div>
+                <div className="flex items-center space-x-2.5">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+                    Create Invoice
+                  </h1>
+                  <span className="text-xs bg-slate-900 text-white font-mono font-bold px-2.5 py-1 rounded-md shadow-xs" title="Auto-generated Invoice ID">
+                    {nextInvoiceId}
+                  </span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 font-medium border border-slate-200">
+                    Billing Console
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Select customer party or brand to bundle ready-to-dispatch items from multiple orders into a single invoice.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('invoice_list')}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-300 text-slate-700 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  View Invoice List ({invoices.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('invoice_register')}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-300 text-slate-700 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  Invoice Register
+                </button>
+              </div>
+            </div>
+
+            {/* STEP 1: SELECT CUSTOMER / BRAND */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div className="flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
+                    1
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Select Customer Name / Brand Name
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Selecting customer name is identical to selecting brand name
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Generate tax-compliant commercial sales invoices against completed manufacturing orders or draft direct custom invoices.
-              </p>
-            </div>
 
-            {/* Mode Switcher */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-              <button
-                type="button"
-                onClick={() => setInvMode('from_order')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  invMode === 'from_order'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Bill from Order ({orders.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setInvMode('custom')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  invMode === 'custom'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Direct Custom Invoice
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Form Column (2 Cols) */}
-            <div className="lg:col-span-2 space-y-5">
-              {invMode === 'from_order' ? (
-                /* Mode A: Bill from Order */
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                      1. Select Manufacturing Order to Bill
-                    </span>
-                    <span className="text-xs font-mono text-slate-500">
-                      {orders.length} order(s) available
-                    </span>
-                  </div>
-
-                  {orders.length === 0 ? (
-                    <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 text-xs">
-                      No orders placed in system yet. You can use <strong>Direct Custom Invoice</strong> mode or place an order first.
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Select Client Order
-                      </label>
-                      <select
-                        value={invOrderId}
-                        onChange={(e) => setInvOrderId(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                      >
-                        {orders.map(o => (
-                          <option key={o.id} value={o.id}>
-                            {o.id} • {o.customerCompany} • {formatCurrency(o.total)} • [{o.status.toUpperCase()}]
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {targetOrder && (
-                    <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200 space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
-                        <div>
-                          <span className="text-xs text-slate-500">Customer Party</span>
-                          <div className="font-bold text-slate-900 text-sm">{targetOrder.customerCompany}</div>
-                          <span className="text-[11px] text-slate-500">{targetOrder.customerName} • {targetOrder.customerPhone || targetOrder.customerEmail}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs text-slate-500">Order Booking Ref</span>
-                          <div className="font-mono font-bold text-slate-900 text-xs">{targetOrder.id}</div>
-                          {targetOrder.customerOrderId && (
-                            <span className="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-200 px-1.5 py-0.5 rounded">
-                              {targetOrder.customerOrderId}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Items Preview */}
-                      <div>
-                        <span className="text-[11px] uppercase font-bold text-slate-500 block mb-1">Order Line Items</span>
-                        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                          {targetOrder.items.map((it, idx) => (
-                            <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200 text-xs">
-                              <div className="flex items-center space-x-2">
-                                <span className="font-mono font-bold text-[11px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                                  #{idx + 1}
-                                </span>
-                                <span className="font-bold text-slate-900">{it.brandName || it.name}</span>
-                                <span className="text-slate-500">({it.type || 'Tag'} • {it.material || ''})</span>
-                              </div>
-                              <div className="font-mono text-slate-900 text-right">
-                                <span className="text-slate-500 text-[11px] mr-2">{it.quantity} pcs @ ₹{it.unitPrice}</span>
-                                <strong>{formatCurrency(it.total || it.quantity * it.unitPrice)}</strong>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Invoice Terms & Parameters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Invoice Issue Date
-                      </label>
+              {/* Autocomplete & Quick Brand Chips */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Search Customer or Brand
+                    </label>
+                    <div className="relative">
                       <input
-                        type="date"
-                        value={invIssueDate}
-                        onChange={(e) => setInvIssueDate(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                        type="text"
+                        value={invPartySearch}
+                        onChange={(e) => setInvPartySearch(e.target.value)}
+                        placeholder="Search company (MG Creation) or brand (Denim Club, Rasam)..."
+                        className="w-full bg-white border border-slate-300 rounded-xl pl-3.5 pr-8 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none"
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Payment Due Date
-                      </label>
-                      <input
-                        type="date"
-                        value={invDueDate}
-                        onChange={(e) => setInvDueDate(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        GST Tax Rate (%)
-                      </label>
-                      <select
-                        value={invTaxRate}
-                        onChange={(e) => setInvTaxRate(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      >
-                        <option value={0}>0% (Tax Exempt / Nil Rated)</option>
-                        <option value={5}>5% (Concessional Goods)</option>
-                        <option value={12}>12% (Standard Trims)</option>
-                        <option value={18}>18% (Standard Manufacturing - 9% CGST + 9% SGST)</option>
-                        <option value={28}>28% (Luxury / Specialized)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Shipping &amp; Freight Charges (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={invShipping}
-                        onChange={(e) => setInvShipping(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      />
+                      {invPartySearch && (
+                        <button
+                          type="button"
+                          onClick={() => setInvPartySearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                        >
+                          &times;
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div>
                     <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Payment Terms &amp; Special Remarks
+                      Select Customer Party
                     </label>
-                    <input
-                      type="text"
-                      value={invNotes}
-                      onChange={(e) => setInvNotes(e.target.value)}
-                      placeholder="e.g. Due within 10 days, NEFT/UPI accepted"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                    />
+                    <select
+                      value={invCustomerId}
+                      onChange={(e) => setInvCustomerId(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:ring-2 focus:ring-slate-900 focus:outline-none"
+                    >
+                      {filteredCustomers.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.company} ({c.name}) â€¢ Brands: {(c.brands || []).slice(0, 3).join(', ')}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              ) : (
-                /* Mode B: Direct Custom Invoice */
-                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                      1. Custom Commercial Bill Entry
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">
-                      Direct invoice without linked order
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Select Customer Party
-                      </label>
-                      <select
-                        value={customInvCustomerId}
-                        onChange={(e) => setCustomInvCustomerId(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:ring-2 focus:ring-slate-900 focus:outline-none"
-                      >
-                        {users.customers.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.company} ({c.name})
-                          </option>
+                {/* Popular Brand Quick Selection Chips */}
+                <div>
+                  <div className="text-[11px] text-slate-500 font-semibold mb-1.5 flex items-center justify-between">
+                    <span>Quick Select by Brand:</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Click any brand to select that customer party</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allBrandsWithCust.map(({ brand, customerId, company }, idx) => {
+                      const isSelected = invCustomerId === customerId;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setInvCustomerId(customerId)}
+                          className={	ext-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center space-x-1 }
+                        >
+                          <span>{brand}</span>
+                          <span className={	ext-[10px] ml-1 opacity-70 }>
+                            ({company})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Selected Customer Active Banner */}
+                {selectedCust && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-slate-900 text-sm">{selectedCust.company}</span>
+                        <span className="text-[10px] bg-slate-200 text-slate-800 font-mono font-bold px-1.5 py-0.2 rounded">
+                          {selectedCust.id}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-600">
+                        Contact: <strong>{selectedCust.name}</strong> â€¢ {selectedCust.email} â€¢ {selectedCust.phone || '+91 98201 11223'}
+                      </div>
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        <span className="text-[10px] text-slate-500 font-semibold mr-1">Associated Brands:</span>
+                        {(selectedCust.brands || []).map((b, i) => (
+                          <span key={i} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.2 rounded text-slate-700 font-medium">
+                            {b}
+                          </span>
                         ))}
-                      </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        PO / Client Reference (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        value={customInvPoRef}
-                        onChange={(e) => setCustomInvPoRef(e.target.value)}
-                        placeholder="e.g. PO-9821 / Direct Batch"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none font-mono"
-                      />
+
+                    <div className="text-left sm:text-right shrink-0">
+                      <div className="text-[11px] text-slate-500">Orders on Record</div>
+                      <div className="text-sm font-bold text-slate-900 font-mono">
+                        {customerOrders.length} Order(s)
+                      </div>
+                      <div className="text-[11px] text-emerald-700 font-bold mt-0.5">
+                        {readyCount} item(s) ready to dispatch
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {/* Line Items Editor */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-slate-800">
-                        Line Items ({customInvItems.length})
-                      </label>
+            {/* STEP 2: SELECT READY-TO-DISPATCH ITEMS (MULTI-ORDER BUNDLING) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left/Middle Column: Items Selector (2 cols) */}
+              <div className="lg:col-span-2 space-y-5">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
+                        2
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                        Select Ready to Dispatch Items
+                      </span>
+                    </div>
+
+                    {/* Filter & Bulk Select */}
+                    <div className="flex items-center space-x-2">
                       <button
                         type="button"
-                        onClick={handleAddCustomInvItem}
+                        onClick={() => setInvOnlyReady(prev => !prev)}
+                        className={	ext-xs px-2.5 py-1 rounded-lg font-semibold border transition-all cursor-pointer }
+                      >
+                        {invOnlyReady ? 'âœ“ Ready Only (' + readyCount + ')' : 'All Items (' + candidateItems.length + ')'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSelectAllReady}
+                        className="text-xs text-slate-900 font-bold hover:underline cursor-pointer"
+                      >
+                        Select All Ready
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <button
+                        type="button"
+                        onClick={handleDeselectAll}
+                        className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                      >
+                        Deselect All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Items List Table */}
+                  {candidateItems.length === 0 ? (
+                    <div className="py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 text-xs space-y-2">
+                      <div>No manufacturing orders found for <strong>{selectedCust?.company}</strong>.</div>
+                      <p className="text-slate-400">You can add custom line items below or select another customer party.</p>
+                    </div>
+                  ) : displayedItems.length === 0 ? (
+                    <div className="py-8 text-center bg-amber-50/60 rounded-xl border border-amber-200 text-amber-800 text-xs space-y-2">
+                      <div className="font-bold">No items currently marked &quot;Ready to Dispatch&quot; for this customer.</div>
+                      <p className="text-amber-700">
+                        Switch to <strong>All Items ({candidateItems.length})</strong> to select items currently in manufacturing or mark them ready.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setInvOnlyReady(false)}
+                        className="mt-1 px-3 py-1 bg-amber-800 hover:bg-amber-900 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                      >
+                        Show All Items Across Orders
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {displayedItems.map(item => {
+                        const isChecked = !!invSelectedKeys[item.uniqueKey];
+                        const currentFinalQty = invFinalQtyMap[item.uniqueKey] !== undefined ? invFinalQtyMap[item.uniqueKey] : item.defaultMadeQty;
+                        const lineTotal = Math.round(currentFinalQty * item.unitPrice * 100) / 100;
+
+                        return (
+                          <div
+                            key={item.uniqueKey}
+                            className={p-3.5 rounded-xl border transition-all }
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* Checkbox */}
+                              <div className="pt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleItemSelect(item.uniqueKey)}
+                                  className="w-4 h-4 rounded text-slate-900 border-slate-300 focus:ring-slate-900 cursor-pointer"
+                                />
+                              </div>
+
+                              {/* Artwork Image */}
+                              <div className="shrink-0 text-center">
+                                {item.image ? (
+                                  <div
+                                    onClick={() => setPreviewArtworkUrl(item.image)}
+                                    className="relative group cursor-pointer"
+                                    title="Click to zoom artwork"
+                                  >
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="w-14 h-14 object-contain rounded-lg border border-slate-200 bg-white shadow-2xs group-hover:scale-105 transition-all"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                    TAG
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Item Details */}
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-bold text-slate-900 text-xs">
+                                    {item.name}
+                                  </span>
+                                  <span className="text-[10px] bg-slate-100 text-slate-800 font-bold px-1.5 py-0.2 rounded border border-slate-200">
+                                    {item.brandName}
+                                  </span>
+                                  {/* Strictly Customer Order ID Badge (e.g. MGC01) */}
+                                  <span className="text-[10px] font-mono font-bold text-slate-900 bg-amber-50 text-amber-900 border border-amber-200 px-1.5 py-0.2 rounded" title="Customer Order ID">
+                                    Order: {item.customerOrderId}
+                                  </span>
+                                  {item.isReadyToDispatch ? (
+                                    <span className="text-[9px] font-bold uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full flex items-center space-x-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                      <span>Ready to Dispatch</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full">
+                                      In Production
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="text-[11px] text-slate-500 flex flex-wrap gap-x-2">
+                                  <span>Code: <strong className="font-mono text-slate-700">{item.itemCode}</strong></span>
+                                  <span>&bull;</span>
+                                  <span>Type: <strong className="text-slate-700">{item.type}</strong></span>
+                                  {item.material && (
+                                    <>
+                                      <span>&bull;</span>
+                                      <span>Material: <strong className="text-slate-700">{item.material}</strong></span>
+                                    </>
+                                  )}
+                                  {(item.dori || item.plastic) && (
+                                    <>
+                                      <span>&bull;</span>
+                                      <span>Trims: {item.dori ? 'Dori: ' + item.dori : ''} {item.plastic ? 'Plastic: ' + item.plastic : ''}</span>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Interactive Final Made Qty & Rate Strip */}
+                                <div className="pt-2 flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 rounded-lg border border-slate-200/80">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-[11px] font-semibold text-slate-600">Final Made Qty:</span>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      value={currentFinalQty}
+                                      onChange={(e) => handleUpdateItemFinalQty(item.uniqueKey, e.target.value)}
+                                      className="w-24 text-right font-mono font-bold text-xs bg-slate-50 border border-slate-300 rounded-md px-2 py-1 text-slate-900 focus:bg-white focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                                    />
+                                    <span className="text-[10px] text-slate-400">pcs</span>
+                                    <span className="text-[10px] text-slate-400 ml-1">(Ordered: {item.orderedQty})</span>
+                                  </div>
+
+                                  <div className="flex items-center space-x-4">
+                                    <div className="text-right">
+                                      <span className="text-[10px] text-slate-400 block">Rate</span>
+                                      <span className="font-mono font-medium text-slate-700 text-xs">â‚¹{item.unitPrice.toFixed(2)}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-[10px] text-slate-400 block">Line Total</span>
+                                      <span className="font-mono font-bold text-slate-900 text-xs">{formatCurrency(lineTotal)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Direct / Extra Line Items */}
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-700">
+                        Direct / Extra Charges ({invDirectItems.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleAddDirectItem}
                         className="text-xs text-slate-900 font-bold hover:underline flex items-center space-x-1 cursor-pointer"
                       >
-                        <span>+ Add Item</span>
+                        <span>+ Add Extra Charge / Finishing</span>
                       </button>
                     </div>
 
-                    <div className="space-y-3">
-                      {customInvItems.map((item, idx) => (
-                        <div key={idx} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-2.5 items-center">
-                          <div className="col-span-12 sm:col-span-4">
-                            <label className="text-[10px] text-slate-500 font-medium block">Item Name / Desc</label>
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => handleUpdateCustomInvItem(idx, 'name', e.target.value)}
-                              placeholder="e.g. Die-Cut Hang Tags"
-                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                            />
-                          </div>
-                          <div className="col-span-12 sm:col-span-3">
-                            <label className="text-[10px] text-slate-500 font-medium block">Specifications</label>
-                            <input
-                              type="text"
-                              value={item.specs}
-                              onChange={(e) => handleUpdateCustomInvItem(idx, 'specs', e.target.value)}
-                              placeholder="e.g. 350 GSM Art Board"
-                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                            />
-                          </div>
-                          <div className="col-span-4 sm:col-span-2">
-                            <label className="text-[10px] text-slate-500 font-medium block">Qty (Pcs)</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => handleUpdateCustomInvItem(idx, 'quantity', e.target.value)}
-                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                            />
-                          </div>
-                          <div className="col-span-4 sm:col-span-2">
-                            <label className="text-[10px] text-slate-500 font-medium block">Rate (₹)</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={item.unitPrice}
-                              onChange={(e) => handleUpdateCustomInvItem(idx, 'unitPrice', e.target.value)}
-                              className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                            />
-                          </div>
-                          <div className="col-span-4 sm:col-span-1 flex items-center justify-end pt-3">
-                            {customInvItems.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCustomInvItem(idx)}
-                                className="text-rose-600 hover:text-rose-800 p-1.5 text-xs font-bold cursor-pointer"
-                                title="Remove line item"
-                              >
-                                &times;
-                              </button>
-                            )}
-                          </div>
+                    {invDirectItems.map((dir, idx) => (
+                      <div key={dir.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 grid grid-cols-12 gap-2 items-center mb-2">
+                        <div className="col-span-12 sm:col-span-5">
+                          <input
+                            type="text"
+                            value={dir.name}
+                            onChange={(e) => handleUpdateDirectItem(idx, 'name', e.target.value)}
+                            placeholder="Charge name / description"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900 focus:outline-none"
+                          />
                         </div>
-                      ))}
-                    </div>
+                        <div className="col-span-6 sm:col-span-2">
+                          <input
+                            type="number"
+                            min="1"
+                            value={dir.quantity}
+                            onChange={(e) => handleUpdateDirectItem(idx, 'quantity', e.target.value)}
+                            placeholder="Qty"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900 text-center focus:outline-none"
+                          />
+                        </div>
+                        <div className="col-span-6 sm:col-span-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={dir.unitPrice}
+                            onChange={(e) => handleUpdateDirectItem(idx, 'unitPrice', e.target.value)}
+                            placeholder="Rate"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-900 text-right focus:outline-none"
+                          />
+                        </div>
+                        <div className="col-span-8 sm:col-span-2 text-right font-mono font-bold text-xs text-slate-900">
+                          {formatCurrency(dir.total || 0)}
+                        </div>
+                        <div className="col-span-4 sm:col-span-1 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDirectItem(idx)}
+                            className="text-slate-400 hover:text-rose-600 font-bold text-sm cursor-pointer"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  {/* STEP 3: INVOICE TERMS */}
+                  <div className="pt-3 border-t border-slate-200 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center">
+                        3
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                        Invoice Terms &amp; Tax Parameters
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          Invoice Issue Date
+                        </label>
+                        <input
+                          type="date"
+                          value={invIssueDate}
+                          onChange={(e) => setInvIssueDate(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          Payment Due Date
+                        </label>
+                        <input
+                          type="date"
+                          value={invDueDate}
+                          onChange={(e) => setInvDueDate(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          GST Tax Rate (%) &mdash; <span className="text-emerald-700 font-bold">Default 0%</span>
+                        </label>
+                        <select
+                          value={invTaxRate}
+                          onChange={(e) => setInvTaxRate(Number(e.target.value))}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                        >
+                          <option value={0}>0% (Tax Exempt / Nil Rated - Default)</option>
+                          <option value={5}>5% (Concessional Goods)</option>
+                          <option value={12}>12% (Standard Trims)</option>
+                          <option value={18}>18% (Standard Manufacturing - 9% CGST + 9% SGST)</option>
+                          <option value={28}>28% (Luxury / Specialized)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 block mb-1">
+                          Shipping &amp; Freight Charges (â‚¹)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={invShipping}
+                          onChange={(e) => setInvShipping(Number(e.target.value))}
+                          className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
                     <div>
                       <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Invoice Issue Date
+                        Payment Terms &amp; Special Remarks
                       </label>
                       <input
-                        type="date"
-                        value={invIssueDate}
-                        onChange={(e) => setInvIssueDate(e.target.value)}
+                        type="text"
+                        value={invNotes}
+                        onChange={(e) => setInvNotes(e.target.value)}
+                        placeholder="e.g. Due within 10 days of invoice date. NEFT / RTGS or UPI accepted."
                         className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                       />
                     </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Payment Due Date
-                      </label>
-                      <input
-                        type="date"
-                        value={invDueDate}
-                        onChange={(e) => setInvDueDate(e.target.value)}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        GST Tax Rate (%)
-                      </label>
-                      <select
-                        value={invTaxRate}
-                        onChange={(e) => setInvTaxRate(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      >
-                        <option value={0}>0% (Tax Exempt / Nil Rated)</option>
-                        <option value={5}>5% (Concessional Goods)</option>
-                        <option value={12}>12% (Standard Trims)</option>
-                        <option value={18}>18% (Standard Manufacturing - 9% CGST + 9% SGST)</option>
-                        <option value={28}>28% (Luxury / Specialized)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 block mb-1">
-                        Shipping &amp; Freight Charges (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={invShipping}
-                        onChange={(e) => setInvShipping(Number(e.target.value))}
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Payment Terms &amp; Special Remarks
-                    </label>
-                    <input
-                      type="text"
-                      value={invNotes}
-                      onChange={(e) => setInvNotes(e.target.value)}
-                      placeholder="e.g. Due within 10 days, NEFT/UPI accepted"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-                    />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Live Invoice Preview & Actions (Right Column) */}
-            <div className="space-y-4">
-              <div className="bg-white border-2 border-slate-900 rounded-2xl p-6 shadow-md space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                  <span className="font-extrabold text-slate-900 text-sm">Invoice Summary</span>
-                  <span className="font-mono font-bold text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded">
-                    {nextInvoiceId}
-                  </span>
-                </div>
+              {/* Right Column: Real-Time Invoice Summary & Action Buttons */}
+              <div className="space-y-4">
+                <div className="bg-white border-2 border-slate-900 rounded-2xl p-6 shadow-md space-y-4 sticky top-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                    <span className="font-extrabold text-slate-900 text-sm">Invoice Summary</span>
+                    <span className="font-mono font-bold text-xs bg-slate-900 text-white px-2 py-0.5 rounded shadow-xs">
+                      {nextInvoiceId}
+                    </span>
+                  </div>
 
-                {/* Calculation breakdown */}
-                {(() => {
-                  let sub = 0;
-                  if (invMode === 'from_order' && targetOrder) {
-                    sub = Number(targetOrder.subtotal) || Number(targetOrder.total) || 0;
-                  } else if (invMode === 'custom') {
-                    sub = customInvItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
-                  }
-                  const tax = Math.round(sub * (Number(invTaxRate) / 100) * 100) / 100;
-                  const ship = Number(invShipping) || 0;
-                  const total = Math.round((sub + tax + ship) * 100) / 100;
+                  {/* Party Summary */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Billed Party</div>
+                    <div className="font-bold text-slate-900 text-sm">{selectedCust?.company}</div>
+                    <div className="text-slate-600">{selectedCust?.name}</div>
+                  </div>
 
-                  return (
-                    <div className="space-y-2.5 text-xs">
-                      <div className="flex justify-between text-slate-600">
-                        <span>Items Subtotal:</span>
-                        <span className="font-mono font-bold text-slate-900">{formatCurrency(sub)}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>GST ({invTaxRate}%):</span>
-                        <span className="font-mono font-medium text-slate-800">{formatCurrency(tax)}</span>
-                      </div>
-                      {ship > 0 && (
-                        <div className="flex justify-between text-slate-600">
-                          <span>Shipping / Freight:</span>
-                          <span className="font-mono font-medium text-slate-800">{formatCurrency(ship)}</span>
-                        </div>
+                  {/* Bundled Orders */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
+                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bundled Customer Orders</div>
+                    <div className="font-mono font-bold text-slate-900">
+                      {bundledCustOrderIds.length > 0 ? (
+                        bundledCustOrderIds.map(oid => (
+                          <span key={oid} className="inline-block bg-white border border-slate-300 px-1.5 py-0.5 rounded mr-1 mb-1">
+                            {oid}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400">No items selected</span>
                       )}
-                      <div className="pt-3 border-t-2 border-slate-900 flex justify-between items-baseline">
-                        <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
-                        <span className="font-mono font-black text-slate-900 text-xl">{formatCurrency(total)}</span>
-                      </div>
                     </div>
-                  );
-                })()}
+                    <div className="text-[10px] text-slate-500">
+                      {selectedCandidateItems.length} order item(s) selected
+                    </div>
+                  </div>
 
-                {/* Primary Action Buttons */}
-                <div className="pt-2 space-y-2">
-                  <button
-                    type="button"
-                    onClick={(e) => handleCreateInvoiceSubmit(e, false)}
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5 cursor-pointer"
-                  >
-                    <span>✓ Generate Commercial Invoice</span>
-                  </button>
+                  {/* Amount Breakdown */}
+                  <div className="space-y-2.5 text-xs pt-1">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Items Subtotal:</span>
+                      <span className="font-mono font-bold text-slate-900">{formatCurrency(calcSubtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-600">
+                      <span>GST ({invTaxRate}%):</span>
+                      <span className="font-mono font-medium text-slate-800">{formatCurrency(calcTax)}</span>
+                    </div>
+                    {calcShipping > 0 && (
+                      <div className="flex justify-between text-slate-600">
+                        <span>Shipping / Freight:</span>
+                        <span className="font-mono font-medium text-slate-800">{formatCurrency(calcShipping)}</span>
+                      </div>
+                    )}
+                    <div className="pt-3 border-t-2 border-slate-900 flex justify-between items-baseline">
+                      <span className="font-bold text-slate-900 text-sm">Grand Total:</span>
+                      <span className="font-mono font-black text-slate-900 text-xl">{formatCurrency(calcGrandTotal)}</span>
+                    </div>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => handleCreateInvoiceSubmit(e, true)}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2.5 rounded-xl transition-all border border-slate-300 flex items-center justify-center space-x-1.5 cursor-pointer"
-                  >
-                    <span>Print / View PDF Now</span>
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="button"
+                      onClick={(e) => handleCreateInvoiceSubmit(e, false)}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-xs flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>âœ“ Generate Invoice</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleCreateInvoiceSubmit(e, true)}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs py-2.5 rounded-xl transition-all border border-slate-300 flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>Generate &amp; Print / PDF</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* MODULE 2: INVOICE LIST */}
+        );
+      })()}
+        {/* MODULE 2: INVOICE LIST */}
       {(activeTab === 'invoice_list' || activeTab === 'all_invoices') && (
         <div className="space-y-5 animate-fade-in pb-12">
           {/* Header & Quick Action */}

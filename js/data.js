@@ -495,6 +495,33 @@ function getCustomerNextItemIndex(customer, orders = [], stagedItems = []) {
 window.uBMS.formatItemName = formatItemName;
 window.uBMS.getCustomerNextItemIndex = getCustomerNextItemIndex;
 
+// Clean customer-facing order ID helper: extracts client order ID (e.g. "MGC01", "MGC01, MGC02")
+function getCustomerFacingOrderId(orderOrId) {
+  if (!orderOrId) return '';
+  if (typeof orderOrId === 'object') {
+    if (orderOrId.customerOrderId) return orderOrId.customerOrderId;
+    if (orderOrId.orderId) return getCustomerFacingOrderId(orderOrId.orderId);
+    if (orderOrId.id && !orderOrId.id.startsWith('INV-')) return getCustomerFacingOrderId(orderOrId.id);
+    return '';
+  }
+  const str = String(orderOrId).trim();
+  if (str.includes(',')) {
+    return str.split(',').map(s => getCustomerFacingOrderId(s.trim())).filter(Boolean).join(', ');
+  }
+  if (/^TGRS\d*-ORD-[\d]+-(.+)$/i.test(str)) {
+    return str.replace(/^TGRS\d*-ORD-[\d]+-/i, '');
+  }
+  if (/^TGRS\d*-(.+)$/i.test(str)) {
+    return str.replace(/^TGRS\d*-/i, '');
+  }
+  const parts = str.split('-');
+  if (parts.length > 2 && /^[A-Z]{2,4}\d+$/i.test(parts[parts.length - 1])) {
+    return parts[parts.length - 1];
+  }
+  return str;
+}
+window.uBMS.getCustomerFacingOrderId = getCustomerFacingOrderId;
+
 // --- TWO-TIER NAVIGATION ARCHITECTURE (Left Groups + Top Sub-Nav) ---
 const CUSTOMER_NAV_GROUPS = [
   {

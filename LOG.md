@@ -4,6 +4,40 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-03] — Version 3.6
+
+### 🧾 Create Invoice Redesign: Customer / Brand First Selection, Multi-Order Ready-to-Dispatch Bundling, Default 0% Tax & Strict Client Order ID Masking
+- **Simplified Naming**:
+  - Renamed `Commercial Invoice Studio` to simple and direct `Create Invoice` across navigation tabs, page titles, and action buttons.
+- **Customer / Brand First Selection Workflow**:
+  - The first step in creating an invoice now asks for **Customer Name / Brand Name** before any item selection.
+  - Selecting customer name is identical to selecting brand name: typing either company name (e.g. `MG Creation`) or brand name (e.g. `Denim Club`, `Urban Stitch`, `Rasam`, `Ventage`, `Mufti Casuals`) immediately resolves to that customer party.
+  - Added dedicated quick-select brand chips above the party selector enabling 1-click customer selection by brand.
+  - Integrated active Customer Profile card displaying company name, contact person, phone, email, all associated brands, and real-time count of ready-to-dispatch inventory.
+- **Multi-Order Ready-to-Dispatch Item Selector**:
+  - Automatically queries and aggregates candidate items across **all orders** of the selected customer party.
+  - Features items marked `Ready to Dispatch` by default with green status indicators, with an instant toggle to inspect all open items across orders.
+  - Displays high-resolution artwork image thumbnail (with click-to-zoom), item code, brand pill, specifications (type, material, dori, plastic), unit rate, and calculated line total.
+  - **Source Order Reference**: Prominently displays the Customer Order ID badge (`Order: MGC01`, `Order: MGC03`) on every item card.
+  - **Interactive Final Made Qty**: Editable number input initialized to ordered quantity. Updating produced piece quantity dynamically recalculates line total and invoice grand total in real time.
+  - **Multi-Order Bundling**: Allows selecting items across multiple different orders into a single consolidated invoice (e.g. bundling items from `MGC01` and `MGC03` into one bill).
+- **Default 0% GST Tax Rate**:
+  - Set default GST tax rate strictly to **0% (Tax Exempt / Nil Rated - Default)**.
+  - Maintained dropdown options for other tax tiers (5%, 12%, 18%, 28%) if manually required.
+- **Strict Customer Order ID Masking**:
+  - Client / customer is strictly shown only their own Customer Order ID (e.g., `MGC01`, `ARC02`), never the internal Admin Order ID (`TGRS25-ORD-...`), on printed bills/invoices (`InvoiceModal.js`), Invoice List, Invoice Register, Order Register, and Edit Order modal.
+  - Implemented `window.uBMS.getCustomerFacingOrderId` to extract clean customer order references even when multiple orders are bundled (`MGC01, MGC03`).
+- **Complete Billing Suite Parity**:
+  - Confirmed the 6 billing sub-tabs remain cleanly integrated across Admin and Customer portals:
+    1. `Create Invoice` (`create_invoice`)
+    2. `Invoice List` (`invoice_list`)
+    3. `Invoice Register` (`invoice_register`)
+    4. `Payment In` (`payment_in`)
+    5. `General Ledger` (`general_ledger`)
+    6. `Outstanding Ledger` (`outstanding_ledger`)
+
+---
+
 ## [2026-11-03] — Version 3.5
 
 ### 🏷️ Place Order Console Redesign: Minimalist Streamlining, Searchable Catalog Combobox, Multi-Piece Naming & Spacious Trim Grids
