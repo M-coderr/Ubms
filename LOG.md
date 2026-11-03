@@ -4,6 +4,34 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-03] — Version 3.5
+
+### 🏷️ Place Order Console Redesign: Minimalist Streamlining, Searchable Catalog Combobox, Multi-Piece Naming & Spacious Trim Grids
+- **Header & Title Simplification**:
+  - Renamed `Production Order Studio` to simple and direct `Place Order` across both Customer and Admin portals.
+  - Stripped redundant descriptive subtext below all section headings (`Place Order`, `Production Run Type`, `Product Architecture & Specifications`, `Artwork & Prepress Proof`, `Commercials`).
+  - Removed all suggested clutter chips above inputs (`Parties: [...]`, `Saved: [...]`, and order quantity shortcut pills `[1k] [2.5k] [5k] [10k]`).
+- **Interactive Searchable Paper Catalog Combobox**:
+  - Replaced the static `<select>` paper catalog dropdown with an autocomplete live-search Combobox component (`PaperCatalogCombobox`).
+  - Enabled instant text filtering across all 30 preserved sheet catalogs by code, paper name, finish, and GSM (e.g. typing "Gloss" filters down in real-time).
+  - Maintained full rate-per-sheet display, clean checkmarks, keyboard/mouse selection, and outside-click dismissal.
+- **Hierarchical Multi-Piece Tag Naming**:
+  - Standardized piece layer titles dynamically via `window.uBMS.getTagPieceTitle`:
+    - 2-Piece tags: `1st Pc (Base Pc)` and `2nd Pc (Upper Pc)`.
+    - 3-Piece tags: `1st Pc (Base Pc)`, `2nd Pc (Middle Pc)`, and `3rd Pc (Upper Pc)`.
+    - 4+ Piece tags: `1st Pc (Base Pc)` → `2nd Pc (Middle Pc 1)` → `3rd Pc (Middle Pc 2)` → `Nth Pc (Upper Pc)`.
+  - Updated Piece Composition select options to reflect clear set labels (`Single Tag (1 Pc)`, `2-Piece Tag (Base + Upper)`, `3-Piece Tag (Base + Middle + Upper)`).
+- **Product Size & Trim De-congestion**:
+  - Renamed `Die-Cut Dimensions (Size L x Size B)` to `Product Size`.
+  - Renamed `Barcode Plastic Seal` to `Barcode Plastic`.
+  - Redesigned `Dori (String)` and `Barcode Plastic` button controls into generous 3-column segmented button grids with distinct `Reg. ₹0.20` and `Reg. ₹0.10` badges and clear top status indicators (`Regular (+₹0.20)` / `Regular (+₹0.10)`), completely removing layout congestion.
+- **Job Ticket & Commercials Polish**:
+  - Renamed `PRODUCTION VOLUME & COMMERCIALS` to `COMMERCIALS`.
+  - Removed `Material Board` row from the right-hand `Production Job Ticket` summary card.
+  - Removed explanatory subtext below `Confirm & Book Order`.
+
+---
+
 ## [2026-11-03] — Version 3.4
 
 ### 💰 Comprehensive Billing & Finance Suite Overhaul: Create Invoice, Invoice List, Invoice Register, Payment In, General Ledger & Outstanding Ledger

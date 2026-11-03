@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.4  
+**Version**: 3.5  
 **Last Updated**: November 3, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 

@@ -6,6 +6,7 @@
 
 ## Key Highlights
 
+- **Streamlined Place Order Console**: Clean, distraction-free order creation interface across Customer and Admin portals. Features searchable autocomplete live Combobox for paper catalogs (`PaperCatalogCombobox`) filtering 30 active boards by code/GSM/finish, hierarchical multi-piece tag naming (`1st Pc (Base Pc)`, `2nd Pc (Middle Pc)`, `3rd Pc (Upper Pc)`), renamed `Product Size`, de-congested spacious handwork segmented buttons (`Dori` and `Barcode Plastic`), and clean job tickets without material board clutter.
 - **Two-Tier Navigation Hierarchy**: Structured two-level navigation across Customer and Admin portals—Level 1 Module Groups on the slim Left Sidebar Strip (`LeftSidebarStrip.js`) and Level 2 Dynamic Sub-Navigation on the Top Bar.
 - **Dual-Portal Architecture**: Tailored interfaces for both **Customers** (placing orders, tracking stages, viewing ledgers) and the **Internal Team** (executives, printing/punching operators, handwork laborers).
 - **Multi-User Concurrency & Guaranteed Unique Dual IDs**: Thread-monitor locked atomic endpoint (`/api/create-order`) prevents race conditions, issuing dual sequential IDs: Admin format `TGRS25-ORD-2026-MGC07` and Customer format `MGC07`.

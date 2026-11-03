@@ -1,7 +1,135 @@
-// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
+﻿// Admin Portal: All 8 Admin Modules + Tags & Labels Manufacturing Types Config
 window.uBMS = window.uBMS || {};
 
-const PaperCatalogCombobox = window.uBMS.PaperCatalogCombobox;
+if (!window.uBMS.getTagPieceTitle) {
+  window.uBMS.getTagPieceTitle = function(index, total) {
+    if (total <= 1) return 'Single Tag';
+    if (total === 2) {
+      return index === 0 ? '1st Pc (Base Pc)' : '2nd Pc (Upper Pc)';
+    }
+    if (total === 3) {
+      if (index === 0) return '1st Pc (Base Pc)';
+      if (index === 1) return '2nd Pc (Middle Pc)';
+      return '3rd Pc (Upper Pc)';
+    }
+    if (index === 0) return '1st Pc (Base Pc)';
+    if (index === total - 1) return `${index + 1}th Pc (Upper Pc)`;
+    return `${index + 1}th Pc (Middle Pc ${index})`;
+  };
+}
+
+function PaperCatalogCombobox({ 
+  selectedCatalogId, 
+  onSelectCatalog, 
+  availableCatalogs = [], 
+  error, 
+  placeholder = "Type paper catalog (e.g. Paper #01, Gloss, 250 GSM)..." 
+}) {
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const currentCat = availableCatalogs.find(c => c.id === selectedCatalogId) || availableCatalogs[0];
+  const currentLabel = currentCat 
+    ? `${currentCat.code} - ${currentCat.name || ''} (${currentCat.gsm} GSM, ${currentCat.finish})`
+    : '';
+
+  const filteredCatalogs = React.useMemo(() => {
+    if (!searchQuery.trim()) return availableCatalogs;
+    const q = searchQuery.toLowerCase().trim();
+    return availableCatalogs.filter(c => 
+      (c.code || '').toLowerCase().includes(q) ||
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.finish || '').toLowerCase().includes(q) ||
+      String(c.gsm || '').includes(q)
+    );
+  }, [availableCatalogs, searchQuery]);
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={isFocused ? searchQuery : currentLabel}
+          onFocus={() => {
+            setIsFocused(true);
+            setSearchQuery('');
+          }}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setIsFocused(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              setIsFocused(false);
+              setSearchQuery('');
+            }, 250);
+          }}
+          className={`w-full bg-slate-50/70 hover:bg-white focus:bg-white border ${
+            error ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-slate-400'
+          } rounded-xl px-3.5 py-2.5 pr-8 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 font-medium shadow-2xs transition-all`}
+          autoComplete="off"
+        />
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+          &#9662;
+        </div>
+      </div>
+
+      {isFocused && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1.5 max-h-56 overflow-y-auto">
+          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+            <span>Paper Board Catalogs ({filteredCatalogs.length})</span>
+            <span className="text-[9px] text-slate-400 font-normal">Select or type to filter</span>
+          </div>
+          {filteredCatalogs.length > 0 ? (
+            filteredCatalogs.map(cat => {
+              const isSelected = cat.id === selectedCatalogId;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelectCatalog(cat.id);
+                    setIsFocused(false);
+                    setSearchQuery('');
+                  }}
+                  className={`w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center justify-between transition-colors cursor-pointer border-b border-slate-50 last:border-0 ${
+                    isSelected ? 'bg-indigo-50/80 font-bold' : ''
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 truncate mr-2">
+                    <span className="font-mono font-bold text-xs text-slate-900">{cat.code}</span>
+                    <span className="text-slate-700 text-xs truncate">{cat.name}</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
+                      {cat.gsm} GSM
+                    </span>
+                    <span className="text-[10px] text-slate-500 shrink-0 font-medium">
+                      ({cat.finish})
+                    </span>
+                  </div>
+                  <div className="text-right shrink-0 flex items-center space-x-2">
+                    <span className="text-[10px] font-mono font-semibold text-slate-600">
+                      &#8377;{cat.sheetRate || cat.ratePerSheet || 0}/sht
+                    </span>
+                    {isSelected && (
+                      <span className="text-[10px] text-brand-600 font-bold">&#10003;</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          ) : (
+            <div className="p-3 text-center text-xs text-slate-500">
+              No paper catalogs matching "{searchQuery}"
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+window.uBMS.PaperCatalogCombobox = PaperCatalogCombobox;
 function AdminPortal({ 
   currentMember, 
   orders, 
@@ -1753,7 +1881,7 @@ function AdminPortal({
     setPayAmount('');
     setPayRefNo('');
     setPayNotes('');
-    alert(Payment of  recorded under Receipt !);
+    alert(`Payment of ${amt} recorded under Receipt ${newPayment.id}!`);
   };
 
   // MODULE 5: GENERAL LEDGER (DOUBLE-ENTRY PARTY STATEMENT)
