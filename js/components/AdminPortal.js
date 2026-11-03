@@ -923,10 +923,10 @@ function AdminPortal({
             handwork: {
               status: initialStage === 'handwork' ? 'pending' : 'locked',
               doriType: item.dori || 'Reg. Cotton Dori',
-              doriRate: item.doriRate || 0.20,
+              doriRate: typeof item.doriRate === "number" ? item.doriRate : ((item.dori || "").toLowerCase().includes("custom") ? 0.40 : ((item.dori || "").toLowerCase() === "none" ? 0 : 0.20)),
               plasticType: item.plastic || 'Reg. Plastic Lock',
-              plasticRate: item.plasticRate || 0.10,
-              totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+              plasticRate: typeof item.plasticRate === "number" ? item.plasticRate : ((item.plastic || "").toLowerCase().includes("custom") ? 0.15 : ((item.plastic || "").toLowerCase() === "none" ? 0 : 0.10)),
+              totalRatePerTag: (typeof item.doriRate === "number" ? item.doriRate : ((item.dori || "").toLowerCase().includes("custom") ? 0.40 : ((item.dori || "").toLowerCase() === "none" ? 0 : 0.20))) + (typeof item.plasticRate === "number" ? item.plasticRate : ((item.plastic || "").toLowerCase().includes("custom") ? 0.15 : ((item.plastic || "").toLowerCase() === "none" ? 0 : 0.10))),
               assignedLabourerId: null,
               assignedLabourerName: null,
               startTime: null,
@@ -1043,6 +1043,13 @@ function AdminPortal({
   const [rejectionReasonCustom, setRejectionReasonCustom] = React.useState('');
   const [shortageAlertJob, setShortageAlertJob] = React.useState(null);
 
+  // Order Review Modal & Handwork Piece Rates State
+  const [reviewModalOrder, setReviewModalOrder] = React.useState(null);
+  const [reviewDoriRate, setReviewDoriRate] = React.useState(0.20);
+  const [reviewPlasticRate, setReviewPlasticRate] = React.useState(0.10);
+  const [reviewBaseRate, setReviewBaseRate] = React.useState(0);
+  const [reviewItemQty, setReviewItemQty] = React.useState(1000);
+
   // Collect all saved brands for selected customer
   const adminCustomerSavedBrands = React.useMemo(() => {
     const brandSet = new Set();
@@ -1055,7 +1062,7 @@ function AdminPortal({
       brandSet.add(selectedCust.company.trim());
     }
     (orders || []).forEach(o => {
-      const isThisCust = (o.customerId && selectedCust?.id && o.customerId === selectedCust.id) ||
+      const isThisCust = o.customerId === selectedCust?.id || 
                          (o.customerCompany && selectedCust?.company && o.customerCompany === selectedCust.company);
       if (isThisCust && Array.isArray(o.items)) {
         o.items.forEach(item => {
@@ -1081,7 +1088,7 @@ function AdminPortal({
     const list = [];
     const seen = new Set();
     (orders || []).forEach(o => {
-      const isThisCust = (o.customerId && selectedCust?.id && o.customerId === selectedCust.id) ||
+      const isThisCust = o.customerId === selectedCust?.id || 
                          (o.customerCompany && selectedCust?.company && o.customerCompany === selectedCust.company);
       if (isThisCust && Array.isArray(o.items)) {
         o.items.forEach(item => {
@@ -1336,14 +1343,14 @@ function AdminPortal({
         ? `Custom: ${adminDoriCustom.trim()}`
         : adminDoriOption === 'none'
           ? 'None'
-          : 'Reg. (₹0.20/pc)';
+          : 'Regular';
     const plasticValue = isTagKit
       ? 'None'
       : adminPlasticOption === 'custom'
         ? `Custom: ${adminPlasticCustom.trim()}`
         : adminPlasticOption === 'none'
           ? 'None'
-          : 'Reg. (₹0.10/pc)';
+          : 'Regular';
 
     const quantityNum = Number(adminQty) || 0;
     const rateNum = Number(adminRate) || 0;
@@ -1361,9 +1368,9 @@ function AdminPortal({
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: isTagKit || adminDoriOption === 'none' ? 0 : 0.20,
+      doriRate: isTagKit || adminDoriOption === "none" ? 0 : (adminDoriOption === "custom" ? 0.40 : 0.20),
       plastic: plasticValue,
-      plasticRate: isTagKit || adminPlasticOption === 'none' ? 0 : 0.10,
+      plasticRate: isTagKit || adminPlasticOption === "none" ? 0 : (adminPlasticOption === "custom" ? 0.15 : 0.10),
       image: adminOrderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(adminSelectedType),
       quantity: quantityNum,
       unitPrice: rateNum,
@@ -1487,9 +1494,9 @@ function AdminPortal({
           catalogCode: i.catalogCode || null,
           material: i.material,
           dori: i.dori,
-          doriRate: i.doriRate || 0.20,
+          doriRate: typeof i.doriRate === "number" ? i.doriRate : (i.dori === "None" ? 0 : ((i.dori || "").toLowerCase().includes("custom") ? 0.40 : 0.20)),
           plastic: i.plastic,
-          plasticRate: i.plasticRate || 0.10,
+          plasticRate: typeof i.plasticRate === "number" ? i.plasticRate : (i.plastic === "None" ? 0 : ((i.plastic || "").toLowerCase().includes("custom") ? 0.15 : 0.10)),
           image: i.image,
           quantity: i.quantity,
           unitPrice: i.unitPrice,
@@ -1643,17 +1650,17 @@ function AdminPortal({
   const [invShipping, setInvShipping] = React.useState(0);
   const [invNotes, setInvNotes] = React.useState('Payment due within 10 days of invoice date. NEFT / RTGS or UPI accepted.');
 
-  const selectedCust = users.customers.find(c => c.id === invCustomerId) || users.customers[0];
+  const invSelectedCust = users.customers.find(c => c.id === invCustomerId) || users.customers[0];
 
   // All orders for the selected customer party
   const customerOrders = React.useMemo(() => {
-    if (!selectedCust) return [];
+    if (!invSelectedCust) return [];
     return orders.filter(o => 
-      o.customerId === selectedCust.id || 
-      (o.customerCompany && o.customerCompany.toLowerCase() === selectedCust.company.toLowerCase()) ||
-      (o.customerEmail && o.customerEmail.toLowerCase() === selectedCust.email?.toLowerCase())
+      o.customerId === invSelectedCust.id || 
+      (o.customerCompany && o.customerCompany.toLowerCase() === invSelectedCust.company.toLowerCase()) ||
+      (o.customerEmail && o.customerEmail.toLowerCase() === invSelectedCust.email?.toLowerCase())
     );
-  }, [orders, selectedCust]);
+  }, [orders, invSelectedCust]);
 
   // Aggregate candidate items across all customer orders (multi-order aggregation)
   const candidateItems = React.useMemo(() => {
@@ -1662,7 +1669,7 @@ function AdminPortal({
       const isOrderReady = ['ready_dispatch', 'delivered', 'shipped'].includes(ord.status);
       const custOrdId = ord.customerOrderId || (window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(ord) : (ord.id ? ord.id.split('-').pop() : '01'));
       (ord.items || []).forEach((it, idx) => {
-        const uniqueKey = ${ord.id}__;
+        const uniqueKey = `${ord.id}_${idx}`;
         const isReady = isOrderReady || it.readyToDispatch === true || it.status === 'ready_dispatch';
         list.push({
           uniqueKey,
@@ -1671,10 +1678,10 @@ function AdminPortal({
           orderDate: ord.createdAt,
           orderStatus: ord.status,
           isReadyToDispatch: isReady,
-          itemId: it.id || ITEM-,
-          itemCode: it.itemCode || ITEM-,
+          itemId: it.id || `ITEM-${idx}`,
+          itemCode: it.itemCode || `ITEM-${idx}`,
           name: it.name || 'Custom Product',
-          brandName: it.brandName || selectedCust?.brands?.[0] || selectedCust?.company || '',
+          brandName: it.brandName || invSelectedCust?.brands?.[0] || invSelectedCust?.company || "",
           type: it.type || 'Tag',
           material: it.material || '',
           dori: it.dori || '',
@@ -1687,7 +1694,7 @@ function AdminPortal({
       });
     });
     return list;
-  }, [customerOrders, selectedCust]);
+  }, [customerOrders, invSelectedCust]);
 
   // Auto-select ready-to-dispatch items and initialize final made qty when customer changes
   React.useEffect(() => {
@@ -2703,10 +2710,10 @@ function AdminPortal({
           handwork: {
             status: initialStage === 'handwork' ? 'pending' : 'locked',
             doriType: item.dori || 'Reg. Cotton Dori',
-            doriRate: item.doriRate || 0.20,
+            doriRate: typeof item.doriRate === "number" ? item.doriRate : ((item.dori || "").toLowerCase().includes("custom") ? 0.40 : ((item.dori || "").toLowerCase() === "none" ? 0 : 0.20)),
             plasticType: item.plastic || 'Reg. Plastic Lock',
-            plasticRate: item.plasticRate || 0.10,
-            totalRatePerTag: (item.doriRate || 0.20) + (item.plasticRate || 0.10),
+            plasticRate: typeof item.plasticRate === "number" ? item.plasticRate : ((item.plastic || "").toLowerCase().includes("custom") ? 0.15 : ((item.plastic || "").toLowerCase() === "none" ? 0 : 0.10)),
+            totalRatePerTag: (typeof item.doriRate === "number" ? item.doriRate : ((item.dori || "").toLowerCase().includes("custom") ? 0.40 : ((item.dori || "").toLowerCase() === "none" ? 0 : 0.20))) + (typeof item.plasticRate === "number" ? item.plasticRate : ((item.plastic || "").toLowerCase().includes("custom") ? 0.15 : ((item.plastic || "").toLowerCase() === "none" ? 0 : 0.10))),
             assignedLabourerId: null,
             assignedLabourerName: null,
             startTime: null,
@@ -2730,6 +2737,96 @@ function AdminPortal({
       });
     });
     return createdJobs;
+  };
+
+  const handleOpenOrderReview = (order) => {
+    if (!order) return;
+    const firstItem = order.items?.[0] || {};
+    const doriStr = (firstItem.dori || '').trim().toLowerCase();
+    const isNoneDori = doriStr === 'none';
+    const isRegDori = doriStr === 'reg' || doriStr === 'regular' || doriStr.startsWith('reg.');
+    const isCustomDori = !isNoneDori && !isRegDori;
+    const plasticStr = (firstItem.plastic || '').trim().toLowerCase();
+    const isNonePlastic = plasticStr === 'none';
+    const isRegPlastic = plasticStr === 'reg' || plasticStr === 'regular' || plasticStr.startsWith('reg.');
+    const isCustomPlastic = !isNonePlastic && !isRegPlastic;
+    let initDori = 0.20;
+    if (isNoneDori) initDori = 0;
+    else if (isCustomDori) initDori = typeof firstItem.doriRate === 'number' && firstItem.doriRate > 0 && firstItem.doriRate !== 0.20 ? firstItem.doriRate : 0.40;
+    else initDori = typeof firstItem.doriRate === 'number' ? firstItem.doriRate : 0.20;
+    let initPlastic = 0.10;
+    if (isNonePlastic) initPlastic = 0;
+    else if (isCustomPlastic) initPlastic = typeof firstItem.plasticRate === 'number' && firstItem.plasticRate > 0 && firstItem.plasticRate !== 0.10 ? firstItem.plasticRate : 0.15;
+    else initPlastic = typeof firstItem.plasticRate === 'number' ? firstItem.plasticRate : 0.10;
+    setReviewPlasticRate(initPlastic);
+    setReviewBaseRate(Number(firstItem.unitPrice) || 0);
+    setReviewItemQty(Number(firstItem.quantity) || Number(order.totalQuantity) || 1000);
+    setReviewModalOrder(order);
+  };
+
+  const getUpdatedOrderFromReview = () => {
+    if (!reviewModalOrder) return null;
+    const dRate = Number(reviewDoriRate) || 0;
+    const pRate = Number(reviewPlasticRate) || 0;
+    const bRate = Number(reviewBaseRate) || 0;
+    const qty = Number(reviewItemQty) || 1000;
+
+    const updatedItems = (reviewModalOrder.items || []).map((it, idx) => {
+      if (idx === 0) {
+        return {
+          ...it,
+          doriRate: dRate,
+          plasticRate: pRate,
+          unitPrice: bRate,
+          total: qty * bRate
+        };
+      }
+      return it;
+    });
+
+    const newSubtotal = updatedItems.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
+    return {
+      ...reviewModalOrder,
+      items: updatedItems,
+      subtotal: newSubtotal,
+      total: newSubtotal
+    };
+  };
+
+  const handleSaveReviewRatesOnly = () => {
+    const updated = getUpdatedOrderFromReview();
+    if (!updated) return;
+    const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const withTimeline = {
+      ...updated,
+      timeline: [
+        ...(updated.timeline || []),
+        {
+          stage: updated.status || 'pending',
+          title: 'Handwork Rates Updated',
+          description: "Rates reviewed by " + currentMember.name + ": Dori @ \u20B9" + Number(reviewDoriRate).toFixed(2) + "/pc, Plastic @ \u20B9" + Number(reviewPlasticRate).toFixed(2) + "/pc.",
+          timestamp: formattedDate,
+          author: currentMember.name
+        }
+      ]
+    };
+    onUpdateOrder(withTimeline);
+    setReviewModalOrder(null);
+  };
+
+  const handleApproveFromReview = () => {
+    const updated = getUpdatedOrderFromReview();
+    if (!updated) return;
+    handleApproveOrder(updated);
+    setReviewModalOrder(null);
+  };
+
+  const handleStartProductionFromReview = () => {
+    const updated = getUpdatedOrderFromReview();
+    if (!updated) return;
+    onUpdateOrder(updated);
+    setReviewModalOrder(null);
+    handleOpenMoveToProduction(updated);
   };
 
   const handleApproveOrder = (order) => {
@@ -2757,7 +2854,7 @@ function AdminPortal({
     };
     onUpdateOrder(updated);
 
-    const newJobs = createProductionJobsForOrder(order);
+    const newJobs = createProductionJobsForOrder(updated);
     if (newJobs.length > 0) {
       onUpdateProduction([...newJobs, ...(production || [])]);
     }
@@ -3607,7 +3704,7 @@ function AdminPortal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-800">Dori (String)</span>
                         <span className="text-[11px] font-mono text-slate-500 font-semibold">
-                          {adminDoriOption === 'none' ? 'None' : adminDoriOption === 'reg' ? 'Regular (+\u20B90.20)' : 'Custom'}
+                          {adminDoriOption === 'none' ? 'None' : adminDoriOption === 'reg' ? 'Regular' : 'Custom'}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
@@ -3631,18 +3728,13 @@ function AdminPortal({
                             setAdminDoriOption('reg');
                             setAdminDoriCustom('');
                           }}
-                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
                             adminDoriOption === 'reg'
                               ? 'bg-slate-900 text-white shadow-xs'
                               : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
                           }`}
                         >
-                          <span>Reg.</span>
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            adminDoriOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            &#8377;0.20
-                          </span>
+                          Regular
                         </button>
                         <button
                           type="button"
@@ -3672,7 +3764,7 @@ function AdminPortal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
                         <span className="text-[11px] font-mono text-slate-500 font-semibold">
-                          {adminPlasticOption === 'none' ? 'None' : adminPlasticOption === 'reg' ? 'Regular (+\u20B90.10)' : 'Custom'}
+                          {adminPlasticOption === 'none' ? 'None' : adminPlasticOption === 'reg' ? 'Regular' : 'Custom'}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
@@ -3696,18 +3788,13 @@ function AdminPortal({
                             setAdminPlasticOption('reg');
                             setAdminPlasticCustom('');
                           }}
-                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
                             adminPlasticOption === 'reg'
                               ? 'bg-slate-900 text-white shadow-xs'
                               : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
                           }`}
                         >
-                          <span>Reg.</span>
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            adminPlasticOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            &#8377;0.10
-                          </span>
+                          Regular
                         </button>
                         <button
                           type="button"
@@ -4001,7 +4088,7 @@ function AdminPortal({
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
                       <span className="text-[11px] text-slate-600 text-right">
-                        Dori ({adminDoriOption === 'custom' ? 'Custom' : adminDoriOption === 'none' ? 'None' : '₹0.20'}) | Seal ({adminPlasticOption === 'custom' ? 'Custom' : adminPlasticOption === 'none' ? 'None' : '₹0.10'})
+                        Dori: {adminDoriOption === "custom" ? "Custom" : adminDoriOption === "none" ? "None" : "Regular"} | Plastic: {adminPlasticOption === "custom" ? "Custom" : adminPlasticOption === "none" ? "None" : "Regular"}
                       </span>
                     </div>
                   )}
@@ -4746,14 +4833,31 @@ function AdminPortal({
                             )}
                           </td>
 
-                          {/* 5. DORI AND PLASTIC */}
+                          {/* 5. DORI AND PLASTIC (INTERACTIVE REVIEW) */}
                           <td className="py-4 px-3 w-36 align-top text-xs space-y-1">
-                            <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
-                              Dori: <strong>{firstItem.dori || 'Reg.'}</strong>
+                            <div
+                              onClick={() => handleOpenOrderReview(o)}
+                              className="bg-slate-50 hover:bg-indigo-50/70 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-indigo-300 text-slate-700 cursor-pointer transition-all flex items-center justify-between group"
+                              title="Click to review order and customize handwork rates"
+                            >
+                              <span>Dori: <strong className="text-slate-900">{firstItem.dori || 'Reg.'}</strong></span>
+                              {typeof firstItem.doriRate === 'number' ? <span className="text-[10px] text-indigo-700 font-mono font-bold">₹{Number(firstItem.doriRate).toFixed(2)}</span> : null}
                             </div>
-                            <div className="bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700">
-                              Plastic: <strong>{firstItem.plastic || 'Reg.'}</strong>
+                            <div
+                              onClick={() => handleOpenOrderReview(o)}
+                              className="bg-slate-50 hover:bg-indigo-50/70 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-indigo-300 text-slate-700 cursor-pointer transition-all flex items-center justify-between group mt-1"
+                              title="Click to review order and customize handwork rates"
+                            >
+                              <span>Plastic: <strong className="text-slate-900">{firstItem.plastic || 'Reg.'}</strong></span>
+                              {typeof firstItem.plasticRate === 'number' ? <span className="text-[10px] text-indigo-700 font-mono font-bold">₹{Number(firstItem.plasticRate).toFixed(2)}</span> : null}
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenOrderReview(o)}
+                              className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer block text-right w-full pt-0.5"
+                            >
+                              Review Rates ↗
+                            </button>
                           </td>
 
                           {/* 6. QTY (SEPARATE COLUMN) */}
@@ -4810,6 +4914,18 @@ function AdminPortal({
                               {/* Unapproved / Pending Orders: Show Start Production, Approve & Reject buttons */}
                               {(!o.status || o.status === 'pending' || o.status === 'placed') ? (
                                 <div className="flex flex-col items-center justify-center gap-1.5 w-full max-w-[160px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenOrderReview(o)}
+                                    className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                                    title="Review order specifications and verify/override handwork piece rates"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <span>Review Order</span>
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => handleOpenMoveToProduction(o)}
@@ -5066,6 +5182,7 @@ function AdminPortal({
                                   >
                                     Start Production
                                   </button>
+                                  <button onClick={() => handleOpenOrderReview(o)} className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded font-medium shadow-xs" title="Review order & adjust handwork rates">Review</button>
                                   <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded font-medium">Approve</button>
                                 </>
                               )}
@@ -5242,10 +5359,10 @@ function AdminPortal({
                           key={idx}
                           type="button"
                           onClick={() => setInvCustomerId(customerId)}
-                          className={	ext-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center space-x-1 }
+                          className="text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center space-x-1 bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
                         >
                           <span>{brand}</span>
-                          <span className={	ext-[10px] ml-1 opacity-70 }>
+                          <span className="text-[10px] ml-1 opacity-70">
                             ({company})
                           </span>
                         </button>
@@ -5259,17 +5376,17 @@ function AdminPortal({
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-900 text-sm">{selectedCust.company}</span>
+                        <span className="font-bold text-slate-900 text-sm">{invSelectedCust.company}</span>
                         <span className="text-[10px] bg-slate-200 text-slate-800 font-mono font-bold px-1.5 py-0.2 rounded">
                           {selectedCust.id}
                         </span>
                       </div>
                       <div className="text-xs text-slate-600">
-                        Contact: <strong>{selectedCust.name}</strong> â€¢ {selectedCust.email} â€¢ {selectedCust.phone || '+91 98201 11223'}
+                        Contact: <strong>{invSelectedCust.name}</strong> â€¢ {invSelectedCust.email} â€¢ {invSelectedCust.phone || '+91 98201 11223'}
                       </div>
                       <div className="flex flex-wrap gap-1 pt-1">
                         <span className="text-[10px] text-slate-500 font-semibold mr-1">Associated Brands:</span>
-                        {(selectedCust.brands || []).map((b, i) => (
+                        {(invSelectedCust.brands || []).map((b, i) => (
                           <span key={i} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.2 rounded text-slate-700 font-medium">
                             {b}
                           </span>
@@ -5311,7 +5428,7 @@ function AdminPortal({
                       <button
                         type="button"
                         onClick={() => setInvOnlyReady(prev => !prev)}
-                        className={	ext-xs px-2.5 py-1 rounded-lg font-semibold border transition-all cursor-pointer }
+                        className="text-xs px-2.5 py-1 rounded-lg font-semibold border transition-all cursor-pointer bg-white border-slate-200 text-slate-700"
                       >
                         {invOnlyReady ? 'âœ“ Ready Only (' + readyCount + ')' : 'All Items (' + candidateItems.length + ')'}
                       </button>
@@ -5337,7 +5454,7 @@ function AdminPortal({
                   {/* Items List Table */}
                   {candidateItems.length === 0 ? (
                     <div className="py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 text-xs space-y-2">
-                      <div>No manufacturing orders found for <strong>{selectedCust?.company}</strong>.</div>
+                      <div>No manufacturing orders found for <strong>{invSelectedCust?.company}</strong>.</div>
                       <p className="text-slate-400">You can add custom line items below or select another customer party.</p>
                     </div>
                   ) : displayedItems.length === 0 ? (
@@ -5364,7 +5481,7 @@ function AdminPortal({
                         return (
                           <div
                             key={item.uniqueKey}
-                            className={p-3.5 rounded-xl border transition-all }
+                            className={`p-3.5 rounded-xl border transition-all ${isChecked ? "bg-indigo-50/40 border-indigo-300 ring-1 ring-indigo-200" : "bg-white border-slate-200 hover:border-slate-300"}`}
                           >
                             <div className="flex items-start gap-3">
                               {/* Checkbox */}
@@ -5634,8 +5751,8 @@ function AdminPortal({
                   {/* Party Summary */}
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1">
                     <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Billed Party</div>
-                    <div className="font-bold text-slate-900 text-sm">{selectedCust?.company}</div>
-                    <div className="text-slate-600">{selectedCust?.name}</div>
+                    <div className="font-bold text-slate-900 text-sm">{invSelectedCust?.company}</div>
+                    <div className="text-slate-600">{invSelectedCust?.name}</div>
                   </div>
 
                   {/* Bundled Orders */}
@@ -8116,6 +8233,276 @@ function AdminPortal({
                 Confirm Rejection
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ORDER REVIEW & HANDWORK RATES MODAL */}
+      {reviewModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-bold text-slate-900 text-base">Order Review &amp; Rates Verification</h3>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-bold">
+                      {reviewModalOrder.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Customer: <strong className="text-slate-800">{reviewModalOrder.customerCompany || 'Direct Customer'}</strong> &bull; Placed: {formatDate(reviewModalOrder.createdAt)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewModalOrder(null)}
+                className="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer p-1"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Order Item Specifications Card */}
+            {(() => {
+              const item = reviewModalOrder.items?.[0] || {};
+              const doriStr = (item.dori || '').trim().toLowerCase();
+              const isNoneDori = doriStr === 'none';
+              const isRegDori = doriStr === 'reg' || doriStr === 'regular' || doriStr.startsWith('reg.');
+              const isCustomDori = !isNoneDori && !isRegDori;
+              const plasticStr = (item.plastic || '').trim().toLowerCase();
+              const isNonePlastic = plasticStr === 'none';
+              const isRegPlastic = plasticStr === 'reg' || plasticStr === 'regular' || plasticStr.startsWith('reg.');
+              const isCustomPlastic = !isNonePlastic && !isRegPlastic;
+              const dRate = Number(reviewDoriRate) || 0;
+              const pRate = Number(reviewPlasticRate) || 0;
+              const bRate = Number(reviewBaseRate) || 0;
+              const qty = Number(reviewItemQty) || Number(item.quantity) || 1000;
+              const effectiveUnitRate = bRate + dRate + pRate;
+              const totalEstAmt = effectiveUnitRate * qty;
+
+              return (
+                <div className="space-y-4">
+                  {/* Specs Summary */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-white text-slate-900 border border-slate-200">
+                            {item.itemCode || item.name || 'ITEM'}
+                          </span>
+                          <span className="font-bold text-slate-900 text-sm">{item.brandName || reviewModalOrder.customerCompany}</span>
+                        </div>
+                        <div className="text-xs text-slate-600 flex flex-wrap gap-2 pt-1">
+                          <span>Category: <strong>{item.type || 'Tag'}</strong></span>
+                          <span>&bull;</span>
+                          <span>Board: <strong>{item.material || 'Standard Paper'}</strong></span>
+                          <span>&bull;</span>
+                          <span>Composition: <strong>{item.isMultiCard ? `${item.cards?.length || 2}-Piece Tag` : '1 PC (Single Tag)'}</strong></span>
+                        </div>
+                      </div>
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt="Artwork"
+                          className="w-14 h-14 object-contain rounded-lg border border-slate-200 bg-white shadow-2xs shrink-0"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Handwork Fasteners & Rates (Core Feature) */}
+                  <div className="border border-indigo-100 bg-indigo-50/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center space-x-1.5">
+                          <span>Handwork Fasteners &amp; Piece Rates</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Verify customer fastener choices. Default rates are ₹0.40/pc for Custom Dori and ₹0.15/pc for Custom Plastic. You may override them below.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                      {/* DORI CARD */}
+                      <div className={`p-3.5 rounded-xl border transition-all ${
+                        isCustomDori ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-200' : 'bg-white border-slate-200'
+                      }`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-bold text-slate-800">Dori (String)</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            isCustomDori
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : isNoneDori
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}>
+                            {item.dori || 'Regular'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mb-2">
+                          {isCustomDori ? (
+                            <span className="font-medium text-amber-900 font-mono">Specification: {item.dori}</span>
+                          ) : isNoneDori ? (
+                            <span>No string requested</span>
+                          ) : (
+                            <span>Standard regular cotton dori</span>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                            Dori Rate (₹ per piece)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2 text-xs text-slate-400 font-bold">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={reviewDoriRate}
+                              onChange={(e) => setReviewDoriRate(e.target.value)}
+                              disabled={isNoneDori}
+                              className={`w-full pl-6 pr-3 py-1.5 text-xs font-mono font-bold rounded-lg border ${
+                                isNoneDori ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-300 focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400'
+                              }`}
+                            />
+                          </div>
+                          {isCustomDori && (
+                            <span className="text-[10px] text-amber-700 font-medium mt-1 block">
+                              {Number(reviewDoriRate) === 0.40 ? '• Standard custom rate (₹0.40)' : '• Admin custom override'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* PLASTIC LOCK CARD */}
+                      <div className={`p-3.5 rounded-xl border transition-all ${
+                        isCustomPlastic ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-200' : 'bg-white border-slate-200'
+                      }`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            isCustomPlastic
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : isNonePlastic
+                                ? 'bg-slate-100 text-slate-600'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}>
+                            {item.plastic || 'Regular'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 mb-2">
+                          {isCustomPlastic ? (
+                            <span className="font-medium text-amber-900 font-mono">Specification: {item.plastic}</span>
+                          ) : isNonePlastic ? (
+                            <span>No plastic seal requested</span>
+                          ) : (
+                            <span>Standard molded barcode seal lock</span>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                            Plastic Rate (₹ per piece)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-2 text-xs text-slate-400 font-bold">₹</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={reviewPlasticRate}
+                              onChange={(e) => setReviewPlasticRate(e.target.value)}
+                              disabled={isNonePlastic}
+                              className={`w-full pl-6 pr-3 py-1.5 text-xs font-mono font-bold rounded-lg border ${
+                                isNonePlastic ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-900 border-slate-300 focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400'
+                              }`}
+                            />
+                          </div>
+                          {isCustomPlastic && (
+                            <span className="text-[10px] text-amber-700 font-medium mt-1 block">
+                              {Number(reviewPlasticRate) === 0.15 ? '• Standard custom rate (₹0.15)' : '• Admin custom override'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Commercials Summary Breakdown */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <div className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5">
+                      Commercials &amp; Total Recalculation
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-500 block">Base Unit Rate</span>
+                        <span className="font-mono font-bold text-slate-800 text-xs">₹{bRate.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-500 block">Handwork Fasteners</span>
+                        <span className="font-mono font-bold text-indigo-700 text-xs">+ ₹{(dRate + pRate).toFixed(2)}</span>
+                      </div>
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-500 block">Order Volume</span>
+                        <span className="font-mono font-bold text-slate-800 text-xs">{qty.toLocaleString()} pcs</span>
+                      </div>
+                      <div className="bg-indigo-50 border border-indigo-200 p-2.5 rounded-lg">
+                        <span className="text-[10px] text-indigo-700 block font-semibold">Total Order Value</span>
+                        <span className="font-mono font-bold text-indigo-900 text-sm">
+                          {formatCurrency(totalEstAmt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setReviewModalOrder(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Close
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveReviewRatesOnly}
+                        className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-colors cursor-pointer shadow-2xs"
+                        title="Save rates to order without approving"
+                      >
+                        Save Rates
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApproveFromReview}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
+                        title="Approve order and update handwork piece rates"
+                      >
+                        <span>Approve Order</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartProductionFromReview}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
+                        title="Save rates and launch sheet allocation & production job ticket"
+                      >
+                        <span>Start Production &rarr;</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

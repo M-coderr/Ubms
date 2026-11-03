@@ -4,6 +4,32 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-03] — Version 3.7
+
+### 🏷️ Fastener Rate Decoupling on Order Forms & Comprehensive Admin Order Review Workflow
+- **Hidden Fastener Rate Badges on Order Placement**:
+  - Removed all rate badges and currency labels (`(+₹0.20)`, `(+₹0.10)`, `Reg. ₹0.20`, `Reg. ₹0.10`) from the `HANDWORK FASTENERS & ATTACHMENTS` section on both Customer and Admin Place Order consoles.
+  - Trim toggle buttons redesigned cleanly as `[ None ]`, `[ Regular ]`, and `[ Custom ]` with generous touch padding.
+  - Trim selection subtitles simplified to display status only (`None`, `Regular`, `Custom`) without distracting rate numbers.
+  - Production Job Ticket summary card updated to display `Dori: Regular | Plastic: Regular` (or `None` / `Custom`) without numeric rate additions.
+  - Material Board removed from the Production Job Ticket card for a cleaner order preview.
+- **Dynamic Fastener Rate Defaults**:
+  - Custom Dori default rate: **₹0.40/pc** (Regular: ₹0.20/pc, None: ₹0.00).
+  - Custom Plastic default rate: **₹0.15/pc** (Regular: ₹0.10/pc, None: ₹0.00).
+- **Admin Order Review Modal**:
+  - Embedded into the Admin Order Register across both Table View and Kanban View.
+  - Added dedicated `[ 👁 Review Order ]` action button for pending orders in the Actions column and interactive `Review Rates ↗` shortcuts in the `DORI & PLASTIC` column.
+  - Full-fidelity review modal displaying Customer Order ID, customer party, item code, brand name, category, board, piece composition, and artwork thumbnail.
+  - Editable number inputs for **Dori Rate (₹ per piece)** and **Plastic Rate (₹ per piece)** allowing Admin to easily adjust or override rates prior to approval.
+  - Dynamic recalculation card displaying Base Unit Rate, Handwork Fasteners (+ ₹/pc), Order Volume, and Total Order Value live as rates are typed.
+  - One-click actions:
+    - `[ Close ]`: dismiss review modal without changes.
+    - `[ Save Rates ]`: updates fastener rates and logs admin review action in the order timeline.
+    - `[ Approve Order ]`: saves reviewed rates, marks order approved, and readies it for production.
+    - `[ Start Production → ]`: saves reviewed rates, generates split job cards with exact custom rates, and navigates to Production Flow.
+
+---
+
 ## [2026-11-03] — Version 3.6
 
 ### 🧾 Create Invoice Redesign: Customer / Brand First Selection, Multi-Order Ready-to-Dispatch Bundling, Default 0% Tax & Strict Client Order ID Masking

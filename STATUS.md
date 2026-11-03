@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.6  
+**Version**: 3.7  
 **Last Updated**: November 3, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -28,6 +28,7 @@
 | | Real Customer Accounts | ✅ Complete | MG Creation (`MGC`), Aariya Creation (`ARC`), TagX (`TGX`), D Tag (`DTAG`) |
 | | Switcher Header | ✅ Complete | One-click role/customer profile switching without re-login |
 | **Customer Portal** | Production Order Studio | ✅ Complete | Bespoke garment accessory order workshop: Specification Sheet + Visual Proof Canvas & Job Ticket |
+| | Fastener Rates Decoupled | ✅ Complete | Hidden fastener rates on place order; clean None / Regular / Custom options |
 | | Visual Artwork Framing & Proof | ✅ Complete | Hangtag blueprint silhouette, 3mm hole-punch guide, prepress alignment canvas |
 | | In-Browser Artwork Cropper | ✅ Complete | Interactive 8-handle image framing with aspect ratio presets (`2:3`, `1:1`, `1:2`, `3:4`), zoom, rotation |
 | | Artwork Lightbox | ✅ Complete | High-resolution popover preview for all uploaded artworks |
@@ -38,6 +39,7 @@
 | | Account Manager Chat | ✅ Complete | Real-time direct chat interface with assigned account manager |
 | **Admin Portal** | Executive Dashboard | ✅ Complete | Revenue, active jobs, pipeline summary, overdue alerts |
 | | All Orders & Kanban | ✅ Complete | Per-column search row matching customer side, view mode toggle (Table/Kanban) |
+| | Order Review & Fastener Rate Overrides | ✅ Complete | Dedicated Order Review Modal with live rate overrides (0.40 custom dori, 0.15 custom plastic default), unit price & commercials recalculation |
 | | Multi-User Concurrency Engine | ✅ Complete | Thread-monitor mutex locked `/api/create-order` endpoint guaranteeing unique dual IDs |
 | | Party & Brand Search Studio | ✅ Complete | Quick-clickable party chips and floating autocomplete dropdown matching brand UX |
 | | Production Flow Pipeline | ✅ Complete | Dynamic 5-step cycle, multi-card split job tickets, 9 mandatory fields, exact sheet issuance |
@@ -68,7 +70,24 @@
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
 
-### Version 3.6 — November 3, 2026
+### Version 3.7 — November 3, 2026
+- **Fastener Rate Decoupling on Order Forms & Comprehensive Admin Order Review Modal**:
+  - **Clean Fastener Selection Without Rate Clutter**:
+    - Removed all rate badges, price labels, and numeric tags (`(+₹0.20)`, `(+₹0.10)`, `Reg. ₹0.20`, `Reg. ₹0.10`) from the `HANDWORK FASTENERS & ATTACHMENTS` section on Place Order (both Customer and Admin portals).
+    - Buttons now display cleanly as `[ None ]`, `[ Regular ]`, and `[ Custom ]` with generous spacing.
+    - Top right label indicates selection status cleanly: `None`, `Regular`, or `Custom`.
+    - Production Job Ticket summary card renders trims cleanly as `Dori: Regular | Plastic: Regular` (or `None` / `Custom`) without distracting rate numbers.
+    - Material Board entry removed from Production Job Ticket card for a cleaner preview.
+  - **Dynamic Fastener Rate Defaults**:
+    - Custom Dori default rate: **₹0.40/pc** (Regular: ₹0.20/pc, None: ₹0.00).
+    - Custom Plastic default rate: **₹0.15/pc** (Regular: ₹0.10/pc, None: ₹0.00).
+  - **Admin Order Review Modal**:
+    - Accessible directly from the Admin Order Register via a dedicated blue `[ 👁 Review Order ]` action button and clickable `Review Rates ↗` badges in the `DORI & PLASTIC` column.
+    - Presents complete order details: Item Code, Brand Name, Category, Paper Board, Multi-Piece Composition, and Artwork Thumbnail.
+    - Provides interactive, live-editable number inputs for **Dori Rate (₹ per piece)** and **Plastic Rate (₹ per piece)**, defaulting custom rates to ₹0.40 and ₹0.15 respectively.
+    - Recalculates effective unit price (`Base Unit Rate + Dori Rate + Plastic Rate`) and Total Order Value live as rates are typed.
+    - Four one-click actions: `[ Close ]`, `[ Save Rates ]`, `[ Approve Order ]`, and `[ Start Production → ]`.
+    - Saved rates directly update the order record and flow through into manufacturing job cards and Karigar piece-rate allocations.
 - **Create Invoice Redesign with Multi-Order Bundling & Ready-to-Dispatch Item Selector**:
   - **Simplified Title**: Renamed `Commercial Invoice Studio` to simple and clean `Create Invoice`.
   - **Customer / Brand First Selection**:

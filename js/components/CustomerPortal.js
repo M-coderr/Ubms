@@ -1,4 +1,4 @@
-// Customer Portal: Tags & Labels Manufacturing Order System
+﻿// Customer Portal: Tags & Labels Manufacturing Order System
 window.uBMS = window.uBMS || {};
 // uBMS Piece Selection Naming Helper
 window.uBMS = window.uBMS || {};
@@ -890,14 +890,14 @@ function CustomerPortal({
         ? `Custom: ${doriCustom.trim()}`
         : doriOption === 'none'
           ? 'None'
-          : 'Reg. (\u20B90.20/pc)';
+          : 'Regular';
     const plasticValue = isTagKit
       ? 'None'
       : plasticOption === 'custom'
         ? `Custom: ${plasticCustom.trim()}`
         : plasticOption === 'none'
           ? 'None'
-          : 'Reg. (\u20B90.10/pc)';
+          : 'Regular';
     const quantityNum = Number(qty) || 0;
     const rateNum = Number(rate) || 0;
     const itemTotal = quantityNum * rateNum;
@@ -913,9 +913,9 @@ function CustomerPortal({
       catalogCode: primaryCatalogCode,
       material: finalMaterial,
       dori: doriValue,
-      doriRate: selectedType === 'Tag Kit' || doriOption === 'none' ? 0 : 0.20,
+      doriRate: selectedType === 'Tag Kit' || doriOption === 'none' ? 0 : (doriOption === 'custom' ? 0.40 : 0.20),
       plastic: plasticValue,
-      plasticRate: selectedType === 'Tag Kit' || plasticOption === 'none' ? 0 : 0.10,
+      plasticRate: selectedType === 'Tag Kit' || plasticOption === 'none' ? 0 : (plasticOption === 'custom' ? 0.15 : 0.10),
       image: orderImage || 'https://placehold.co/120x120/1e293b/ffffff?text=' + encodeURIComponent(selectedType),
       quantity: quantityNum,
       unitPrice: rateNum,
@@ -1072,9 +1072,9 @@ function CustomerPortal({
           catalogCode: i.catalogCode || null,
           material: i.material,
           dori: i.dori,
-          doriRate: i.doriRate || 0.20,
+          doriRate: typeof i.doriRate === "number" ? i.doriRate : (i.dori === "None" ? 0 : ((i.dori || "").toLowerCase().includes("custom") ? 0.40 : 0.20)),
           plastic: i.plastic,
-          plasticRate: i.plasticRate || 0.10,
+          plasticRate: typeof i.plasticRate === "number" ? i.plasticRate : (i.plastic === "None" ? 0 : ((i.plastic || "").toLowerCase().includes("custom") ? 0.15 : 0.10)),
           image: i.image,
           unitPrice: i.unitPrice,
           quantity: i.quantity,
@@ -1959,7 +1959,7 @@ function CustomerPortal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-800">Dori (String)</span>
                         <span className="text-[11px] font-mono text-slate-500 font-semibold">
-                          {doriOption === 'none' ? 'None' : doriOption === 'reg' ? 'Regular (+\u20B90.20)' : 'Custom'}
+                          {doriOption === 'none' ? 'None' : doriOption === 'reg' ? 'Regular' : 'Custom'}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
@@ -1983,18 +1983,13 @@ function CustomerPortal({
                             setDoriOption('reg');
                             setDoriCustom('');
                           }}
-                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
                             doriOption === 'reg'
                               ? 'bg-slate-900 text-white shadow-xs'
                               : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
                           }`}
                         >
-                          <span>Reg.</span>
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            doriOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            &#8377;0.20
-                          </span>
+                          Regular
                         </button>
                         <button
                           type="button"
@@ -2023,7 +2018,7 @@ function CustomerPortal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
                         <span className="text-[11px] font-mono text-slate-500 font-semibold">
-                          {plasticOption === 'none' ? 'None' : plasticOption === 'reg' ? 'Regular (+\u20B90.10)' : 'Custom'}
+                          {plasticOption === 'none' ? 'None' : plasticOption === 'reg' ? 'Regular' : 'Custom'}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 bg-slate-200/60 p-1.5 rounded-xl">
@@ -2047,18 +2042,13 @@ function CustomerPortal({
                             setPlasticOption('reg');
                             setPlasticCustom('');
                           }}
-                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+                          className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center cursor-pointer ${
                             plasticOption === 'reg'
                               ? 'bg-slate-900 text-white shadow-xs'
                               : 'text-slate-700 hover:text-slate-900 bg-white/70 hover:bg-white'
                           }`}
                         >
-                          <span>Reg.</span>
-                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            plasticOption === 'reg' ? 'bg-slate-800 text-emerald-300' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            &#8377;0.10
-                          </span>
+                          Regular
                         </button>
                         <button
                           type="button"
@@ -2338,7 +2328,7 @@ function CustomerPortal({
                     <div className="flex justify-between items-start gap-2">
                       <span className="text-slate-500 text-[11px]">Handwork Attachments:</span>
                       <span className="text-[11px] text-slate-600 text-right">
-                        Dori ({doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : '\u20B90.20'}) | Plastic ({plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : '\u20B90.10'})
+                        Dori: {doriOption === 'custom' ? 'Custom' : doriOption === 'none' ? 'None' : 'Regular'} | Plastic: {plasticOption === 'custom' ? 'Custom' : plasticOption === 'none' ? 'None' : 'Regular'}
                       </span>
                     </div>
                   )}
