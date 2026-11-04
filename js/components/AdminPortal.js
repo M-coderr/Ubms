@@ -667,6 +667,12 @@ function AdminPortal({
     const list = Array.isArray(orderOrOrders) ? orderOrOrders : [orderOrOrders];
     if (list.length === 0) return alert('No orders selected for production.');
 
+    const unapproved = list.filter(ord => ord.status !== 'approved');
+    if (unapproved.length > 0) {
+      alert(`Order must be approved before production start. Please approve order (${unapproved.map(o => o.customerOrderId || o.id).join(', ')}) first.`);
+      return;
+    }
+
     // Initialize allocations with the 9 mandatory fields & sheet calculations
     const todayStr = new Date().toISOString().split('T')[0];
     const initialAlloc = {};
@@ -2833,31 +2839,19 @@ function AdminPortal({
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const updated = {
       ...order,
-      status: 'in_production',
+      status: 'approved',
       timeline: [
         ...(order.timeline || []),
         {
           stage: 'approved',
           title: 'Order Approved by Admin',
-          description: `Approved by ${currentMember.name}. Auto-moved to production.`,
-          timestamp: formattedDate,
-          author: currentMember.name
-        },
-        {
-          stage: 'in_production',
-          title: 'Production Job Form Created',
-          description: 'Production job cards created. Scheduled for printing.',
+          description: `Approved by ${currentMember.name}. Ready for production scheduling.`,
           timestamp: formattedDate,
           author: currentMember.name
         }
       ]
     };
     onUpdateOrder(updated);
-
-    const newJobs = createProductionJobsForOrder(updated);
-    if (newJobs.length > 0) {
-      onUpdateProduction([...newJobs, ...(production || [])]);
-    }
   };
 
   const handleOpenRejectModal = (order) => {
@@ -4433,6 +4427,11 @@ function AdminPortal({
                   type="button"
                   onClick={() => {
                     const selectedOrdersList = orders.filter(o => selectedOrderIds.includes(o.id));
+                    const unapproved = selectedOrdersList.filter(o => o.status !== 'approved');
+                    if (unapproved.length > 0) {
+                      alert(`Cannot start production: ${unapproved.length} selected order(s) must be approved first. Please approve them before starting production.`);
+                      return;
+                    }
                     handleOpenMoveToProduction(selectedOrdersList);
                   }}
                   className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all flex items-center space-x-1"
@@ -4911,7 +4910,7 @@ function AdminPortal({
                                 </span>
                               </div>
 
-                              {/* Unapproved / Pending Orders: Show Start Production, Approve & Reject buttons */}
+                              {/* Unapproved / Pending Orders: Show Review Order, Approve & Reject buttons (Production requires approval) */}
                               {(!o.status || o.status === 'pending' || o.status === 'placed') ? (
                                 <div className="flex flex-col items-center justify-center gap-1.5 w-full max-w-[160px]">
                                   <button
@@ -4926,31 +4925,22 @@ function AdminPortal({
                                     </svg>
                                     <span>Review Order</span>
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenMoveToProduction(o)}
-                                    className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs hover:shadow transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-                                    title="Create Job Card & Start Production directly"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span>Start Production</span>
-                                  </button>
                                   <div className="flex items-center justify-center gap-1.5 w-full">
                                     <button
                                       type="button"
                                       onClick={() => handleApproveOrder(o)}
-                                      className="flex-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
-                                      title="Approve order & auto-move to production"
+                                      className="flex-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                                      title="Approve order (unlocks Start Production)"
                                     >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                      </svg>
                                       <span>Approve</span>
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleOpenRejectModal(o)}
-                                      className="flex-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+                                      className="flex-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
                                       title="Reject this order with structured reason"
                                     >
                                       <span>Reject</span>
@@ -5174,14 +5164,6 @@ function AdminPortal({
                               )}
                               {o.status !== 'approved' && o.status !== 'in_production' && (
                                 <>
-                                  <button 
-                                    type="button"
-                                    onClick={() => handleOpenMoveToProduction(o)} 
-                                    className="text-[10px] bg-slate-900 hover:bg-slate-800 text-white px-2 py-0.5 rounded font-medium shadow-xs"
-                                    title="Start Production directly"
-                                  >
-                                    Start Production
-                                  </button>
                                   <button onClick={() => handleOpenOrderReview(o)} className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded font-medium shadow-xs" title="Review order & adjust handwork rates">Review</button>
                                   <button onClick={() => handleApproveOrder(o)} className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded font-medium">Approve</button>
                                 </>
@@ -7940,12 +7922,13 @@ function AdminPortal({
       )}
 
       {/* MODULE 8: DEDICATED ATTENDANCE, SHIFTS & WORKFORCE PAYROLL SUITE */}
-      {(['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'mobile_punch_terminal', 'payroll'].includes(activeTab)) && (
+      {(['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'staff_loans', 'attendance_reports', 'mobile_punch_terminal', 'payroll'].includes(activeTab)) && (
         <window.uBMS.AttendancePayrollSection
           activeTab={activeTab === 'payroll' ? 'attendance_dashboard' : activeTab}
           setActiveTab={setActiveTab}
           payroll={payroll}
           onUpdatePayroll={onUpdatePayroll}
+          onUpdateUsers={onUpdateUsers}
           users={users}
           orders={orders}
           formatCurrency={formatCurrency}
@@ -8482,22 +8465,28 @@ function AdminPortal({
                       >
                         Save Rates
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleApproveFromReview}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
-                        title="Approve order and update handwork piece rates"
-                      >
-                        <span>Approve Order</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleStartProductionFromReview}
-                        className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
-                        title="Save rates and launch sheet allocation & production job ticket"
-                      >
-                        <span>Start Production &rarr;</span>
-                      </button>
+                      {reviewModalOrder.status !== 'approved' ? (
+                        <button
+                          type="button"
+                          onClick={handleApproveFromReview}
+                          className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
+                          title="Approve order with verified handwork piece rates"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>Approve Order</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleStartProductionFromReview}
+                          className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs flex items-center space-x-1"
+                          title="Save rates and launch sheet allocation & production job ticket"
+                        >
+                          <span>Start Production &rarr;</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

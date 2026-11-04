@@ -599,6 +599,8 @@ const ADMIN_NAV_GROUPS = [
       { key: 'daily_attendance', label: 'Daily Punch Register' },
       { key: 'shift_management', label: 'Shift Roster & Rules' },
       { key: 'payroll_register', label: 'Payroll & Compensation' },
+      { key: 'staff_loans', label: 'Staff Loans & EMI' },
+      { key: 'attendance_reports', label: 'Monthly Reports' },
       { key: 'mobile_punch_terminal', label: 'Android App & Terminal' }
     ]
   },
@@ -627,7 +629,7 @@ function getCustomerGroupForTab(tab) {
 function getAdminGroupForTab(tab) {
   if (tab === 'profile') return 'dashboard';
   if (['create_invoice', 'invoice_list', 'invoice_register', 'payment_in', 'general_ledger', 'outstanding_ledger', 'all_invoices', 'payments', 'ledgers'].includes(tab)) return 'billing';
-  if (['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'mobile_punch_terminal', 'payroll'].includes(tab)) return 'attendance_payroll';
+  if (['attendance_dashboard', 'daily_attendance', 'shift_management', 'payroll_register', 'staff_loans', 'attendance_reports', 'mobile_punch_terminal', 'payroll'].includes(tab)) return 'attendance_payroll';
   if (['production', 'inventory', 'label_config'].includes(tab)) return 'operations';
   const grp = ADMIN_NAV_GROUPS.find(g => g.tabs.some(t => t.key === tab));
   return grp ? grp.id : 'orders';

@@ -4,6 +4,30 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-04] — Version 3.8
+
+### 🔒 Mandatory Order Approval Prerequisite Before Production Start
+- **Removed "Start Production" Button from Unapproved Orders**:
+  - Implemented strict business gate: orders must be approved before production can start.
+  - In Admin Order Register (Table View):
+    - Removed `[ Start Production ]` button from all pending / unapproved orders.
+    - Pending orders exclusively render `[ 👁 Review Order ]`, `[ ✓ Approve ]`, and `[ Reject ]`.
+  - In Admin Order Register (Kanban View):
+    - Removed `[ Start Production ]` button from cards in the `Pending` column. Cards in `Pending` render `[ Review ]`, `[ Approve ]`, and `[ Reject ]`.
+    - Only cards transitioned to the `Approved` column render the `[ Start Production ]` button.
+  - In Order Review Modal:
+    - For unapproved orders, the modal action row now presents `[ Close ]`, `[ Save Rates ]`, and `[ ✓ Approve Order ]`.
+    - The `[ Start Production → ]` button is completely hidden until the order is approved.
+- **Decoupled Order Approval Workflow**:
+  - `handleApproveOrder` now cleanly sets order status to `'approved'` with an emerald status badge and timeline event ("Order Approved by Admin. Ready for production scheduling.").
+  - Once approved, the `[ ▶ Start Production ]` button dynamically unlocks and renders on that order in Table and Kanban views.
+  - Clicking `Start Production` on an approved order launches the Sheet Allocation & Job Card Creation modal (`prodModalOrders`), which moves the order to `'in_production'` only after operator assignments and sheet calculations are confirmed.
+- **Production Guardrails**:
+  - Added programmatic safety check in `handleOpenMoveToProduction` to reject any unapproved orders.
+  - Added approval validation in `Bulk Start Production` to require all selected orders to be approved before opening the production modal.
+
+---
+
 ## [2026-11-03] — Version 3.7
 
 ### 🏷️ Fastener Rate Decoupling on Order Forms & Comprehensive Admin Order Review Workflow

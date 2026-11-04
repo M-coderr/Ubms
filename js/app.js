@@ -1,4 +1,4 @@
-﻿// Main uBMS App Component
+// Main uBMS App Component
 window.uBMS = window.uBMS || {};
 
 function App() {
@@ -330,6 +330,7 @@ function App() {
             onSavePayment={handleSavePayment}
             onUpdateProduction={handleUpdateProduction}
             onUpdatePayroll={handleUpdatePayroll}
+            onUpdateUsers={handleUpdateUsers}
             onOpenInvoice={(o) => setInvoiceOrder(o)}
           />
         )}

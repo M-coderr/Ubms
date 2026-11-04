@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.7  
-**Last Updated**: November 3, 2026  
+**Version**: 3.8  
+**Last Updated**: November 4, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -39,6 +39,7 @@
 | | Account Manager Chat | ✅ Complete | Real-time direct chat interface with assigned account manager |
 | **Admin Portal** | Executive Dashboard | ✅ Complete | Revenue, active jobs, pipeline summary, overdue alerts |
 | | All Orders & Kanban | ✅ Complete | Per-column search row matching customer side, view mode toggle (Table/Kanban) |
+| | Mandatory Order Approval Gate | ✅ Complete | Orders must be approved before production start; 'Start Production' button strictly removed until order is approved |
 | | Order Review & Fastener Rate Overrides | ✅ Complete | Dedicated Order Review Modal with live rate overrides (0.40 custom dori, 0.15 custom plastic default), unit price & commercials recalculation |
 | | Multi-User Concurrency Engine | ✅ Complete | Thread-monitor mutex locked `/api/create-order` endpoint guaranteeing unique dual IDs |
 | | Party & Brand Search Studio | ✅ Complete | Quick-clickable party chips and floating autocomplete dropdown matching brand UX |
@@ -69,6 +70,21 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.8 — November 4, 2026
+- **Order Approval Prerequisite Before Production Start**:
+  - **Removed Start Production From Unapproved Orders**:
+    - Orders must be approved before manufacturing starts.
+    - Completely removed the `[ Start Production ]` button from all unapproved (`pending` / `placed`) orders in the Admin Order Register Table View.
+    - Pending order actions in Table View now strictly render `[ 👁 Review Order ]`, `[ ✓ Approve ]`, and `[ Reject ]`.
+    - In Kanban View, cards in the `Pending` column strictly render `[ Review ]`, `[ Approve ]`, and `[ Reject ]`.
+    - In the Order Review Modal, unapproved orders strictly render `[ Close ]`, `[ Save Rates ]`, and `[ ✓ Approve Order ]`. The `[ Start Production → ]` button remains hidden until approval is granted.
+  - **Decoupled Order Approval Workflow**:
+    - Clicking `Approve` or `Approve Order` updates order status strictly to `'approved'` with an emerald status badge and timeline event ("Order Approved by Admin. Ready for production scheduling.").
+    - Once approved, the `[ ▶ Start Production ]` button dynamically appears on that order in both Table and Kanban views.
+    - Clicking `Start Production` on an approved order opens the Sheet Allocation & Job Card Creation modal (`prodModalOrders`).
+  - **Production Guardrails**:
+    - Added validation guard in `handleOpenMoveToProduction` and `Bulk Start Production` preventing any unapproved orders from entering sheet allocation or production scheduling.
 
 ### Version 3.7 — November 3, 2026
 - **Fastener Rate Decoupling on Order Forms & Comprehensive Admin Order Review Modal**:
