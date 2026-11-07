@@ -4,6 +4,38 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-04] — Version 3.9
+
+### 💼 PagarBook Engine: Instant Punch Editing, Staff Loans & Advance EMIs, Monthly Reports, and Daily/Monthly Shift Types
+- **Instant Click-to-Edit Punch Time in Daily Register**:
+  - Implemented inline click-to-edit interface directly on `Check-In` and `Check-Out` cells in [`AttendancePayrollSection.js`](file:///e:/Projects/Ubms/js/components/AttendancePayrollSection.js).
+  - Clicking on any timestamp opens an inline editor with Enter key save and Cancel shortcuts.
+  - Automatically recalculates net working minutes, standard hours (8h), overtime hours (`hoursWorked - standardHours`), late marks (against shift start + grace window), and half-day thresholds.
+- **Staff Loans & Advance EMI Management**:
+  - Added dedicated **Staff Loans & Advance EMI Ledger** sub-view (`staff_loans`).
+  - Allows granting loans and advances to staff with reason, disbursal date, principal amount, and monthly EMI installments.
+  - Automatic Payroll Deduction: When disbursing salaries in `payroll_register` or `attendance_dashboard`, active loan EMIs are automatically deducted from net payable, logged in the loan repayment ledger, and subtracted from outstanding balance.
+  - Included manual EMI collection modal and detailed repayment history ledger per employee.
+- **Month-Wise Employee Attendance, Late Marks & Overtime Reports**:
+  - Added dedicated **Monthly Reports** sub-view (`attendance_reports`).
+  - Month and Employee selectors with high-density KPI metrics: Working Days, On-Time Days, Late Arrival Marks, Overtime Hours Logged, Overtime Pay Earned, and Approved Leaves.
+  - Detailed employee-by-employee monthly breakdown table with punctuality percentages (`On-Time Days / Present Days * 100`).
+  - PagarBook-style **31-Day Visual Attendance Calendar Sheet** modal displaying color-coded day chips (Present, Late, Half-Day, Overtime, Absent, Weekly Off) for every day of the month.
+- **Prominent "+ Add New Employee" Modal**:
+  - Added primary `+ Add New Employee` action buttons across header banner, Shift Management, and Daily Punch Register.
+  - Comprehensive enrollment modal capturing Full Name, Role, Employee Classification (`Office Staff`, `Machine Operator`, `Karigar`), Department, Wage Calculation Type, Base Wage / Salary, Assigned Shift, and Overtime Rate.
+  - Synchronously updates company team directory (`users.json`), payroll staff directory (`payroll.json`), and creates initial punch record.
+  - Resolved `ReferenceError: onUpdateUsers is not defined` by adding `onUpdateUsers` prop to [`AdminPortal.js`](file:///e:/Projects/Ubms/js/components/AdminPortal.js) and passing it down from [`app.js`](file:///e:/Projects/Ubms/js/app.js).
+- **Shifts of Two Types: Daily Basis vs Monthly Basis (PagarBook Rules)**:
+  - Shift definitions and staff profiles now support explicit calculation basis:
+    1. **Monthly Basis**: Salaried personnel whose base compensation is pro-rated across working days in the month (`(monthlySalary / workingDays) * presentDays`).
+    2. **Daily Basis**: Machine operators and daily workers whose compensation is calculated strictly per day present (`dailyWage * presentDays`).
+    3. **Piece-Rate Basis**: Artisans and Karigars whose compensation is calculated per finished tag (`ratePerTag * completedPieces`).
+  - Master shift cards display prominent type badges (`☀️ Daily Basis` vs `📅 Monthly Basis`).
+  - Define New Shift modal includes wage basis radio selector.
+
+---
+
 ## [2026-11-04] — Version 3.8
 
 ### 🔒 Mandatory Order Approval Prerequisite Before Production Start

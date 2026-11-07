@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.8  
+**Version**: 3.9  
 **Last Updated**: November 4, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -60,9 +60,13 @@
 | | Outstanding & Aging Ledger | ✅ Complete | Receivables aging analysis (0-30d, 31-60d, 60+d overdue) with party-wise breakdown cards and direct collection shortcuts |
 | **Attendance & Payroll** | Dedicated Left Nav Module | ✅ Complete | Completely decoupled from Production Flow with bespoke Biometric Left Nav icon |
 | | Executive Attendance Dashboard | ✅ Complete | Live presence rates, late/leave metrics, floor shift coverage, and prominent Pending Payroll queue |
-| | Shift Roster & Rules Engine | ✅ Complete | 4 production shifts (General, Press, Punching, Artisan Flex) with grace times and overtime rates |
+| | Instant Punch Time Inline Editor | ✅ Complete | Click-to-edit Check-In/Out times with instant inline inputs, Enter key save, and automatic recalculation of hours worked, overtime, and late status |
+| | Staff Loans & Advance EMI Ledger | ✅ Complete | PagarBook-style staff loan management: grant advances, track monthly EMIs, auto-deduct EMIs from salary slips, and view repayment history |
+| | Month-Wise Attendance Reports | ✅ Complete | Monthly analytics tracking on-time days, late arrival marks, overtime hours & earnings, plus an interactive 31-day visual calendar sheet |
+| | Staff Enrollment Engine (`+ Add Employee`) | ✅ Complete | Complete modal to enroll new team members across Office, Machine Operator, and Karigar classifications, setting wage models and shift assignments |
+| | Shift Types (Daily vs Monthly Basis) | ✅ Complete | PagarBook-compliant shift categorization & salary computation engine supporting Daily Wages (per day present) and Monthly Basis (pro-rated salary) |
 | | Shift Assignment Matrix | ✅ Complete | Shift allocation for office staff, machine operators, and piece-rate karigars |
-| | Shift-Based Payroll Computation | ✅ Complete | Working days pro-ration, overtime pay, piece-rate earnings, and instant 'Disburse Salary' actions |
+| | Shift-Based Payroll Computation | ✅ Complete | Working days pro-ration, daily wage multiplication, overtime pay, piece-rate earnings, loan EMI deductions, and instant 'Disburse Salary' actions |
 | | Unified Android App Simulator | ✅ Complete | Interactive mobile terminal preview with Face Scan auto-id, GPS/WiFi geofencing, and Karigar Job Moving |
 
 ---
@@ -70,6 +74,39 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.9 — November 4, 2026
+- **Instant Click-to-Edit Check In & Check Out Times in Daily Punch Register**:
+  - Implemented interactive click-to-edit interface directly on `Check-In` and `Check-Out` cells in the Daily Punch Register (`daily_attendance`).
+  - Clicking on any punch timestamp activates an inline input with Enter key save and Cancel shortcuts.
+  - Automated PagarBook calculation engine:
+    - Parses modified timestamps and recalculates net working minutes (deducting 1-hour lunch break for shifts $\ge$ 4 hours).
+    - Recalculates `hoursWorked` and flags overtime if net hours exceed shift standard hours (`overtimeHours = hoursWorked - standardHours`).
+    - Evaluates late arrivals against shift start time + grace period (e.g., marks `Late` if arrival is beyond 15m grace).
+    - Automatically marks `Half-Day` if total hours worked fall below threshold (4.5h).
+- **Staff Loans & Advance EMI Management (PagarBook Model)**:
+  - Added dedicated **Staff Loans & EMI** sub-view (`staff_loans`).
+  - Tracks Principal Disbursed, Balance Outstanding, Recovered to Date, and Monthly EMIs Due.
+  - "+ Grant New Loan / Advance" modal with reason, disbursal date, principal amount, and monthly EMI installment.
+  - Automated Payroll Deduction: When disbursing salaries in `payroll_register` or `attendance_dashboard`, active loan EMIs are automatically deducted from net payable, logged in the loan repayment ledger, and subtracted from outstanding balance.
+  - Manual EMI collection modal and detailed repayment history ledger per employee.
+- **Month-Wise Employee Attendance, Late Marks & Overtime Reports**:
+  - Added dedicated **Monthly Reports** sub-view (`attendance_reports`).
+  - Month and Employee selectors with high-density KPI metrics: Working Days, On-Time Days, Late Arrival Marks, Overtime Hours Logged, Overtime Pay Earned, and Approved Leaves.
+  - Employee-by-employee monthly breakdown table with punctuality percentages (`On-Time Days / Present Days * 100`).
+  - PagarBook-style **31-Day Visual Attendance Calendar Sheet** modal displaying color-coded day chips (Present, Late, Half-Day, Overtime, Absent, Weekly Off) for every day of the month.
+- **Prominent "+ Add New Employee" Modal**:
+  - Added primary `+ Add New Employee` action buttons across header banner, Shift Management, and Daily Punch Register.
+  - Comprehensive enrollment modal capturing Full Name, Role, Employee Classification (`Office Staff`, `Machine Operator`, `Karigar`), Department, Wage Calculation Type, Base Wage / Salary, Assigned Shift, and Overtime Rate.
+  - Synchronously updates company team directory (`users.json`), payroll staff directory (`payroll.json`), and creates initial punch record.
+  - Fixed `ReferenceError: onUpdateUsers is not defined` by declaring `onUpdateUsers` in [`AdminPortal.js`](file:///e:/Projects/Ubms/js/components/AdminPortal.js) destructured parameters.
+- **Shifts of Two Types: Daily Basis vs Monthly Basis (PagarBook Rules)**:
+  - Shift definitions and staff profiles now support explicit calculation basis:
+    1. **Monthly Basis**: Salaried personnel whose base compensation is pro-rated across working days in the month (`(monthlySalary / workingDays) * presentDays`).
+    2. **Daily Basis**: Machine operators and daily workers whose compensation is calculated strictly per day present (`dailyWage * presentDays`).
+    3. **Piece-Rate Basis**: Artisans and Karigars whose compensation is calculated per finished tag (`ratePerTag * completedPieces`).
+  - Master shift cards display prominent type badges (`☀️ Daily Basis` vs `📅 Monthly Basis`).
+  - Define New Shift modal includes wage basis radio selector.
 
 ### Version 3.8 — November 4, 2026
 - **Order Approval Prerequisite Before Production Start**:

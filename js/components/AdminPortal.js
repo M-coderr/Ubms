@@ -153,6 +153,7 @@ function AdminPortal({
   onSavePayment, 
   onUpdateProduction, 
   onUpdatePayroll, 
+  onUpdateUsers,
   onOpenInvoice, 
   defaultTab = 'dashboard',
   currentTab,
