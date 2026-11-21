@@ -1,5 +1,94 @@
 ﻿[
     {
+        "id":  "TGRS04-ORD-2026-MGC04",
+        "customerOrderId":  "MGC04",
+        "orderType":  "New Order",
+        "customerId":  "CUST-001",
+        "customerName":  "Mohit Samnani",
+        "customerCompany":  "MG Creation",
+        "customerEmail":  "mohit@mgcreation.com",
+        "customerPhone":  "+91 98201 11223",
+        "status":  "pending",
+        "paymentStatus":  "pending",
+        "createdAt":  "2026-11-21T07:50:56.446Z",
+        "expectedDelivery":  "2026-11-28T07:50:56.446Z",
+        "assignedTo":  "Unassigned",
+        "items":  [
+                      {
+                          "id":  "ITEM-0433",
+                          "itemCode":  "MGC01",
+                          "name":  "MGC01",
+                          "brandName":  "Cotton Craft",
+                          "type":  "Tag",
+                          "isMultiCard":  true,
+                          "cards":  [
+                                        {
+                                            "cardIndex":  1,
+                                            "title":  "1st Pc (Base Pc)",
+                                            "catalogId":  "CAT-PAPER0",
+                                            "catalogCode":  "Paper #01",
+                                            "name":  "Plastic",
+                                            "gsm":  250,
+                                            "finish":  "Gloss",
+                                            "dimension":  "2x4"
+                                        },
+                                        {
+                                            "cardIndex":  2,
+                                            "title":  "2nd Pc (Upper Pc)",
+                                            "catalogId":  "CAT-PAPER02",
+                                            "catalogCode":  "Paper #02",
+                                            "name":  "Grey Velvet",
+                                            "gsm":  120,
+                                            "finish":  "Velvet",
+                                            "dimension":  "2x3"
+                                        }
+                                    ],
+                          "catalogId":  "CAT-PAPER0",
+                          "catalogCode":  "Paper #01",
+                          "dimension":  "2x4",
+                          "material":  "2-Card Set: Paper #01 + Paper #02",
+                          "dori":  "Regular",
+                          "doriRate":  0.2,
+                          "plastic":  "Regular",
+                          "plasticRate":  0.1,
+                          "image":  "https://placehold.co/120x120/1e293b/ffffff?text=Tag",
+                          "quantity":  10000,
+                          "unitPrice":  2.6,
+                          "total":  26000
+                      }
+                  ],
+        "subtotal":  26000,
+        "tax":  0,
+        "shipping":  0,
+        "total":  26000,
+        "tracking":  {
+                         "carrier":  "Courier Pending",
+                         "trackingNumber":  "Awaiting Manufacturing Approval",
+                         "status":  "Order Placed - Awaiting Confirmation",
+                         "lastUpdate":  "21 Nov 2026, 1:20 pm"
+                     },
+        "timeline":  [
+                         {
+                             "stage":  "pending",
+                             "title":  "Order Placed",
+                             "description":  "Manufacturing order booked by Mohit Samnani (1 item(s)).",
+                             "timestamp":  "21 Nov 2026, 1:20 pm",
+                             "author":  "Mohit Samnani"
+                         },
+                         {
+                             "stage":  "pending",
+                             "title":  "Order Edited by Customer",
+                             "description":  "Updated by Mohit Samnani (Qty: 15,000, Rate: ₹2.60).",
+                             "timestamp":  "21 Nov 2026, 1:40 pm",
+                             "author":  "Mohit Samnani"
+                         }
+                     ],
+        "internalNotes":  [
+
+                          ],
+        "customerNotes":  "urgent order"
+    },
+    {
         "id":  "TGRS01-ORD-2026-MGC01",
         "orderType":  "New Order",
         "customerId":  "CUST-001",

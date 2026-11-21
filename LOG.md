@@ -4,6 +4,29 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-21] — Version 3.10
+
+### 🏷️ Edit Manufacturing Order Studio Parity & Server Multi-Byte Stream Reliability
+- **Complete Feature Parity for "Edit Manufacturing Order" Modal**:
+  - Upgraded the Customer Portal's Edit Order modal in [`CustomerPortal.js`](file:///e:/Projects/Ubms/js/components/CustomerPortal.js) to match the rich modern options of the Place Order studio:
+    - **Paper Catalog Combobox**: Integrated `PaperCatalogCombobox` displaying all 30 preserved sheet catalogs with live search by code, name, GSM, and finish.
+    - **Product Size (L x B)**: Replaced legacy material dropdown with explicit Product Size dimensions input (`50 x 90 mm`, `55 x 110 mm`, etc.).
+    - **Piece Composition & Format Switching**: Added Piece Composition selector supporting `1 PC (Single Tag)`, `2 PC (2-Piece Tag: Base + Upper)`, and `3 PC (3-Piece Tag: Base + Middle + Upper)`.
+    - **Multi-Piece Layer Configuration**: Full card layer editing with individual `PaperCatalogCombobox` and Product Size for each card (`1st Pc (Base Pc)`, `2nd Pc (Upper Pc)` / `2nd Pc (Middle Pc)`, `3rd Pc (Upper Pc)`), including `+ Add 3rd Piece` and `× Remove` actions.
+    - **PU Leather Engineering**: Segmented selector for PU Origin (`Indian PU` vs `Imported PU`), Thickness Gauge dropdown (`1.2 mm`, `1.8 mm`, `2.2 mm`), and Patch Finished Size input.
+    - **Handwork Fasteners**: Upgraded Dori (String) and Barcode Plastic controls to 3-button segmented selectors (`[ None ]`, `[ Regular ]`, `[ Custom ]`) with clean spacing, custom specification text inputs, and decoupled piece rates (₹0.40 custom dori, ₹0.15 custom plastic).
+    - **Commercials & Notes**: Live calculation of Order Total card from Quantity and Rate per Pc, plus Packaging Instructions / Special Production Notes.
+    - **Artwork Management**: Artwork upload file input with thumbnail preview and clear/replace option.
+  - Initialized all edit state fields correctly in `handleOpenEditModal` to parse existing order cards, dimensions, fastener types, and PU attributes.
+  - Structured `handleSaveOrderEdits` to reconstruct complete item objects (`cards`, `catalogId`, `catalogCode`, `isMultiCard`, `dimension`, `doriRate`, `plasticRate`), preserving full order fidelity when saved.
+- **Server HTTP POST Multi-Byte UTF-8 Stream Reader Fix**:
+  - In [`server.ps1`](file:///e:/Projects/Ubms/server.ps1), resolved a hanging connection / connection reset bug when processing large POST request bodies containing multi-byte UTF-8 characters (such as currency symbol `₹`).
+  - Switched from character-count chunk reading to true UTF-8 byte-length tracking (`$bytesRemaining -= [System.Text.Encoding]::UTF8.GetByteCount($chunk)`), ensuring exact byte matching with `Content-Length`.
+- **Automated Verification**:
+  - Verified modal rendering and editing with headless Edge CDP automation, capturing screenshot [`customer_edit_modal_upgraded.png`](file:///C:/Users/Meet%20Thakkar/.gemini/antigravity/brain/c7ab523d-f78f-4d13-a4bf-59856a7fe5e8/customer_edit_modal_upgraded.png).
+
+---
+
 ## [2026-11-04] — Version 3.9
 
 ### 💼 PagarBook Engine: Instant Punch Editing, Staff Loans & Advance EMIs, Monthly Reports, and Daily/Monthly Shift Types

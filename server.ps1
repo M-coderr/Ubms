@@ -95,14 +95,18 @@ function HandleClient($tcpClient, $rootDir, $types) {
         # Read Body if POST/PUT
         $body = ""
         if ($contentLength -gt 0) {
-            $charBuffer = New-Object char[] $contentLength
-            $readTotal = 0
-            while ($readTotal -lt $contentLength) {
-                $readCount = $reader.Read($charBuffer, $readTotal, $contentLength - $readTotal)
+            $sb = New-Object System.Text.StringBuilder
+            $buf = New-Object char[] 4096
+            $bytesRemaining = $contentLength
+            while ($bytesRemaining -gt 0) {
+                $toRead = [Math]::Min(4096, $bytesRemaining)
+                $readCount = $reader.Read($buf, 0, $toRead)
                 if ($readCount -le 0) { break }
-                $readTotal += $readCount
+                $chunk = New-Object string ($buf, 0, $readCount)
+                [void]$sb.Append($chunk)
+                $bytesRemaining -= [System.Text.Encoding]::UTF8.GetByteCount($chunk)
             }
-            $body = New-Object string ($charBuffer, 0, $readTotal)
+            $body = $sb.ToString()
         }
 
         # Handle CORS OPTIONS

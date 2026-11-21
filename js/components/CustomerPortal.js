@@ -167,6 +167,15 @@ function CustomerPortal({
   const [editBrandName, setEditBrandName] = React.useState('');
   const [editSelectedType, setEditSelectedType] = React.useState('Tag');
   const [editSelectedMaterial, setEditSelectedMaterial] = React.useState('');
+  const [editIsMultiCard, setEditIsMultiCard] = React.useState(false);
+  const [editSelectedCatalogId, setEditSelectedCatalogId] = React.useState('CAT-PAPER0');
+  const [editSingleCardDimension, setEditSingleCardDimension] = React.useState('');
+  const [editTagCards, setEditTagCards] = React.useState([
+    { id: 1, title: '1st Pc (Base Pc)', catalogId: 'CAT-PAPER0', dimension: '' },
+    { id: 2, title: '2nd Pc (Upper Pc)', catalogId: 'CAT-PAPER02', dimension: '' }
+  ]);
+  const [editPuOrigin, setEditPuOrigin] = React.useState('Indian');
+  const [editPuThickness, setEditPuThickness] = React.useState('1.2');
   const [editDoriOption, setEditDoriOption] = React.useState('reg');
   const [editDoriCustom, setEditDoriCustom] = React.useState('');
   const [editPlasticOption, setEditPlasticOption] = React.useState('reg');
@@ -1140,35 +1149,191 @@ function CustomerPortal({
       setIsSubmitting(false);
     }
   };
+  // Edit Order Card & Format Helpers
+  const handleEditTypeChange = (newType) => {
+    setEditSelectedType(newType);
+    if (newType === 'Tag Kit') {
+      setEditDoriOption('none');
+      setEditDoriCustom('');
+      setEditPlasticOption('none');
+      setEditPlasticCustom('');
+    }
+    const tObj = availableTypes.find(t => t.name === newType);
+    if (tObj && tObj.materials && tObj.materials.length > 0) {
+      setEditSelectedMaterial(tObj.materials[0]);
+    }
+  };
+
+  const handleEditFormatChange = (formatVal) => {
+    if (formatVal === '1 PC') {
+      setEditIsMultiCard(false);
+    } else if (formatVal === '2 PC') {
+      setEditIsMultiCard(true);
+      if (editTagCards.length > 2) {
+        handleEditRemoveThirdCard();
+      } else {
+        setEditTagCards(prev => [
+          { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+          { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+        ]);
+      }
+    } else if (formatVal === '3 PC') {
+      setEditIsMultiCard(true);
+      if (editTagCards.length < 3) {
+        handleEditAddThirdCard();
+      } else {
+        setEditTagCards(prev => [
+          { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+          { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+          { id: 3, title: '3rd Pc (Upper Pc)', catalogId: prev[2]?.catalogId || availableCatalogs[2]?.id, dimension: prev[2]?.dimension || '' }
+        ]);
+      }
+    }
+  };
+
+  const handleEditAddThirdCard = () => {
+    setEditTagCards(prev => [
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Middle Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' },
+      { id: 3, title: '3rd Pc (Upper Pc)', catalogId: prev[2]?.catalogId || availableCatalogs[2]?.id || availableCatalogs[0]?.id, dimension: '' }
+    ]);
+  };
+
+  const handleEditRemoveThirdCard = () => {
+    setEditTagCards(prev => [
+      { id: 1, title: '1st Pc (Base Pc)', catalogId: prev[0]?.catalogId || availableCatalogs[0]?.id, dimension: prev[0]?.dimension || '' },
+      { id: 2, title: '2nd Pc (Upper Pc)', catalogId: prev[1]?.catalogId || availableCatalogs[1]?.id, dimension: prev[1]?.dimension || '' }
+    ]);
+  };
+
+  const handleEditUpdateCardCatalog = (idx, newCatId) => {
+    setEditTagCards(prev => {
+      const copy = [...prev];
+      if (copy[idx]) {
+        copy[idx] = { ...copy[idx], catalogId: newCatId };
+      }
+      return copy;
+    });
+  };
+
+  const handleEditUpdateCardDimension = (idx, newDim) => {
+    setEditTagCards(prev => {
+      const copy = [...prev];
+      if (copy[idx]) {
+        copy[idx] = { ...copy[idx], dimension: newDim };
+      }
+      return copy;
+    });
+  };
+
   // Open Edit Order Modal (Allowed before admin approval)
   const handleOpenEditModal = (order) => {
     setEditingOrder(order);
-    const item = order.items[0] || {};
-    const itemBrand = item.brandName;
-    const isCust = itemBrand && (itemBrand.toLowerCase() === (customer?.company || '').toLowerCase() || itemBrand.toLowerCase() === (customer?.name || '').toLowerCase() || itemBrand.toLowerCase() === (order.customerCompany || '').toLowerCase());
-    setEditBrandName(itemBrand && !isCust ? itemBrand : '');
-    setEditSelectedType(item.type || 'Tag');
+    const item = (order.items && order.items[0]) ? order.items[0] : {};
+    const itemBrand = item.brandName || order.customerCompany || '';
+    setEditBrandName(itemBrand);
+
+    const itemType = item.type || 'Tag';
+    setEditSelectedType(itemType);
     setEditSelectedMaterial(item.material || '100 GSM');
-    
-    if (item.dori && item.dori.startsWith('Custom:')) {
-      setEditDoriOption('custom');
-      setEditDoriCustom(item.dori.replace('Custom:', '').trim());
+
+    // Multi-piece vs single piece setup
+    const isMulti = Boolean(item.isMultiCard || (item.cards && item.cards.length > 1));
+    setEditIsMultiCard(isMulti);
+
+    if (item.cards && item.cards.length > 0) {
+      if (isMulti) {
+        setEditTagCards(item.cards.map((c, idx) => ({
+          id: idx + 1,
+          title: window.uBMS.getTagPieceTitle ? window.uBMS.getTagPieceTitle(idx, item.cards.length) : (c.title || `Piece #${idx + 1}`),
+          catalogId: c.catalogId || availableCatalogs[idx % availableCatalogs.length]?.id,
+          dimension: c.dimension || ''
+        })));
+        setEditSelectedCatalogId(item.cards[0]?.catalogId || availableCatalogs[0]?.id);
+        setEditSingleCardDimension(item.cards[0]?.dimension || '');
+      } else {
+        const singleCard = item.cards[0];
+        const cardCatId = singleCard.catalogId || item.catalogId || availableCatalogs[0]?.id;
+        const cardDim = singleCard.dimension || item.dimension || '';
+        setEditSelectedCatalogId(cardCatId);
+        setEditSingleCardDimension(cardDim);
+        setEditTagCards([
+          { id: 1, title: '1st Pc (Base Pc)', catalogId: cardCatId, dimension: cardDim },
+          { id: 2, title: '2nd Pc (Upper Pc)', catalogId: availableCatalogs[1]?.id, dimension: '' }
+        ]);
+      }
     } else {
+      const matchedCat = availableCatalogs.find(c => 
+        (item.catalogId && c.id === item.catalogId) || 
+        (item.catalogCode && c.code === item.catalogCode) || 
+        (item.material && item.material.includes(c.code))
+      ) || availableCatalogs[0];
+
+      const catId = matchedCat?.id || availableCatalogs[0]?.id;
+      const dim = item.dimension || '';
+      setEditSelectedCatalogId(catId);
+      setEditSingleCardDimension(dim);
+      setEditTagCards([
+        { id: 1, title: '1st Pc (Base Pc)', catalogId: catId, dimension: dim },
+        { id: 2, title: '2nd Pc (Upper Pc)', catalogId: availableCatalogs[1]?.id, dimension: '' }
+      ]);
+    }
+
+    // PU Label
+    if (itemType === 'PU Label') {
+      const mat = item.material || '';
+      if (mat.toLowerCase().includes('imported')) {
+        setEditPuOrigin('Imported');
+      } else {
+        setEditPuOrigin('Indian');
+        if (mat.includes('1.8')) setEditPuThickness('1.8');
+        else if (mat.includes('2.2')) setEditPuThickness('2.2');
+        else setEditPuThickness('1.2');
+      }
+      setEditSingleCardDimension(item.dimension || (item.cards && item.cards[0]?.dimension) || '');
+    } else {
+      setEditPuOrigin('Indian');
+      setEditPuThickness('1.2');
+    }
+
+    // Dori
+    const doriStr = (item.dori || '').trim();
+    if (!doriStr || doriStr.toLowerCase() === 'none') {
+      setEditDoriOption('none');
+      setEditDoriCustom('');
+    } else if (doriStr.toLowerCase().startsWith('custom:') || doriStr.toLowerCase().startsWith('custom')) {
+      setEditDoriOption('custom');
+      setEditDoriCustom(doriStr.replace(/^custom:?/i, '').trim());
+    } else if (doriStr.toLowerCase() === 'regular' || doriStr.toLowerCase() === 'reg.' || doriStr.toLowerCase() === 'reg') {
       setEditDoriOption('reg');
       setEditDoriCustom('');
-    }
-    if (item.plastic && item.plastic.startsWith('Custom:')) {
-      setEditPlasticOption('custom');
-      setEditPlasticCustom(item.plastic.replace('Custom:', '').trim());
     } else {
+      setEditDoriOption('custom');
+      setEditDoriCustom(doriStr);
+    }
+
+    // Plastic
+    const plasticStr = (item.plastic || '').trim();
+    if (!plasticStr || plasticStr.toLowerCase() === 'none') {
+      setEditPlasticOption('none');
+      setEditPlasticCustom('');
+    } else if (plasticStr.toLowerCase().startsWith('custom:') || plasticStr.toLowerCase().startsWith('custom')) {
+      setEditPlasticOption('custom');
+      setEditPlasticCustom(plasticStr.replace(/^custom:?/i, '').trim());
+    } else if (plasticStr.toLowerCase() === 'regular' || plasticStr.toLowerCase() === 'reg.' || plasticStr.toLowerCase() === 'reg') {
       setEditPlasticOption('reg');
       setEditPlasticCustom('');
+    } else {
+      setEditPlasticOption('custom');
+      setEditPlasticCustom(plasticStr);
     }
+
     setEditQty(item.quantity || 0);
     setEditRate(item.unitPrice || 0);
     setEditOrderImage(item.image || '');
     setEditNotes(order.customerNotes || '');
   };
+
   const handleEditImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1177,6 +1342,7 @@ function CustomerPortal({
       reader.readAsDataURL(file);
     }
   };
+
   const handleSaveOrderEdits = (e) => {
     e.preventDefault();
     if (!editingOrder) return;
@@ -1184,30 +1350,109 @@ function CustomerPortal({
     if (!editQty || Number(editQty) <= 0) return alert('Please enter a valid quantity.');
     if (!editRate || Number(editRate) <= 0) return alert('Please enter a valid rate.');
     if (editDoriOption === 'custom' && !editDoriCustom.trim()) return alert('Please enter the custom Dori specification.');
-    if (editPlasticOption === 'custom' && !editPlasticCustom.trim()) return alert('Please enter the custom Plastic specification.');
-    const doriValue = editDoriOption === 'custom' ? `Custom: ${editDoriCustom.trim()}` : 'Reg.';
-    const plasticValue = editPlasticOption === 'custom' ? `Custom: ${editPlasticCustom.trim()}` : 'Reg.';
+    if (editPlasticOption === 'custom' && !editPlasticCustom.trim()) return alert('Please enter the custom Barcode Plastic specification.');
+
+    let finalMaterial = editSelectedMaterial;
+    let chosenCards = [];
+    let primaryCatalogId = null;
+    let primaryCatalogCode = null;
+
+    if (editSelectedType === 'Tag' || editSelectedType === 'Tag Kit') {
+      if (editIsMultiCard) {
+        chosenCards = editTagCards.map((c, i) => {
+          const cat = availableCatalogs.find(x => x.id === c.catalogId) || availableCatalogs[0];
+          return {
+            cardIndex: i + 1,
+            title: c.title || (window.uBMS.getTagPieceTitle ? window.uBMS.getTagPieceTitle(i, editTagCards.length) : `Piece #${i + 1}`),
+            catalogId: cat.id,
+            catalogCode: cat.code,
+            name: cat.name,
+            gsm: cat.gsm,
+            finish: cat.finish,
+            dimension: c.dimension || ''
+          };
+        });
+        finalMaterial = `${editTagCards.length}-Card Set: ` + chosenCards.map(c => c.catalogCode.split(' - ')[1] || c.catalogCode).join(' + ');
+        primaryCatalogId = chosenCards[0]?.catalogId;
+        primaryCatalogCode = chosenCards[0]?.catalogCode;
+      } else {
+        const cat = availableCatalogs.find(x => x.id === editSelectedCatalogId) || availableCatalogs[0];
+        chosenCards = [{
+          cardIndex: 1,
+          title: 'Single Card Tag',
+          catalogId: cat.id,
+          catalogCode: cat.code,
+          name: cat.name,
+          gsm: cat.gsm,
+          finish: cat.finish,
+          dimension: editSingleCardDimension || ''
+        }];
+        finalMaterial = `${cat.code} (${cat.finish})`;
+        primaryCatalogId = cat.id;
+        primaryCatalogCode = cat.code;
+      }
+    } else if (editSelectedType === 'PU Label') {
+      if (editPuOrigin === 'Indian') {
+        finalMaterial = `Indian PU - ${editPuThickness}`;
+      } else {
+        finalMaterial = 'Imported PU (Standard Quality)';
+      }
+      chosenCards = [{
+        cardIndex: 1,
+        title: 'PU Patch',
+        dimension: editSingleCardDimension || ''
+      }];
+    }
+
+    const isTagKit = editSelectedType === 'Tag Kit';
+    const doriValue = isTagKit
+      ? 'None'
+      : editDoriOption === 'custom'
+        ? `Custom: ${editDoriCustom.trim()}`
+        : editDoriOption === 'none'
+          ? 'None'
+          : 'Regular';
+    const doriRate = (isTagKit || editDoriOption === 'none') ? 0 : (editDoriOption === 'custom' ? 0.40 : 0.20);
+
+    const plasticValue = isTagKit
+      ? 'None'
+      : editPlasticOption === 'custom'
+        ? `Custom: ${editPlasticCustom.trim()}`
+        : editPlasticOption === 'none'
+          ? 'None'
+          : 'Regular';
+    const plasticRate = (isTagKit || editPlasticOption === 'none') ? 0 : (editPlasticOption === 'custom' ? 0.15 : 0.10);
+
     const itemTotal = Number(editQty) * Number(editRate);
-    const prevItem = editingOrder.items[0] || {};
+    const prevItem = (editingOrder.items && editingOrder.items[0]) || {};
     const existingCode = prevItem.itemCode || prevItem.name || currentCustomerItemCode;
+
     const updatedItem = {
       id: prevItem.id || ('ITEM-' + Date.now().toString().slice(-4)),
       itemCode: existingCode,
       name: existingCode,
       brandName: editBrandName.trim(),
       type: editSelectedType,
-      material: editSelectedMaterial,
+      isMultiCard: editSelectedType === 'Tag' ? editIsMultiCard : false,
+      cards: chosenCards,
+      catalogId: primaryCatalogId,
+      catalogCode: primaryCatalogCode,
+      dimension: editIsMultiCard ? (chosenCards[0]?.dimension || '') : (editSingleCardDimension || ''),
+      material: finalMaterial,
       dori: doriValue,
+      doriRate: doriRate,
       plastic: plasticValue,
-      image: editOrderImage || editingOrder.items[0]?.image || '',
+      plasticRate: plasticRate,
+      image: editOrderImage || prevItem.image || '',
       quantity: Number(editQty),
       unitPrice: Number(editRate),
       total: itemTotal
     };
+
     const formattedDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
     const updatedOrder = {
       ...editingOrder,
-      customerCompany: editBrandName.trim(),
+      customerCompany: editingOrder.customerCompany || customer.company || editBrandName.trim(),
       customerNotes: editNotes,
       items: [updatedItem],
       subtotal: itemTotal,
@@ -1217,17 +1462,18 @@ function CustomerPortal({
         {
           stage: editingOrder.status,
           title: 'Order Edited by Customer',
-          description: `Updated by ${customer.name} (Qty: ${editQty}, Rate: \u20B9${editRate}).`,
+          description: `Updated by ${customer.name} (Qty: ${Number(editQty).toLocaleString()}, Rate: \u20B9${Number(editRate).toFixed(2)}).`,
           timestamp: formattedDate,
           author: customer.name
         }
       ]
     };
+
     if (onUpdateOrder) {
       onUpdateOrder(updatedOrder);
     }
     setEditingOrder(null);
-    alert(`Order ${editingOrder.id} updated successfully!`);
+    alert(`Order ${editingOrder.customerOrderId || (window.uBMS.getCustomerFacingOrderId ? window.uBMS.getCustomerFacingOrderId(editingOrder.id) : editingOrder.id)} updated successfully!`);
   };
   // Chat message send
   const handleSendMessage = (e) => {
@@ -3316,7 +3562,7 @@ function CustomerPortal({
       {/* CUSTOMER EDIT ORDER MODAL */}
       {editingOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-5 text-slate-800">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-5 text-slate-800">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center space-x-2">
@@ -3328,190 +3574,475 @@ function CustomerPortal({
               <button
                 type="button"
                 onClick={() => setEditingOrder(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-sm font-bold cursor-pointer transition-colors"
               >
                 &times;
               </button>
             </div>
             <form onSubmit={handleSaveOrderEdits} className="space-y-4">
-              {/* Row 1: Brand, Type, Material */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Brand Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editBrandName}
-                    onChange={(e) => setEditBrandName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Type *</label>
-                  <select
-                    value={editSelectedType}
-                    onChange={(e) => {
-                      setEditSelectedType(e.target.value);
-                      const tObj = availableTypes.find(t => t.name === e.target.value);
-                      if (tObj) setEditSelectedMaterial(tObj.materials[0] || '');
-                    }}
-                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                  >
-                    {availableTypes.map(t => (
-                      <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Material *</label>
-                  <select
-                    value={editSelectedMaterial}
-                    onChange={(e) => setEditSelectedMaterial(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                  >
-                    {(availableTypes.find(t => t.name === editSelectedType)?.materials || []).map((m, idx) => (
-                      <option key={idx} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {/* Row 2: Dori, Plastic, Artwork */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* DORI */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">Dori</label>
-                    <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setEditDoriOption('reg'); setEditDoriCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editDoriOption === 'reg' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditDoriOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editDoriOption === 'custom' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Custom
-                      </button>
-                    </div>
-                  </div>
-                  {editDoriOption === 'custom' ? (
+              {/* SECTION 1: Brand & Category */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Brand / Client Label <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
-                      placeholder="Specify custom dori"
-                      value={editDoriCustom}
-                      onChange={(e) => setEditDoriCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
+                      placeholder="e.g. Cotton Craft"
+                      value={editBrandName}
+                      onChange={(e) => setEditBrandName(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
                     />
-                  ) : (
-                    <div className="text-[11px] text-slate-500 italic">Standard / Regular Dori</div>
-                  )}
-                </div>
-                {/* PLASTIC */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">Plastic</label>
-                    <div className="flex space-x-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      <button
-                        type="button"
-                        onClick={() => { setEditPlasticOption('reg'); setEditPlasticCustom(''); }}
-                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editPlasticOption === 'reg' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Reg.
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditPlasticOption('custom')}
-                        className={`px-2 py-0.5 rounded font-semibold transition-colors ${editPlasticOption === 'custom' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'}`}
-                      >
-                        Custom
-                      </button>
-                    </div>
+                    {customerSavedBrands && customerSavedBrands.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {customerSavedBrands.slice(0, 3).map((b, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setEditBrandName(b)}
+                            className="text-[10px] bg-white border border-slate-200 hover:border-slate-400 text-slate-600 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                          >
+                            {b}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {editPlasticOption === 'custom' ? (
-                    <input
-                      type="text"
-                      required
-                      placeholder="Specify custom plastic"
-                      value={editPlasticCustom}
-                      onChange={(e) => setEditPlasticCustom(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
-                    />
-                  ) : (
-                    <div className="text-[11px] text-slate-500 italic">Standard / Regular Plastic lock</div>
-                  )}
-                </div>
-                {/* ARTWORK */}
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">Artwork Image</label>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleEditImageUpload}
-                      className="w-full text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-slate-900 file:text-white cursor-pointer"
-                    />
-                    {editOrderImage && (
-                      <img src={editOrderImage} alt="Artwork" className="w-8 h-8 rounded object-cover border border-slate-200" />
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Product Category <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={editSelectedType}
+                      onChange={(e) => handleEditTypeChange(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                    >
+                      {availableTypes.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Piece Composition / Format
+                    </label>
+                    {(editSelectedType === 'Tag' || editSelectedType === 'Tag Kit') ? (
+                      <select
+                        value={editIsMultiCard ? (editTagCards.length === 3 ? '3 PC' : '2 PC') : '1 PC'}
+                        onChange={(e) => handleEditFormatChange(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                      >
+                        <option value="1 PC">Single Tag (1 Pc)</option>
+                        <option value="2 PC">2-Piece Tag (Base + Upper)</option>
+                        <option value="3 PC">3-Piece Tag (Base + Middle + Upper)</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        readOnly
+                        value={editSelectedType === 'PU Label' ? 'Single Unit Patch' : 'Standard Format'}
+                        className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 cursor-not-allowed"
+                      />
                     )}
                   </div>
                 </div>
               </div>
-              {/* Row 3: Quantity, Rate, Subtotal */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end pt-2 border-t border-slate-100">
+
+              {/* SECTION 2: Material Architecture & Specifications */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Quantity (Pcs) *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={editQty}
-                    onChange={(e) => setEditQty(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                  />
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Material Architecture &amp; Specifications
+                  </label>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Rate per Pc (&#8377;) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    value={editRate}
-                    onChange={(e) => setEditRate(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                  />
+                {(editSelectedType === 'Tag' || editSelectedType === 'Tag Kit') ? (
+                  <div>
+                    {!editIsMultiCard ? (
+                      /* Single Card Tag */
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">
+                            Paper Catalog Board <span className="text-rose-500">*</span>
+                          </label>
+                          <PaperCatalogCombobox
+                            selectedCatalogId={editSelectedCatalogId}
+                            onSelectCatalog={(catId) => setEditSelectedCatalogId(catId)}
+                            availableCatalogs={availableCatalogs}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">
+                            Product Size
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 50 x 90 mm or 55 x 110 mm"
+                            value={editSingleCardDimension}
+                            onChange={(e) => setEditSingleCardDimension(e.target.value)}
+                            className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2.5 text-xs text-slate-800 outline-none"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Multi-Piece Layer Configuration */
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">
+                            Multi-Piece Layer Configuration ({editTagCards.length} Pieces)
+                          </span>
+                          {editTagCards.length < 3 && (
+                            <button
+                              type="button"
+                              onClick={handleEditAddThirdCard}
+                              className="text-xs font-bold text-slate-900 hover:text-slate-700 cursor-pointer flex items-center space-x-1"
+                            >
+                              <span>+ Add 3rd Piece</span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-2.5">
+                          {editTagCards.map((card, idx) => (
+                            <div key={card.id || idx} className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-2xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-800">
+                                  {window.uBMS.getTagPieceTitle(idx, editTagCards.length)}
+                                </span>
+                                {idx === 2 && (
+                                  <button
+                                    type="button"
+                                    onClick={handleEditRemoveThirdCard}
+                                    className="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer"
+                                  >
+                                    &times; Remove
+                                  </button>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                    Paper Board Quality
+                                  </label>
+                                  <PaperCatalogCombobox
+                                    selectedCatalogId={card.catalogId}
+                                    onSelectCatalog={(newCatId) => handleEditUpdateCardCatalog(idx, newCatId)}
+                                    availableCatalogs={availableCatalogs}
+                                    placeholder="Select paper board..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-semibold text-slate-500 block mb-1">
+                                    Product Size
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder={idx === 0 ? "e.g. 55 x 110 mm" : "e.g. 45 x 90 mm"}
+                                    value={card.dimension}
+                                    onChange={(e) => handleEditUpdateCardDimension(idx, e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : editSelectedType === 'PU Label' ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1.5">PU Leather Origin</label>
+                        <div className="grid grid-cols-2 gap-2 bg-slate-200/60 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => setEditPuOrigin('Indian')}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                              editPuOrigin === 'Indian' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                            }`}
+                          >
+                            Indian PU
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditPuOrigin('Imported')}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                              editPuOrigin === 'Imported' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                            }`}
+                          >
+                            Imported PU
+                          </button>
+                        </div>
+                      </div>
+                      {editPuOrigin === 'Indian' ? (
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1.5">Thickness Gauge</label>
+                          <select
+                            value={editPuThickness}
+                            onChange={(e) => setEditPuThickness(e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                          >
+                            <option value="1.2">1.2 mm (Standard)</option>
+                            <option value="1.8">1.8 mm (Medium Heavy)</option>
+                            <option value="2.2">2.2 mm (Ultra Heavy Duty)</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1.5">Imported Grade</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value="Premium Imported Synthetic Grain"
+                            className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 cursor-not-allowed"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">Patch Finished Size (L x B)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 45 x 70 mm or 50 x 85 mm"
+                        value={editSingleCardDimension}
+                        onChange={(e) => setEditSingleCardDimension(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">Material *</label>
+                      <select
+                        value={editSelectedMaterial}
+                        onChange={(e) => setEditSelectedMaterial(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                      >
+                        {(availableTypes.find(t => t.name === editSelectedType)?.materials || []).map((m, idx) => (
+                          <option key={idx} value={m}>{m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">Product Size</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Standard or 8 x 10 in"
+                        value={editSingleCardDimension}
+                        onChange={(e) => setEditSingleCardDimension(e.target.value)}
+                        className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: Handwork Fasteners & Attachments */}
+              {editSelectedType !== 'Tag Kit' && (
+                <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                      Handwork Fasteners &amp; Attachments
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Dori */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800">Dori (String)</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {editDoriOption === 'none' ? 'None' : editDoriOption === 'reg' ? 'Regular' : 'Custom'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => { setEditDoriOption('none'); setEditDoriCustom(''); }}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editDoriOption === 'none' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditDoriOption('reg'); setEditDoriCustom(''); }}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editDoriOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          Regular
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditDoriOption('custom')}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editDoriOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {editDoriOption === 'custom' && (
+                        <input
+                          type="text"
+                          required
+                          placeholder="Specify custom dori (e.g. Waxed Cotton / Satin cord)"
+                          value={editDoriCustom}
+                          onChange={(e) => setEditDoriCustom(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
+                        />
+                      )}
+                    </div>
+
+                    {/* Barcode Plastic */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-800">Barcode Plastic</span>
+                        <span className="text-[11px] font-mono text-slate-500 font-semibold">
+                          {editPlasticOption === 'none' ? 'None' : editPlasticOption === 'reg' ? 'Regular' : 'Custom'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => { setEditPlasticOption('none'); setEditPlasticCustom(''); }}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editPlasticOption === 'none' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          None
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditPlasticOption('reg'); setEditPlasticCustom(''); }}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editPlasticOption === 'reg' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          Regular
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditPlasticOption('custom')}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            editPlasticOption === 'custom' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {editPlasticOption === 'custom' && (
+                        <input
+                          type="text"
+                          required
+                          placeholder="Specify custom barcode plastic (e.g. Embossed Square Seal)"
+                          value={editPlasticCustom}
+                          onChange={(e) => setEditPlasticCustom(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 outline-none"
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 flex flex-col justify-center">
-                  <span className="text-[10px] text-emerald-700 font-bold uppercase">Order Total</span>
-                  <span className="text-emerald-700 font-black text-sm">{formatCurrency(editQty * editRate)}</span>
+              )}
+
+              {/* SECTION 4: Artwork & Proof */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+                <label className="text-xs font-bold text-slate-700 block">Artwork Image</label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditImageUpload}
+                    className="text-[11px] text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-semibold file:bg-slate-900 file:text-white cursor-pointer"
+                  />
+                  {editOrderImage && (
+                    <div className="flex items-center space-x-2">
+                      <img src={editOrderImage} alt="Artwork" className="w-10 h-10 rounded-lg object-cover border border-slate-200 shadow-2xs" />
+                      <button
+                        type="button"
+                        onClick={() => setEditOrderImage('')}
+                        className="text-xs text-rose-600 hover:text-rose-800 font-medium cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Customer Remarks</label>
-                <input
-                  type="text"
-                  placeholder="Additional order instructions"
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
-                />
+
+              {/* SECTION 5: Commercials & Packaging Instructions */}
+              <div className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
+                    Commercials
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Order Quantity (Pcs) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={editQty || ''}
+                      onChange={(e) => setEditQty(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Agreed Unit Rate (&#8377;/pc) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      value={editRate || ''}
+                      onChange={(e) => setEditRate(e.target.value)}
+                      className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 outline-none"
+                    />
+                  </div>
+                  <div className="bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200 flex flex-col justify-center">
+                    <span className="text-[10px] text-emerald-700 font-bold uppercase">Order Total</span>
+                    <span className="text-emerald-700 font-black text-sm">
+                      {formatCurrency((Number(editQty) || 0) * (Number(editRate) || 0))}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Packaging Instructions / Special Production Notes (Optional)
+                  </label>
+                  <textarea
+                    rows="2"
+                    placeholder="e.g. Bundle packaging in 100s, urgent dispatch deadline, shrink wrap rolls..."
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className="w-full bg-white border border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none"
+                  />
+                </div>
               </div>
+
               <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingOrder(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors cursor-pointer"
                 >
                   Save Order Changes
                 </button>

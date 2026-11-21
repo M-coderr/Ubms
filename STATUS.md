@@ -3,8 +3,8 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.9  
-**Last Updated**: November 4, 2026  
+**Version**: 3.10  
+**Last Updated**: November 21, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
 ---
@@ -28,6 +28,7 @@
 | | Real Customer Accounts | ✅ Complete | MG Creation (`MGC`), Aariya Creation (`ARC`), TagX (`TGX`), D Tag (`DTAG`) |
 | | Switcher Header | ✅ Complete | One-click role/customer profile switching without re-login |
 | **Customer Portal** | Production Order Studio | ✅ Complete | Bespoke garment accessory order workshop: Specification Sheet + Visual Proof Canvas & Job Ticket |
+| | Edit Manufacturing Order Parity | ✅ Complete | Full feature parity in Edit Modal: PaperCatalogCombobox (30 papers), Product Size, 1/2/3 PC tag layers, PU Leather specs, 3-way Fasteners (None/Reg/Custom), artwork upload, and notes |
 | | Fastener Rates Decoupled | ✅ Complete | Hidden fastener rates on place order; clean None / Regular / Custom options |
 | | Visual Artwork Framing & Proof | ✅ Complete | Hangtag blueprint silhouette, 3mm hole-punch guide, prepress alignment canvas |
 | | In-Browser Artwork Cropper | ✅ Complete | Interactive 8-handle image framing with aspect ratio presets (`2:3`, `1:1`, `1:2`, `3:4`), zoom, rotation |
