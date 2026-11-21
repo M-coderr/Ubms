@@ -4,6 +4,34 @@ All notable changes, architectural revisions, feature rollouts, and bug fixes fo
 
 ---
 
+## [2026-11-21] — Version 3.11
+
+### 💰 Unified Outstanding Ledger: Unpaid & Partial Bills, Payments on Account & Net Settlement
+- **Complete Accounts Receivable & Payments on Account Unification**:
+  - Upgraded [`computeOutstandingLedger(customerId, invoices, payments)`](file:///e:/Projects/Ubms/js/data.js) in `js/data.js` to process and categorize all receivables and on-account receipts:
+    - **Unpaid Bills**: Invoices with `paidAmount === 0` and `balanceDue > 0`.
+    - **Partially Paid Bills**: Invoices with `paidAmount > 0` and `balanceDue > 0`.
+    - **Payments on Account**: Unallocated receipts / advance payments made directly on account (`invoiceId` = `General Account`, `On Account`, `Advance`, `N/A`, etc.).
+  - Computed Net Outstanding balance (`netOutstanding = totalBillsDue - totalPaymentOnAccount`), dynamically handling both Net Payment Due and Net Credit / Advance positions.
+- **Customer Portal Outstanding Ledger UI**:
+  - Implemented 4 high-density KPI cards in [`CustomerPortal.js`](file:///e:/Projects/Ubms/js/components/CustomerPortal.js):
+    1. **Net Outstanding**: Shows dynamic position badge (`Credit Balance` vs `Payment Due` vs `Settled`), net balance (e.g. `₹24,335.00 (Cr)` in emerald), and subtext comparison `Gross Bills: ₹... • Advance: ₹...`.
+    2. **Unpaid Bills Due**: Gross pending bill total with breakdown counters (`1 Unpaid • 1 Partial Paid`).
+    3. **Payment on Account**: Total unallocated receipts / advance payments logged on account.
+    4. **0-30 Days Aging (Current)**: Aging tracker with 31d+ overdue subtext.
+  - Added interactive filter pills (`All`, `Unpaid Bills`, `Partial Paid`, `Payment on Account`) with real-time record count counters.
+  - Upgraded breakdown table with columns: `DOC / REF NO`, `TYPE & STATUS`, `DATE`, `DUE DATE`, `TOTAL AMOUNT`, `PAID / ADJUSTED`, `BALANCE DUE / (CREDIT)`, and `ACTION`.
+  - Color-coded balance effects: bills show positive pending debit (`₹17,110.00` in rose), and payments on account show credit reduction (`-₹50,000.00 (Credit)` in emerald).
+  - Added **Net Outstanding Settlement Summary** footer row summarizing Gross Bills Due, On Account Credit, and Net Amount Payable / In Advance.
+  - Synchronized header balance badge to display `Advance: ₹... (Cr)` or `Due: ₹...`.
+- **Admin Portal Parity**:
+  - Upgraded `globalOutstanding` calculation in [`AdminPortal.js`](file:///e:/Projects/Ubms/js/components/AdminPortal.js) to accept `payments`, extract payments on account per customer party, and calculate net balances.
+  - Enriched Admin Outstanding Ledger with identical 4 KPI cards, party summary cards, filter pills, and unified breakdown table.
+- **Automated Verification**:
+  - Verified Customer and Admin views with automated headless Edge CDP tests, generating verified screenshots [`customer_outstanding_ledger_verified.png`](file:///C:/Users/Meet%20Thakkar/.gemini/antigravity/brain/c7ab523d-f78f-4d13-a4bf-59856a7fe5e8/customer_outstanding_ledger_verified.png) and [`admin_outstanding_ledger_verified.png`](file:///C:/Users/Meet%20Thakkar/.gemini/antigravity/brain/c7ab523d-f78f-4d13-a4bf-59856a7fe5e8/admin_outstanding_ledger_verified.png).
+
+---
+
 ## [2026-11-21] — Version 3.10
 
 ### 🏷️ Edit Manufacturing Order Studio Parity & Server Multi-Byte Stream Reliability

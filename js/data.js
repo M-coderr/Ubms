@@ -237,21 +237,28 @@ function computeCustomerGeneralLedger(customerId, invoices = [], payments = []) 
   };
 }
 
-function computeOutstandingLedger(customerId, invoices = []) {
-  const custInvoices = invoices.filter(i => i.customerId === customerId && i.balanceDue > 0);
+function computeOutstandingLedger(customerId, invoices = [], payments = []) {
+  const custInvoices = invoices.filter(i => i.customerId === customerId && Number(i.balanceDue) > 0);
   const now = new Date();
 
-  let totalOutstanding = 0;
+  let totalBillsDue = 0;
   let aging0to30 = 0;
   let aging31to60 = 0;
   let aging60Plus = 0;
 
+  const unpaidBills = [];
+  const partialBills = [];
+
   const bills = custInvoices.map(inv => {
     const due = Number(inv.balanceDue) || 0;
-    totalOutstanding += due;
+    const paid = Number(inv.paidAmount) || 0;
+    const total = Number(inv.total) || 0;
+    totalBillsDue += due;
 
     const issueDate = new Date(inv.issueDate);
-    const diffDays = Math.floor((now - issueDate) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.max(0, Math.floor((now - issueDate) / (1000 * 60 * 60 * 24)));
+    const isOverdue = inv.dueDate ? new Date(inv.dueDate) < now : diffDays > 10;
+    const overdueDays = inv.dueDate ? Math.max(0, Math.floor((now - new Date(inv.dueDate)) / (1000 * 60 * 60 * 24))) : Math.max(0, diffDays - 10);
 
     if (diffDays <= 30) {
       aging0to30 += due;
@@ -261,15 +268,73 @@ function computeOutstandingLedger(customerId, invoices = []) {
       aging60Plus += due;
     }
 
-    return {
+    const billType = (inv.status === 'partial' || paid > 0) ? 'partial' : 'unpaid';
+    const billObj = {
       ...inv,
-      overdueDays: Math.max(0, diffDays)
+      itemKind: 'bill',
+      billType,
+      statusLabel: billType === 'partial' ? 'Partially Paid' : 'Unpaid',
+      total,
+      paidAmount: paid,
+      balanceDue: due,
+      balanceEffect: due, // Positive debit on outstanding
+      diffDays,
+      isOverdue,
+      overdueDays
     };
+
+    if (billType === 'partial') {
+      partialBills.push(billObj);
+    } else {
+      unpaidBills.push(billObj);
+    }
+
+    return billObj;
   });
+
+  // Extract Payments on Account (Unallocated / Advance receipts)
+  const custPayments = (payments || []).filter(p => p.customerId === customerId);
+  const paymentsOnAccount = custPayments.filter(p => {
+    const invId = (p.invoiceId || '').trim().toLowerCase();
+    return !invId || invId === 'general account' || invId === 'on account' || invId === 'n/a' || invId === 'advance' || invId === 'account' || invId.includes('account');
+  }).map(p => ({
+    id: p.id,
+    itemKind: 'payment',
+    type: 'payment_on_account',
+    billType: 'payment_on_account',
+    statusLabel: 'Payment on Account',
+    date: p.date,
+    amount: Number(p.amount) || 0,
+    total: Number(p.amount) || 0,
+    paidAmount: Number(p.amount) || 0,
+    balanceDue: 0,
+    balanceEffect: -(Number(p.amount) || 0), // Credit reduction on outstanding
+    paymentMode: p.paymentMode || 'Cash',
+    referenceNumber: p.referenceNumber || p.id,
+    orderId: p.referenceNumber || 'On Account',
+    receivedBy: p.receivedBy || '',
+    notes: p.notes || 'Payment on Account (Advance)'
+  }));
+
+  const totalPaymentOnAccount = paymentsOnAccount.reduce((sum, p) => sum + p.amount, 0);
+  const netOutstanding = totalBillsDue - totalPaymentOnAccount;
+
+  // Unified breakdown items: Bills + Payments on Account
+  const breakdownItems = [
+    ...bills,
+    ...paymentsOnAccount
+  ].sort((a, b) => new Date(b.date || b.issueDate) - new Date(a.date || a.issueDate));
 
   return {
     bills,
-    totalOutstanding,
+    unpaidBills,
+    partialBills,
+    paymentsOnAccount,
+    breakdownItems,
+    totalBillsDue,
+    totalPaymentOnAccount,
+    netOutstanding,
+    totalOutstanding: totalBillsDue,
     aging0to30,
     aging31to60,
     aging60Plus

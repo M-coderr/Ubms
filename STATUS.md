@@ -3,7 +3,7 @@
 **Current Status**: 🟢 Active Development / Production-Ready Beta  
 **Branch**: `beta`  
 **Repository**: [https://github.com/M-coderr/Ubms.git](https://github.com/M-coderr/Ubms.git)  
-**Version**: 3.10  
+**Version**: 3.11  
 **Last Updated**: November 21, 2026  
 **Local Server**: `http://localhost:8080/` (PowerShell HTTP Daemon)
 
@@ -35,7 +35,7 @@
 | | Artwork Lightbox | ✅ Complete | High-resolution popover preview for all uploaded artworks |
 | | Order Register & Filter | ✅ Complete | Per-column search row, status pills filter, real-time counters, priority badges |
 | | Invoicing & PDF Print | ✅ Complete | View invoices and trigger print/PDF export |
-| | Outstanding Aging Ledger | ✅ Complete | 0-30, 31-60, and 60+ days aging overdue tracking |
+| | Outstanding Aging Ledger | ✅ Complete | Unified statement of all unpaid bills, partially paid bills, and unallocated advance payments on account, with Net Outstanding netting, filter tabs, and settlement footer |
 | | General Ledger Journal | ✅ Complete | Full debit/credit/balance statement of accounts |
 | | Account Manager Chat | ✅ Complete | Real-time direct chat interface with assigned account manager |
 | **Admin Portal** | Executive Dashboard | ✅ Complete | Revenue, active jobs, pipeline summary, overdue alerts |
@@ -75,6 +75,40 @@
 ## Recent Milestones & Changelog
 
 *(For the complete date-wise changelog since project inception, see [LOG.md](LOG.md))*
+
+### Version 3.11 — November 21, 2026
+- **Unified Outstanding Ledger & Payments on Account Integration (Full Customer & Admin Parity)**:
+  - **Comprehensive Accounts Receivable & Dues Ledger**:
+    - Upgraded `computeOutstandingLedger(customerId, invoices, payments)` in `js/data.js` to process all three receivable categories:
+      1. **Unpaid Bills**: Invoices with `paidAmount === 0` and `balanceDue > 0`.
+      2. **Partially Paid Bills**: Invoices with `paidAmount > 0` and `balanceDue > 0`.
+      3. **Payments on Account**: Unallocated receipts / advance payments made directly on account (`invoiceId` = `General Account`, `On Account`, `Advance`, `N/A`, etc.).
+    - Implemented Net Outstanding calculation (`netOutstanding = totalBillsDue - totalPaymentOnAccount`), correctly handling both Net Receivables Due and Net Advance / Credit Balance situations.
+  - **Customer Portal Outstanding Ledger UI**:
+    - **4 High-Density KPI Cards**:
+      1. *Net Outstanding*: Displays net position with dynamic badges (`Credit Balance` vs `Payment Due` vs `Settled`), net amount (e.g. `₹24,335.00 (Cr)` in emerald), and subtext comparison `Gross Bills: ₹... • Advance: ₹...`.
+      2. *Unpaid Bills Due*: Gross bills balance pending with `Unpaid` vs `Partial Paid` counters.
+      3. *Payment on Account*: Total advance receipts logged on customer account with unallocated receipt counter.
+      4. *0-30 Days Aging (Current)*: Current bills due vs overdue (31d+) tracker.
+    - **Interactive Type Filter Pills**: One-click pills (`All`, `Unpaid Bills`, `Partial Paid`, `Payment on Account`) with real-time record count badges.
+    - **Enriched Ledger Table**:
+      - `DOC / REF NO`: Document identifier with linked Order reference.
+      - `TYPE & STATUS`: Visual semantic pills (`Unpaid Bill` in rose, `Partial Paid Bill` in sky, `Payment on Account` in emerald).
+      - `DATE` & `DUE DATE`: Issue / receipt dates with aging status (`Current` vs `Xd overdue` in rose).
+      - `TOTAL AMOUNT`, `PAID / ADJUSTED`, and `BALANCE DUE / (CREDIT)`: Explicit debit/credit impact (`+₹17,110.00` debit vs `-₹50,000.00 (Credit)` in emerald).
+      - `ACTION`: Direct `View Bill` action for invoices and payment mode pill for advance receipts.
+    - **Net Outstanding Settlement Summary Footer**: Dedicated table footer providing a comprehensive final summary of Gross Bills Due, On Account Credit, and Net Amount Payable / In Advance.
+    - **Top Header Status Badge**: Synchronized top banner badge showing `Advance: ₹24,335.00 (Cr)` or `Due: ₹...`.
+  - **Admin Portal Outstanding Ledger Parity**:
+    - Upgraded `globalOutstanding` in `AdminPortal.js` to accept `payments`, track customer-level payments on account, and compute net balances.
+    - Enriched Admin Outstanding KPI cards, party summary cards (displaying gross bills, on-account credit, and net due/advance per customer party), filter pills, unified breakdown table, and settlement summary footer.
+  - **Automated Verification**:
+    - Validated through headless Edge CDP automation across both Customer and Admin portals, capturing verified screenshots `customer_outstanding_ledger_verified.png` and `admin_outstanding_ledger_verified.png`.
+
+### Version 3.10 — November 21, 2026
+- **Edit Manufacturing Order Studio Parity & Server Multi-Byte Stream Reliability**:
+  - Brought complete feature parity to the Customer Edit Order modal in `CustomerPortal.js` matching modern studio features: `PaperCatalogCombobox` (30 paper catalog boards with search), Product Size (L x B), Piece Composition selector (`1 PC`, `2 PC: Base + Upper`, `3 PC: Base + Middle + Upper`) with multi-card layer editing, PU Leather specs (Origin, Gauge, Size), and 3-button Handwork Fasteners (`None`, `Regular`, `Custom`) with decoupled custom rates.
+  - Fixed server UTF-8 multi-byte stream reader bug in `server.ps1` to prevent TCP connection reset on request bodies containing multi-byte characters like `₹`.
 
 ### Version 3.9 — November 4, 2026
 - **Instant Click-to-Edit Check In & Check Out Times in Daily Punch Register**:

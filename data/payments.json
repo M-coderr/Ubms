@@ -1,1 +1,16 @@
-[]
+﻿[
+  {
+    "id": "PAY-2026-0859",
+    "invoiceId": "General Account",
+    "orderId": "N/A",
+    "customerId": "CUST-001",
+    "customerName": "Mohit Samnani",
+    "customerCompany": "MG Creation",
+    "date": "2026-11-21T08:33:55.105Z",
+    "amount": 50000,
+    "paymentMode": "Cash",
+    "referenceNumber": "TXN-035105",
+    "receivedBy": "Meet",
+    "notes": "Advance payment received on account"
+  }
+]

@@ -346,12 +346,13 @@ function CustomerPortal({
     });
   }, [flattenedCustInvoiceItems, custInvRegStatusFilter, custInvRegSearchId, custInvRegSearchSpecs, custInvRegSearchDoriPlastic, custInvRegSearchQty, custInvRegSearchRate]);
   // Financial Ledgers
+  const [outstandingTypeFilter, setOutstandingTypeFilter] = React.useState('all'); // 'all' | 'unpaid' | 'partial' | 'payment_on_account'
   const generalLedger = React.useMemo(() => {
     return window.uBMS.computeCustomerGeneralLedger(customer.id, customerInvoices, payments);
   }, [customer, customerInvoices, payments]);
   const outstandingLedger = React.useMemo(() => {
-    return window.uBMS.computeOutstandingLedger(customer.id, customerInvoices);
-  }, [customer, customerInvoices]);
+    return window.uBMS.computeOutstandingLedger(customer.id, customerInvoices, payments);
+  }, [customer, customerInvoices, payments]);
   // Customer Dashboard KPI Metrics
   const customerStats = React.useMemo(() => {
     const totalOrders = customerOrders.length;
@@ -1526,9 +1527,17 @@ function CustomerPortal({
           </div>
           {/* Right: Balance & expand toggle */}
           <div className="flex items-center space-x-2 shrink-0">
-            {outstandingLedger.totalOutstanding > 0 && (
+            {outstandingLedger.netOutstanding > 0 ? (
+              <span className="text-[11px] bg-rose-50 text-rose-800 border border-rose-200 px-2.5 py-0.5 rounded-lg font-mono font-semibold hidden sm:inline">
+                Due: {formatCurrency(outstandingLedger.netOutstanding)}
+              </span>
+            ) : outstandingLedger.netOutstanding < 0 ? (
+              <span className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-lg font-mono font-semibold hidden sm:inline">
+                Advance: {formatCurrency(Math.abs(outstandingLedger.netOutstanding))} (Cr)
+              </span>
+            ) : (
               <span className="text-[11px] bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded-lg font-mono font-semibold hidden sm:inline">
-                Due: {formatCurrency(outstandingLedger.totalOutstanding)}
+                Due: ₹0.00
               </span>
             )}
             {activeTab !== 'place_order' && (
@@ -1574,8 +1583,12 @@ function CustomerPortal({
               </p>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-right">
-              <span className="text-[10px] text-slate-500 block uppercase font-semibold">Outstanding Balance</span>
-              <span className="text-lg font-bold font-mono text-slate-900">{formatCurrency(outstandingLedger.totalOutstanding)}</span>
+              <span className="text-[10px] text-slate-500 block uppercase font-semibold">Net Outstanding Balance</span>
+              <span className={`text-lg font-bold font-mono ${outstandingLedger.netOutstanding < 0 ? 'text-emerald-700' : outstandingLedger.netOutstanding > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                {outstandingLedger.netOutstanding < 0
+                  ? `${formatCurrency(Math.abs(outstandingLedger.netOutstanding))} (Cr)`
+                  : formatCurrency(outstandingLedger.netOutstanding)}
+              </span>
             </div>
           </div>
           {/* Modular Sub-Navigation Bar */}
@@ -3417,53 +3430,336 @@ function CustomerPortal({
 
 
       {/* MODULE 4: OUTSTANDING LEDGER */}
-      {activeTab === 'outstanding_ledger' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
-              <span className="text-slate-500 text-xs font-bold block uppercase">Total Outstanding</span>
-              <div className="text-2xl font-black text-rose-600 mt-1">{formatCurrency(outstandingLedger.totalOutstanding)}</div>
+      {activeTab === 'outstanding_ledger' && (() => {
+        const allItems = outstandingLedger.breakdownItems || [];
+        const displayedItems = allItems.filter(it => {
+          if (outstandingTypeFilter === 'unpaid') return it.itemKind === 'bill' && it.billType === 'unpaid';
+          if (outstandingTypeFilter === 'partial') return it.itemKind === 'bill' && it.billType === 'partial';
+          if (outstandingTypeFilter === 'payment_on_account') return it.itemKind === 'payment';
+          return true;
+        });
+
+        return (
+          <div className="space-y-6 animate-fade-in">
+            {/* Aging & Outstanding KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Net Outstanding */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs font-bold uppercase block tracking-wider">Net Outstanding</span>
+                  {outstandingLedger.netOutstanding < 0 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Credit Balance
+                    </span>
+                  ) : outstandingLedger.netOutstanding > 0 ? (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      Payment Due
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                      Settled
+                    </span>
+                  )}
+                </div>
+                <div className={`text-2xl font-black mt-2 font-mono ${
+                  outstandingLedger.netOutstanding < 0 
+                    ? 'text-emerald-600' 
+                    : outstandingLedger.netOutstanding > 0 
+                      ? 'text-rose-600' 
+                      : 'text-slate-900'
+                }`}>
+                  {outstandingLedger.netOutstanding < 0
+                    ? `${formatCurrency(Math.abs(outstandingLedger.netOutstanding))} (Cr)`
+                    : formatCurrency(outstandingLedger.netOutstanding)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium flex items-center justify-between">
+                  <span>Gross Bills: <strong className="text-slate-800 font-mono">{formatCurrency(outstandingLedger.totalBillsDue)}</strong></span>
+                  <span>Advance: <strong className="text-emerald-700 font-mono">{formatCurrency(outstandingLedger.totalPaymentOnAccount)}</strong></span>
+                </div>
+              </div>
+
+              {/* Card 2: Unpaid & Partial Bills */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs font-bold uppercase block tracking-wider">Unpaid Bills Due</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono">
+                    {outstandingLedger.bills.length} Bill(s)
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-rose-600 mt-2 font-mono">
+                  {formatCurrency(outstandingLedger.totalBillsDue)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                  <span className="font-semibold text-rose-600">{outstandingLedger.unpaidBills.length} Unpaid</span> &bull; <span className="font-semibold text-sky-700">{outstandingLedger.partialBills.length} Partial Paid</span>
+                </div>
+              </div>
+
+              {/* Card 3: Payment on Account */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs font-bold uppercase block tracking-wider">Payment on Account</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Advance Credit
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-emerald-600 mt-2 font-mono">
+                  {formatCurrency(outstandingLedger.totalPaymentOnAccount)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                  {outstandingLedger.paymentsOnAccount.length > 0 
+                    ? `${outstandingLedger.paymentsOnAccount.length} unallocated receipt(s)` 
+                    : 'No unallocated receipts'}
+                </div>
+              </div>
+
+              {/* Card 4: Aging */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 text-xs font-bold uppercase block tracking-wider">0 - 30 Days Aging</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    Current
+                  </span>
+                </div>
+                <div className="text-2xl font-black text-slate-800 mt-2 font-mono">
+                  {formatCurrency(outstandingLedger.aging0to30)}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                  Overdue (31d+): <span className={`font-mono font-bold ${(outstandingLedger.aging31to60 + outstandingLedger.aging60Plus) > 0 ? 'text-rose-600' : 'text-slate-600'}`}>{formatCurrency(outstandingLedger.aging31to60 + outstandingLedger.aging60Plus)}</span>
+                </div>
+              </div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
-              <span className="text-slate-500 text-xs font-bold block uppercase">0 - 30 Days Aging</span>
-              <div className="text-2xl font-black text-emerald-600 mt-1">{formatCurrency(outstandingLedger.aging0to30)}</div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
-              <span className="text-slate-500 text-xs font-bold block uppercase">31 - 60 Days Aging</span>
-              <div className="text-2xl font-black text-amber-600 mt-1">{formatCurrency(outstandingLedger.aging31to60)}</div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
-              <span className="text-slate-500 text-xs font-bold block uppercase">60+ Days Overdue</span>
-              <div className="text-2xl font-black text-rose-700 mt-1">{formatCurrency(outstandingLedger.aging60Plus)}</div>
+
+            {/* Breakdown Table Card */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Unpaid Dues &amp; Payment on Account Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Statement of all unpaid bills, partially paid bills, and unallocated advance payments on account.
+                  </p>
+                </div>
+                {/* Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setOutstandingTypeFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      outstandingTypeFilter === 'all'
+                        ? 'bg-slate-900 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    All ({outstandingLedger.breakdownItems.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOutstandingTypeFilter('unpaid')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      outstandingTypeFilter === 'unpaid'
+                        ? 'bg-slate-900 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Unpaid Bills ({outstandingLedger.unpaidBills.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOutstandingTypeFilter('partial')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      outstandingTypeFilter === 'partial'
+                        ? 'bg-slate-900 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Partial Paid ({outstandingLedger.partialBills.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOutstandingTypeFilter('payment_on_account')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      outstandingTypeFilter === 'payment_on_account'
+                        ? 'bg-slate-900 text-white shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                    }`}
+                  >
+                    Payment on Account ({outstandingLedger.paymentsOnAccount.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50/90 border-b border-slate-200 font-bold">
+                    <tr>
+                      <th className="py-3 px-4">Doc / Ref No</th>
+                      <th className="py-3 px-4">Type &amp; Status</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Due Date</th>
+                      <th className="py-3 px-4 text-right">Total Amount</th>
+                      <th className="py-3 px-4 text-right">Paid / Adjusted</th>
+                      <th className="py-3 px-4 text-right">Balance Due / (Credit)</th>
+                      <th className="py-3 px-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {displayedItems.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="py-12 text-center text-slate-400">
+                          <div className="font-bold text-slate-600 text-sm">No items found matching the selected filter</div>
+                          <p className="text-xs text-slate-400 mt-1">Try selecting 'All' to view all dues and payments.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      displayedItems.map(item => {
+                        const isBill = item.itemKind === 'bill';
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                            {/* Doc No */}
+                            <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                              <div className="flex items-center space-x-1.5">
+                                <span>{item.id}</span>
+                              </div>
+                              {item.orderId && item.orderId !== 'N/A' && (
+                                <span className="text-[10px] text-slate-500 font-normal font-sans block">
+                                  Ref: {item.orderId}
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Type & Status */}
+                            <td className="py-3.5 px-4">
+                              {isBill ? (
+                                item.billType === 'partial' ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                    Partial Paid Bill
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    Unpaid Bill
+                                  </span>
+                                )
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Payment on Account
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Date */}
+                            <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                              {formatDate(item.date || item.issueDate)}
+                            </td>
+
+                            {/* Due Date */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              {isBill ? (
+                                <div>
+                                  <span className="text-slate-700">{formatDate(item.dueDate)}</span>
+                                  {item.isOverdue ? (
+                                    <span className="text-[9px] block text-rose-600 font-bold">
+                                      {item.overdueDays}d overdue
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] block text-emerald-600 font-medium">
+                                      Current
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">— On Account</span>
+                              )}
+                            </td>
+
+                            {/* Total Amount */}
+                            <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">
+                              {formatCurrency(item.total)}
+                            </td>
+
+                            {/* Paid / Adjusted */}
+                            <td className="py-3.5 px-4 text-right font-mono text-slate-600">
+                              {isBill ? (
+                                item.paidAmount > 0 ? (
+                                  <span className="text-emerald-700 font-semibold">{formatCurrency(item.paidAmount)}</span>
+                                ) : (
+                                  <span className="text-slate-400">₹0.00</span>
+                                )
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+
+                            {/* Balance Due / Effect */}
+                            <td className="py-3.5 px-4 text-right font-mono font-bold text-sm">
+                              {isBill ? (
+                                <span className="text-rose-600">
+                                  {formatCurrency(item.balanceDue)}
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600">
+                                  -{formatCurrency(item.amount)}
+                                  <span className="text-[10px] font-normal ml-1 text-emerald-700 font-sans">(Credit)</span>
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Action */}
+                            <td className="py-3.5 px-4 text-center">
+                              {isBill ? (
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenInvoice && onOpenInvoice(item.raw || item)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors cursor-pointer"
+                                >
+                                  View Bill
+                                </button>
+                              ) : (
+                                <span className="text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  {item.paymentMode || 'Receipt'}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+
+                  {/* Summary Footer */}
+                  <tfoot className="bg-slate-50 font-semibold border-t-2 border-slate-200 text-xs">
+                    <tr>
+                      <td colSpan="4" className="py-3.5 px-4 text-slate-700 font-bold">
+                        Net Outstanding Settlement Summary
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-slate-900 font-bold">
+                        {formatCurrency(outstandingLedger.totalBillsDue)}
+                        <span className="block text-[9px] font-normal text-slate-500">Gross Bills Due</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono text-emerald-700 font-bold">
+                        {outstandingLedger.totalPaymentOnAccount > 0 ? `-${formatCurrency(outstandingLedger.totalPaymentOnAccount)}` : '₹0.00'}
+                        <span className="block text-[9px] font-normal text-slate-500">On Account Credit</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
+                        <span className={outstandingLedger.netOutstanding < 0 ? 'text-emerald-700' : outstandingLedger.netOutstanding > 0 ? 'text-rose-600' : 'text-slate-800'}>
+                          {outstandingLedger.netOutstanding < 0
+                            ? `${formatCurrency(Math.abs(outstandingLedger.netOutstanding))} (Cr)`
+                            : formatCurrency(outstandingLedger.netOutstanding)}
+                        </span>
+                        <span className="block text-[9px] font-normal text-slate-500">
+                          {outstandingLedger.netOutstanding < 0 ? 'In Advance (Credit)' : 'Net Amount Payable'}
+                        </span>
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-slate-800">
-            <h3 className="font-extrabold text-slate-900 text-base mb-1">Unpaid Dues Breakdown</h3>
-            <table className="w-full text-left text-xs text-slate-700 mt-3">
-              <thead className="text-[11px] uppercase tracking-wider text-slate-600 bg-slate-50 border-y border-slate-200 rounded-xl">
-                <tr>
-                  <th className="py-3 px-4 font-bold">Invoice No</th>
-                  <th className="py-3 px-4 font-bold">Issue Date</th>
-                  <th className="py-3 px-4 font-bold">Due Date</th>
-                  <th className="py-3 px-4 font-bold">Total Amount</th>
-                  <th className="py-3 px-4 font-bold">Balance Pending</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {outstandingLedger.bills.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50/70">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{b.id}</td>
-                    <td className="py-3.5 px-4">{formatDate(b.issueDate)}</td>
-                    <td className="py-3.5 px-4">{formatDate(b.dueDate)}</td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{formatCurrency(b.total)}</td>
-                    <td className="py-3.5 px-4 font-extrabold text-rose-600">{formatCurrency(b.balanceDue)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        );
+      })()}
       {/* MODULE 5: GENERAL LEDGER */}
       {activeTab === 'general_ledger' && (
         <div className="space-y-6 animate-fade-in">

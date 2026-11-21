@@ -2013,11 +2013,12 @@ function AdminPortal({
     return window.uBMS.computeCustomerGeneralLedger(selectedLedgerPartyId, invoices, payments);
   }, [selectedLedgerPartyId, invoices, payments]);
 
-  // MODULE 6: OUTSTANDING LEDGER (AGING ANALYSIS)
+  // MODULE 6: OUTSTANDING LEDGER (AGING ANALYSIS & PAYMENTS ON ACCOUNT)
   const [outstandingPartyFilter, setOutstandingPartyFilter] = React.useState('all');
+  const [adminOutstandingTypeFilter, setAdminOutstandingTypeFilter] = React.useState('all'); // 'all' | 'unpaid' | 'partial' | 'payment_on_account'
   const globalOutstanding = React.useMemo(() => {
     const now = new Date();
-    let totalOutstanding = 0;
+    let totalBillsDue = 0;
     let aging0to30 = 0;
     let aging31to60 = 0;
     let aging60Plus = 0;
@@ -2026,8 +2027,13 @@ function AdminPortal({
     users.customers.forEach(c => {
       partyMap[c.id] = {
         customer: c,
+        totalBillsDue: 0,
+        paymentsOnAccount: 0,
+        netOutstanding: 0,
         totalDue: 0,
         unpaidCount: 0,
+        partialCount: 0,
+        paymentOnAccountCount: 0,
         aging0to30: 0,
         aging31to60: 0,
         aging60Plus: 0,
@@ -2040,9 +2046,14 @@ function AdminPortal({
       return Number(i.balanceDue) > 0;
     });
 
+    const unpaidBills = [];
+    const partialBills = [];
+
     const bills = unpaidInvoices.map(inv => {
       const due = Number(inv.balanceDue) || 0;
-      totalOutstanding += due;
+      const paid = Number(inv.paidAmount) || 0;
+      const total = Number(inv.total) || 0;
+      totalBillsDue += due;
 
       const issueDate = new Date(inv.issueDate);
       const diffDays = Math.max(0, Math.floor((now - issueDate) / (1000 * 60 * 60 * 24)));
@@ -2053,9 +2064,16 @@ function AdminPortal({
       else if (diffDays <= 60) aging31to60 += due;
       else aging60Plus += due;
 
+      const billType = (inv.status === 'partial' || paid > 0) ? 'partial' : 'unpaid';
+
       if (partyMap[inv.customerId]) {
+        partyMap[inv.customerId].totalBillsDue += due;
         partyMap[inv.customerId].totalDue += due;
-        partyMap[inv.customerId].unpaidCount += 1;
+        if (billType === 'partial') {
+          partyMap[inv.customerId].partialCount += 1;
+        } else {
+          partyMap[inv.customerId].unpaidCount += 1;
+        }
         if (diffDays <= 30) partyMap[inv.customerId].aging0to30 += due;
         else if (diffDays <= 60) partyMap[inv.customerId].aging31to60 += due;
         else partyMap[inv.customerId].aging60Plus += due;
@@ -2064,23 +2082,91 @@ function AdminPortal({
         }
       }
 
-      return {
+      const billObj = {
         ...inv,
+        itemKind: 'bill',
+        billType,
+        statusLabel: billType === 'partial' ? 'Partially Paid' : 'Unpaid',
+        total,
+        paidAmount: paid,
+        balanceDue: due,
+        balanceEffect: due,
         diffDays,
         isOverdue,
         overdueDays
       };
+
+      if (billType === 'partial') {
+        partialBills.push(billObj);
+      } else {
+        unpaidBills.push(billObj);
+      }
+
+      return billObj;
     });
+
+    // Payments on account (Unallocated / Advance receipts)
+    const paymentsOnAccount = (payments || []).filter(p => {
+      if (outstandingPartyFilter !== 'all' && p.customerId !== outstandingPartyFilter) return false;
+      const invId = (p.invoiceId || '').trim().toLowerCase();
+      return !invId || invId === 'general account' || invId === 'on account' || invId === 'n/a' || invId === 'advance' || invId === 'account' || invId.includes('account');
+    }).map(p => {
+      const amt = Number(p.amount) || 0;
+      if (partyMap[p.customerId]) {
+        partyMap[p.customerId].paymentsOnAccount += amt;
+        partyMap[p.customerId].paymentOnAccountCount += 1;
+      }
+      return {
+        id: p.id,
+        customerId: p.customerId,
+        customerName: p.customerName,
+        customerCompany: p.customerCompany,
+        itemKind: 'payment',
+        billType: 'payment_on_account',
+        statusLabel: 'Payment on Account',
+        date: p.date,
+        amount: amt,
+        total: amt,
+        paidAmount: amt,
+        balanceDue: 0,
+        balanceEffect: -amt,
+        paymentMode: p.paymentMode || 'Cash',
+        referenceNumber: p.referenceNumber || p.id,
+        orderId: p.referenceNumber || 'On Account',
+        receivedBy: p.receivedBy || '',
+        notes: p.notes || 'Payment on Account (Advance)'
+      };
+    });
+
+    // Calculate net outstanding for each party
+    Object.values(partyMap).forEach(p => {
+      p.netOutstanding = p.totalBillsDue - p.paymentsOnAccount;
+    });
+
+    const totalPaymentOnAccount = paymentsOnAccount.reduce((sum, p) => sum + p.amount, 0);
+    const netOutstanding = totalBillsDue - totalPaymentOnAccount;
+
+    const breakdownItems = [
+      ...bills,
+      ...paymentsOnAccount
+    ].sort((a, b) => new Date(b.date || b.issueDate) - new Date(a.date || a.issueDate));
 
     return {
       bills,
-      totalOutstanding,
+      unpaidBills,
+      partialBills,
+      paymentsOnAccount,
+      breakdownItems,
+      totalBillsDue,
+      totalPaymentOnAccount,
+      netOutstanding,
+      totalOutstanding: totalBillsDue,
       aging0to30,
       aging31to60,
       aging60Plus,
-      partyBreakdown: Object.values(partyMap).filter(p => p.totalDue > 0)
+      partyBreakdown: Object.values(partyMap).filter(p => p.totalBillsDue > 0 || p.paymentsOnAccount > 0)
     };
-  }, [invoices, users.customers, outstandingPartyFilter]);
+  }, [invoices, payments, users.customers, outstandingPartyFilter]);
 
     // --- MODULE 7: SHOP-FLOOR PRODUCTION PIPELINE HANDLERS ---
   const [productionFilterStage, setProductionFilterStage] = React.useState('all');
@@ -6873,29 +6959,89 @@ function AdminPortal({
           </div>
 
           {/* Aging Summary KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Total Outstanding</span>
-              <div className="text-2xl font-black text-rose-600 mt-1 font-mono">
-                {formatCurrency(globalOutstanding.totalOutstanding)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Net Outstanding */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Net Outstanding</span>
+                {globalOutstanding.netOutstanding < 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Net Advance (Credit)
+                  </span>
+                ) : globalOutstanding.netOutstanding > 0 ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    Net Receivables Due
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    Settled
+                  </span>
+                )}
+              </div>
+              <div className={`text-2xl font-black mt-2 font-mono ${
+                globalOutstanding.netOutstanding < 0
+                  ? 'text-emerald-600'
+                  : globalOutstanding.netOutstanding > 0
+                    ? 'text-rose-600'
+                    : 'text-slate-900'
+              }`}>
+                {globalOutstanding.netOutstanding < 0
+                  ? `${formatCurrency(Math.abs(globalOutstanding.netOutstanding))} (Cr)`
+                  : formatCurrency(globalOutstanding.netOutstanding)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium flex items-center justify-between">
+                <span>Bills: <strong className="text-slate-800 font-mono">{formatCurrency(globalOutstanding.totalBillsDue)}</strong></span>
+                <span>Advance: <strong className="text-emerald-700 font-mono">{formatCurrency(globalOutstanding.totalPaymentOnAccount)}</strong></span>
               </div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">0 - 30 Days (Current)</span>
-              <div className="text-2xl font-black text-emerald-600 mt-1 font-mono">
+
+            {/* Card 2: Total Bills Due */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Total Bills Due</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-mono">
+                  {globalOutstanding.bills.length} Bill(s)
+                </span>
+              </div>
+              <div className="text-2xl font-black text-rose-600 mt-2 font-mono">
+                {formatCurrency(globalOutstanding.totalBillsDue)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                <span className="font-semibold text-rose-600">{globalOutstanding.unpaidBills.length} Unpaid</span> &bull; <span className="font-semibold text-sky-700">{globalOutstanding.partialBills.length} Partial Paid</span>
+              </div>
+            </div>
+
+            {/* Card 3: Payments on Account */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">Payment on Account</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Advance Credit
+                </span>
+              </div>
+              <div className="text-2xl font-black text-emerald-600 mt-2 font-mono">
+                {formatCurrency(globalOutstanding.totalPaymentOnAccount)}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                {globalOutstanding.paymentsOnAccount.length > 0
+                  ? `${globalOutstanding.paymentsOnAccount.length} unallocated receipt(s)`
+                  : 'No unallocated receipts'}
+              </div>
+            </div>
+
+            {/* Card 4: Aging */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">0 - 30 Days Aging</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  Current
+                </span>
+              </div>
+              <div className="text-2xl font-black text-slate-800 mt-2 font-mono">
                 {formatCurrency(globalOutstanding.aging0to30)}
               </div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">31 - 60 Days (Watch)</span>
-              <div className="text-2xl font-black text-amber-600 mt-1 font-mono">
-                {formatCurrency(globalOutstanding.aging31to60)}
-              </div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-              <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider block">60+ Days (Critical)</span>
-              <div className="text-2xl font-black text-rose-700 mt-1 font-mono">
-                {formatCurrency(globalOutstanding.aging60Plus)}
+              <div className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-100 font-medium">
+                Overdue (31d+): <span className={`font-mono font-bold ${(globalOutstanding.aging31to60 + globalOutstanding.aging60Plus) > 0 ? 'text-rose-600' : 'text-slate-600'}`}>{formatCurrency(globalOutstanding.aging31to60 + globalOutstanding.aging60Plus)}</span>
               </div>
             </div>
           </div>
@@ -6912,12 +7058,28 @@ function AdminPortal({
                         <div className="font-bold text-slate-900 text-xs">{p.customer.company}</div>
                         <div className="text-[10px] text-slate-500">{p.customer.name}</div>
                       </div>
-                      <span className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-bold px-1.5 py-0.5 rounded font-mono">
-                        {p.unpaidCount} Bill(s)
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 font-bold px-1.5 py-0.5 rounded font-mono">
+                          {p.unpaidCount + p.partialCount} Bill(s)
+                        </span>
+                        {p.paymentOnAccountCount > 0 && (
+                          <span className="text-[9px] bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold px-1.5 py-0.2 rounded font-mono">
+                            {p.paymentOnAccountCount} On Account
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-baseline justify-between pt-1">
+                      <div className={`font-mono font-black text-base ${p.netOutstanding < 0 ? 'text-emerald-700' : p.netOutstanding > 0 ? 'text-rose-700' : 'text-slate-900'}`}>
+                        {p.netOutstanding < 0 ? `${formatCurrency(Math.abs(p.netOutstanding))} (Cr)` : formatCurrency(p.netOutstanding)}
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-500">
+                        {p.netOutstanding < 0 ? 'Advance' : 'Net Due'}
                       </span>
                     </div>
-                    <div className="font-mono font-bold text-rose-700 text-base">
-                      {formatCurrency(p.totalDue)}
+                    <div className="text-[10px] text-slate-500 flex justify-between">
+                      <span>Bills: <strong className="text-slate-700 font-mono">{formatCurrency(p.totalBillsDue)}</strong></span>
+                      <span>Adv: <strong className="text-emerald-700 font-mono">{formatCurrency(p.paymentsOnAccount)}</strong></span>
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
                       <span>0-30d: <strong>{formatCurrency(p.aging0to30)}</strong></span>
@@ -6929,75 +7091,252 @@ function AdminPortal({
             </div>
           )}
 
-          {/* Unpaid / Overdue Bills Breakdown Table */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
-            <h4 className="font-bold text-slate-900 text-sm">Unpaid Dues &amp; Aging Bills Breakdown</h4>
+          {/* Unpaid, Partial Bills & Payment on Account Breakdown Table */}
+          {(() => {
+            const allBreakdown = globalOutstanding.breakdownItems || [];
+            const displayedItems = allBreakdown.filter(it => {
+              if (adminOutstandingTypeFilter === 'unpaid') return it.itemKind === 'bill' && it.billType === 'unpaid';
+              if (adminOutstandingTypeFilter === 'partial') return it.itemKind === 'bill' && it.billType === 'partial';
+              if (adminOutstandingTypeFilter === 'payment_on_account') return it.itemKind === 'payment';
+              return true;
+            });
 
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Invoice No</th>
-                    <th className="py-3 px-4 font-semibold">Customer Party</th>
-                    <th className="py-3 px-4 font-semibold">Issue Date</th>
-                    <th className="py-3 px-4 font-semibold">Due Date</th>
-                    <th className="py-3 px-4 font-semibold">Aging / Overdue Status</th>
-                    <th className="py-3 px-4 text-right font-semibold">Total Amount</th>
-                    <th className="py-3 px-4 text-right font-semibold">Balance Pending</th>
-                    <th className="py-3 px-4 text-right font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {globalOutstanding.bills.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="py-14 text-center text-slate-400">
-                        <div className="text-emerald-600 font-bold text-sm">Zero Outstanding Dues!</div>
-                        <p className="text-xs text-slate-400 mt-1">All invoices are settled in full. No accounts receivable pending.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    globalOutstanding.bills.map(b => (
-                      <tr key={b.id} className="hover:bg-slate-50/70">
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{b.id}</td>
-                        <td className="py-3.5 px-4 font-medium text-slate-900">
-                          <div>{b.customerCompany || b.customerName}</div>
-                          <span className="text-[10px] text-slate-500 font-mono">Ref: {b.orderId}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600">{formatDate(b.issueDate)}</td>
-                        <td className="py-3.5 px-4 text-slate-600">{formatDate(b.dueDate)}</td>
-                        <td className="py-3.5 px-4">
-                          {b.isOverdue ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                              {b.overdueDays} Days Overdue
-                            </span>
-                          ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              Current ({b.diffDays}d since bill)
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">
-                          {formatCurrency(b.total)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-extrabold text-rose-600 font-mono text-sm">
-                          {formatCurrency(b.balanceDue)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleInitiatePaymentForInvoice(b)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
-                          >
-                            Record Payment
-                          </button>
-                        </td>
+            return (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs text-slate-800 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm">Unpaid Dues, Partial Bills &amp; Payment on Account Breakdown</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Detailed registry of accounts receivable: unpaid bills, partially paid invoices, and advance receipts on account.
+                    </p>
+                  </div>
+                  {/* Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/80 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setAdminOutstandingTypeFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                        adminOutstandingTypeFilter === 'all'
+                          ? 'bg-slate-900 text-white shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      All ({globalOutstanding.breakdownItems.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminOutstandingTypeFilter('unpaid')}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                        adminOutstandingTypeFilter === 'unpaid'
+                          ? 'bg-slate-900 text-white shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      Unpaid Bills ({globalOutstanding.unpaidBills.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminOutstandingTypeFilter('partial')}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                        adminOutstandingTypeFilter === 'partial'
+                          ? 'bg-slate-900 text-white shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      Partial Paid ({globalOutstanding.partialBills.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminOutstandingTypeFilter('payment_on_account')}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                        adminOutstandingTypeFilter === 'payment_on_account'
+                          ? 'bg-slate-900 text-white shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      }`}
+                    >
+                      Payment on Account ({globalOutstanding.paymentsOnAccount.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 font-bold">
+                      <tr>
+                        <th className="py-3 px-4 font-semibold">Doc / Ref No</th>
+                        <th className="py-3 px-4 font-semibold">Customer Party</th>
+                        <th className="py-3 px-4 font-semibold">Type &amp; Status</th>
+                        <th className="py-3 px-4 font-semibold">Date</th>
+                        <th className="py-3 px-4 font-semibold">Due Date</th>
+                        <th className="py-3 px-4 text-right font-semibold">Total Amount</th>
+                        <th className="py-3 px-4 text-right font-semibold">Paid / Adjusted</th>
+                        <th className="py-3 px-4 text-right font-semibold">Balance Due / (Credit)</th>
+                        <th className="py-3 px-4 text-right font-semibold">Action</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {displayedItems.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="py-14 text-center text-slate-400">
+                            <div className="text-slate-600 font-bold text-sm">No items matching current filter</div>
+                            <p className="text-xs text-slate-400 mt-1">Switch to 'All' or select a different party filter.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        displayedItems.map(item => {
+                          const isBill = item.itemKind === 'bill';
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                              {/* Doc / Ref No */}
+                              <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                                <div>{item.id}</div>
+                                {item.orderId && item.orderId !== 'N/A' && (
+                                  <span className="text-[10px] text-slate-500 font-mono font-normal block">
+                                    Ref: {item.orderId}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Customer Party */}
+                              <td className="py-3.5 px-4 font-medium text-slate-900">
+                                <div>{item.customerCompany || item.customerName}</div>
+                                {!isBill && (
+                                  <span className="text-[10px] text-slate-500 block font-normal">
+                                    Mode: {item.paymentMode || 'Cash'}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Type & Status */}
+                              <td className="py-3.5 px-4">
+                                {isBill ? (
+                                  item.billType === 'partial' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                      Partial Paid Bill
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                      Unpaid Bill
+                                    </span>
+                                  )
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Payment on Account
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Date */}
+                              <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                                {formatDate(item.date || item.issueDate)}
+                              </td>
+
+                              {/* Due Date & Aging */}
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {isBill ? (
+                                  <div>
+                                    <span className="text-slate-700">{formatDate(item.dueDate)}</span>
+                                    {item.isOverdue ? (
+                                      <span className="text-[9px] block text-rose-600 font-bold">
+                                        {item.overdueDays}d overdue
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] block text-emerald-600 font-medium">
+                                        Current ({item.diffDays}d)
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 italic text-[11px]">— On Account</span>
+                                )}
+                              </td>
+
+                              {/* Total Amount */}
+                              <td className="py-3.5 px-4 text-right font-bold text-slate-900 font-mono">
+                                {formatCurrency(item.total)}
+                              </td>
+
+                              {/* Paid / Adjusted */}
+                              <td className="py-3.5 px-4 text-right font-mono text-slate-600">
+                                {isBill ? (
+                                  item.paidAmount > 0 ? (
+                                    <span className="text-emerald-700 font-semibold">{formatCurrency(item.paidAmount)}</span>
+                                  ) : (
+                                    <span className="text-slate-400">₹0.00</span>
+                                  )
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </td>
+
+                              {/* Balance Due / Impact */}
+                              <td className="py-3.5 px-4 text-right font-mono font-bold text-sm">
+                                {isBill ? (
+                                  <span className="text-rose-600 font-extrabold">
+                                    {formatCurrency(item.balanceDue)}
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-600 font-extrabold">
+                                    -{formatCurrency(item.amount)}
+                                    <span className="text-[10px] font-normal ml-1 text-emerald-700 font-sans">(Credit)</span>
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Action */}
+                              <td className="py-3.5 px-4 text-right">
+                                {isBill ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleInitiatePaymentForInvoice(item)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 rounded-xl shadow-xs transition-colors cursor-pointer"
+                                  >
+                                    Record Payment
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200">
+                                    Advance / Credit
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+
+                    {/* Summary Footer */}
+                    <tfoot className="bg-slate-50 font-semibold border-t-2 border-slate-200 text-xs">
+                      <tr>
+                        <td colSpan="5" className="py-3.5 px-4 text-slate-700 font-bold">
+                          Net Outstanding Settlement Summary
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-slate-900 font-bold">
+                          {formatCurrency(globalOutstanding.totalBillsDue)}
+                          <span className="block text-[9px] font-normal text-slate-500">Gross Bills Due</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-emerald-700 font-bold">
+                          {globalOutstanding.totalPaymentOnAccount > 0 ? `-${formatCurrency(globalOutstanding.totalPaymentOnAccount)}` : '₹0.00'}
+                          <span className="block text-[9px] font-normal text-slate-500">On Account Credit</span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono font-black text-sm">
+                          <span className={globalOutstanding.netOutstanding < 0 ? 'text-emerald-700' : globalOutstanding.netOutstanding > 0 ? 'text-rose-600' : 'text-slate-800'}>
+                            {globalOutstanding.netOutstanding < 0
+                              ? `${formatCurrency(Math.abs(globalOutstanding.netOutstanding))} (Cr)`
+                              : formatCurrency(globalOutstanding.netOutstanding)}
+                          </span>
+                          <span className="block text-[9px] font-normal text-slate-500">
+                            {globalOutstanding.netOutstanding < 0 ? 'In Advance (Credit)' : 'Net Amount Due'}
+                          </span>
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
